@@ -13,9 +13,8 @@ import { createLogActions } from '../lib/actions/logActions.js';
 const LEGACY_KEY = 'farm-inventory-movements';
 const LEDGER_KEY = 'farm-inventory-ledger';
 
-// One-time migration from an older storage format. Runs only as the lazy
-// initial value for the `LEDGER_KEY` state below — once anything is saved
-// under that key, this is never consulted again.
+// Keep the legacy key readable so existing browser data can be migrated to
+// the ledger without requiring the user to re-enter historical movements.
 function readLegacyTransactions() {
   try {
     const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || '[]');
@@ -32,14 +31,9 @@ function readLegacyTransactions() {
 
 export { INVENTORY_TRANSACTION_TYPES };
 
-// This hook is deliberately thin: it owns the state (five usePersistentState
-// slices) and composes the action modules in src/lib/actions/, each of
-// which groups one domain's CRUD. Cross-domain effects — a feed expense
-// moving inventory, a daily log consuming it, deleting a unit cascading
-// into its logs/expenses/transactions — are why those modules take each
-// other's setters as arguments rather than being fully independent hooks;
-// the actual math for each of those effects lives in src/lib/*Linking.js
-// as plain, testable functions.
+// This hook is the application state boundary. It owns the persistent data
+// slices and composes domain action factories; calculations and cross-domain
+// synchronization live in src/lib so they can be tested without React.
 export function useFarmData(showToast) {
   const [units, setUnits] = usePersistentState('farm-units', []);
   const [logs, setLogs] = usePersistentState('farm-logs', []);
@@ -65,10 +59,9 @@ export function useFarmData(showToast) {
     updateInventoryMove: inventoryActions.updateInventoryTransaction,
     removeInventoryMove: inventoryActions.removeInventoryTransaction,
 
-    // Public signatures kept identical to before (itemId first, optional
-    // txs/exclude overrides) even though the underlying pure functions now
-    // take inventory/transactions explicitly — existing callers (e.g.
-    // DailyLogView's getBalance(i.id)) don't need to change.
+    // Keep the hook API stable while the ledger implementation remains pure.
+    // Existing views can request a balance or cost without knowing how the
+    // underlying inventory state is stored.
     getExpenseUnitCost,
     getBalance: (itemId, txs = transactions, excludedId = null) => getBalanceRaw(inventory, txs, itemId, excludedId),
     getWeightedAverageCost: (itemId, txs = transactions) => getWeightedAverageCostRaw(inventory, txs, itemId),
