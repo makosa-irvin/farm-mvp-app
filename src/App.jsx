@@ -23,6 +23,8 @@ export default function App() {
 
   const farm = useFarmData(showToast);
 
+  // App owns navigation only. Feature behavior stays in the views and the
+  // farm hook, which keeps this component as the composition boundary.
   return (
     <div className="farm-app min-h-screen pb-16">
       <header className="sticky top-0 z-10 px-5 pt-5 pb-3" style={{ background: 'var(--bg)', borderBottom: '1px solid var(--line)' }}>
