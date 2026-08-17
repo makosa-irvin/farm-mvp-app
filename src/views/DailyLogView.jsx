@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, Trash2 } from 'lucide-react';
+import { ClipboardList, Trash2, Pencil, X, Save } from 'lucide-react';
 import TagChip from '../components/TagChip.jsx';
 import FieldLabel from '../components/FieldLabel.jsx';
 import EmptyState from '../components/EmptyState.jsx';
@@ -7,7 +7,7 @@ import { inputClass, inputStyle } from '../lib/styleTokens.js';
 import { UNIT_TYPES } from '../constants.js';
 import { uid, todayISO, typeOf, fmtNum } from '../lib/helpers.js';
 
-export default function DailyLogView({ units, logs, onAdd, onRemove, goTo }) {
+export default function DailyLogView({ units, logs, inventory = [], getBalance, onAdd, onUpdate, onRemove, goTo }) {
   const [unitId, setUnitId] = useState(units[0]?.id || '');
   const [date, setDate] = useState(todayISO());
   const [large, setLarge] = useState('');
@@ -16,15 +16,20 @@ export default function DailyLogView({ units, logs, onAdd, onRemove, goTo }) {
   const [broken, setBroken] = useState('');
   const [qty, setQty] = useState('');
   const [loss, setLoss] = useState('');
-  const [feedKg, setFeedKg] = useState('');
+  const [feedQty, setFeedQty] = useState('');
+  const [feedItemId, setFeedItemId] = useState('');
   const [mortality, setMortality] = useState('');
   const [notes, setNotes] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
   const unit = units.find((u) => u.id === unitId);
 
+  const feedItems = inventory.filter(i => i.category === 'Feed');
+
   useEffect(() => {
     if (!unitId && units[0]) setUnitId(units[0].id);
-  }, [units]);
+    if (!feedItemId && feedItems[0]) setFeedItemId(feedItems[0].id);
+  }, [units, inventory, feedItemId, unitId]);
 
   if (units.length === 0) {
     return (
@@ -40,9 +45,14 @@ export default function DailyLogView({ units, logs, onAdd, onRemove, goTo }) {
 
   const t = unit ? typeOf(unit) : UNIT_TYPES[0];
 
+  function editLog(l) {
+    setEditingId(l.id); setUnitId(l.unitId); setDate(l.date); setMortality(String(l.mortality || 0)); setFeedQty(String(l.feedQuantity ?? l.feedKg ?? '')); setFeedItemId(l.feedItemId || feedItems[0]?.id || ''); setNotes(l.notes || '');
+    if (l.grades) { setLarge(String(l.grades.large || 0)); setMedium(String(l.grades.medium || 0)); setSmall(String(l.grades.small || 0)); setBroken(String(l.loss || 0)); } else { setQty(String(l.produced || 0)); setLoss(String(l.loss || 0)); }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function reset() {
-    setLarge(''); setMedium(''); setSmall(''); setBroken('');
-    setQty(''); setLoss(''); setFeedKg(''); setMortality(''); setNotes('');
+    setLarge(''); setMedium(''); setSmall(''); setBroken(''); setQty(''); setLoss(''); setFeedQty(''); setFeedItemId(feedItems[0]?.id || ''); setMortality(''); setNotes(''); setEditingId(null);
   }
 
   function submit(ev) {
@@ -58,19 +68,21 @@ export default function DailyLogView({ units, logs, onAdd, onRemove, goTo }) {
       produced = Number(qty) || 0;
     }
     const entry = {
-      id: uid('log'),
+      id: editingId || uid('log'),
       unitId: unit.id,
       date,
       produced,
       grades,
       loss: t.hasGrades ? (Number(broken) || 0) : (Number(loss) || 0),
-      feedKg: Number(feedKg) || 0,
+      feedKg: Number(feedQty) || 0,
+      feedQuantity: Number(feedQty) || 0,
+      feedItemId: Number(feedQty) > 0 ? feedItemId : null,
       mortality: Number(mortality) || 0,
       notes: notes.trim(),
-      createdAt: Date.now(),
+      createdAt: editingId ? (logs.find(l => l.id === editingId)?.createdAt || Date.now()) : Date.now(),
     };
-    onAdd(entry, unit);
-    reset();
+    const saved = editingId ? onUpdate(entry) : onAdd(entry, unit);
+    if (saved !== false) reset();
   }
 
   const recent = logs
@@ -137,9 +149,17 @@ export default function DailyLogView({ units, logs, onAdd, onRemove, goTo }) {
           </div>
         )}
 
-        <div>
-          <FieldLabel>Feed consumed (kg) — optional</FieldLabel>
-          <input type="number" min="0" step="0.1" value={feedKg} onChange={(e) => setFeedKg(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+        <div className="grid grid-cols-2 gap-3.5">
+          <div>
+            <FieldLabel>Feed item</FieldLabel>
+            <select value={feedItemId} onChange={(e) => setFeedItemId(e.target.value)} disabled={feedItems.length === 0} className={inputClass} style={inputStyle}>
+              {feedItems.length === 0 ? <option value="">Add a Feed item in Inventory first</option> : feedItems.map(i => <option key={i.id} value={i.id}>{i.name} · {fmtNum(getBalance ? getBalance(i.id) : i.openingStock || 0, 1)} {i.unit}</option>)}
+            </select>
+          </div>
+          <div>
+            <FieldLabel>Feed consumed ({feedItems.find(i => i.id === feedItemId)?.unit || 'unit'}) — optional</FieldLabel>
+            <input type="number" min="0" step="0.1" value={feedQty} onChange={(e) => setFeedQty(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+          </div>
         </div>
 
         <div>
@@ -147,9 +167,7 @@ export default function DailyLogView({ units, logs, onAdd, onRemove, goTo }) {
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Anything worth remembering about today" className={inputClass} style={inputStyle} />
         </div>
 
-        <button type="submit" className="btn-primary rounded-xl px-5 py-2.5 text-sm w-full sm:w-auto">
-          Save log entry
-        </button>
+        <div className="flex gap-2 flex-wrap"><button type="submit" className="btn-primary rounded-xl px-5 py-2.5 text-sm flex items-center gap-2"><Save size={15}/>{editingId ? 'Save changes' : 'Save log entry'}</button>{editingId && <button type="button" onClick={reset} className="btn-ghost rounded-xl px-4 py-2.5 text-sm flex items-center gap-2"><X size={15}/>Cancel</button>}</div>
       </form>
 
       {recent.length > 0 && (
@@ -167,9 +185,9 @@ export default function DailyLogView({ units, logs, onAdd, onRemove, goTo }) {
                     {l.mortality > 0 ? `${l.mortality} lost` : '—'}
                   </td>
                   <td className="px-5 py-2.5 text-right">
-                    <button onClick={() => onRemove(l.id)} className="p-1 rounded hover:bg-black/5" aria-label="Delete entry">
+                    <div className="flex justify-end gap-1"><button onClick={() => editLog(l)} className="p-1 rounded hover:bg-black/5" aria-label="Edit entry"><Pencil size={14}/></button><button onClick={() => onRemove(l.id)} className="p-1 rounded hover:bg-black/5" aria-label="Delete entry">
                       <Trash2 size={14} style={{ color: 'var(--ink-soft)' }} />
-                    </button>
+                    </button></div>
                   </td>
                 </tr>
               ))}

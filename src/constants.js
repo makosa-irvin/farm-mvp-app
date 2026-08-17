@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, ClipboardList, Receipt, Tag, BarChart3,
+  LayoutDashboard, ClipboardList, Receipt, Tag, BarChart3, Boxes,
   Egg, Droplets, Wheat, Package,
 } from 'lucide-react';
 
@@ -30,6 +30,7 @@ export const TABS = [
   { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { value: 'log', label: 'Daily log', icon: ClipboardList },
   { value: 'expenses', label: 'Expenses', icon: Receipt },
+  { value: 'inventory', label: 'Inventory', icon: Boxes },
   { value: 'units', label: 'Units', icon: Tag },
   { value: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];

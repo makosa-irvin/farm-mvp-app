@@ -1,0 +1,90 @@
+import { test, expect } from '@playwright/test';
+import { clearAppState, fieldByLabel } from './helpers.js';
+
+test.beforeEach(async ({ page }) => {
+  await clearAppState(page);
+});
+
+test('recording a feed expense increases inventory, and logging feed use decreases it', async ({ page }) => {
+  // --- Add a production unit ---
+  await page.getByRole('button', { name: 'Units', exact: true }).click();
+  await fieldByLabel(page, 'Name').fill('Layer House A');
+  await page.getByRole('button', { name: 'Add unit' }).click();
+  await expect(page.getByText('Layer House A')).toBeVisible();
+
+  // --- Add a Feed inventory item, starting at zero stock ---
+  await page.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await fieldByLabel(page, 'Item name').fill('Layer Mash');
+  await fieldByLabel(page, 'Category').selectOption('Feed');
+  await fieldByLabel(page, 'Unit', { exact: true }).fill('kg');
+  await page.getByRole('button', { name: 'Add item' }).click();
+
+  const inventoryCard = page
+    .locator('div.rounded-2xl.px-5.py-4.flex.items-center.justify-between')
+    .filter({ hasText: 'Layer Mash' });
+  await expect(inventoryCard).toContainText('0.0 kg');
+
+  // --- THE CORE BEHAVIOR: record a feed purchase via Expenses ---
+  await page.getByRole('button', { name: 'Expenses', exact: true }).click();
+  await fieldByLabel(page, 'Amount').fill('105');
+  await fieldByLabel(page, 'Inventory item').selectOption({ label: 'Layer Mash (kg)' });
+  await fieldByLabel(page, 'Purchased quantity').fill('150');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+  await expect(page.getByText('$105.00')).toBeVisible();
+
+  // --- Inventory should have increased, with no second manual step ---
+  await page.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await expect(inventoryCard).toContainText('150.0 kg');
+
+  // --- THE OTHER HALF: log feed consumption ---
+  await page.getByRole('button', { name: 'Daily log', exact: true }).click();
+  await page.getByRole('button', { name: 'Layer House A' }).click();
+  // The feed-item option's label includes a live balance ("Layer Mash ·
+  // 150.0 kg"), so it can't be matched with an exact string — look up its
+  // value by partial text instead, then select by that value.
+  const feedSelect = fieldByLabel(page, 'Feed item');
+  const feedItemValue = await feedSelect.locator('option', { hasText: 'Layer Mash' }).getAttribute('value');
+  await feedSelect.selectOption(feedItemValue);
+  await fieldByLabel(page, 'Feed consumed').fill('45');
+  await page.getByRole('button', { name: 'Save log entry' }).click();
+
+  // --- Inventory should have decreased by exactly what was consumed ---
+  await page.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await expect(inventoryCard).toContainText('105.0 kg');
+});
+
+test('deleting a feed expense whose stock is already in use is blocked, not silently applied', async ({ page }) => {
+  // Same setup as above, compressed.
+  await page.getByRole('button', { name: 'Units', exact: true }).click();
+  await fieldByLabel(page, 'Name').fill('Layer House A');
+  await page.getByRole('button', { name: 'Add unit' }).click();
+
+  await page.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await fieldByLabel(page, 'Item name').fill('Layer Mash');
+  await fieldByLabel(page, 'Category').selectOption('Feed');
+  await fieldByLabel(page, 'Unit', { exact: true }).fill('kg');
+  await page.getByRole('button', { name: 'Add item' }).click();
+
+  await page.getByRole('button', { name: 'Expenses', exact: true }).click();
+  await fieldByLabel(page, 'Amount').fill('105');
+  await fieldByLabel(page, 'Inventory item').selectOption({ label: 'Layer Mash (kg)' });
+  await fieldByLabel(page, 'Purchased quantity').fill('150');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await page.getByRole('button', { name: 'Daily log', exact: true }).click();
+  await page.getByRole('button', { name: 'Layer House A' }).click();
+  const feedSelect = fieldByLabel(page, 'Feed item');
+  const feedItemValue = await feedSelect.locator('option', { hasText: 'Layer Mash' }).getAttribute('value');
+  await feedSelect.selectOption(feedItemValue);
+  await fieldByLabel(page, 'Feed consumed').fill('45');
+  await page.getByRole('button', { name: 'Save log entry' }).click();
+
+  // Now try to delete the expense — 45kg of its 150kg is already consumed.
+  await page.getByRole('button', { name: 'Expenses', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete expense' }).click();
+
+  // The expense should still be there, and the deletion toast should
+  // explain why rather than silently removing it.
+  await expect(page.getByText('$105.00')).toBeVisible();
+  await expect(page.getByText(/already been used elsewhere/)).toBeVisible();
+});

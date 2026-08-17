@@ -22,6 +22,19 @@ export function fmtNum(n, digits = 0) {
   return n.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
+
+export function inventoryUnitCost(item, moves) {
+  if (!item) return 0;
+  let qty = Number(item.openingStock) || 0;
+  let value = qty * (Number(item.unitCost) || 0);
+  for (const move of moves.filter(m => m.itemId === item.id && (m.direction || m.type) === 'in')) {
+    const q = Number(move.quantity) || 0;
+    qty += q;
+    value += q * (Number(move.unitCost ?? item.unitCost) || 0);
+  }
+  return qty > 0 ? value / qty : Number(item.unitCost) || 0;
+}
+
 export function inPeriod(dateStr, period) {
   const d = new Date(dateStr + 'T00:00:00');
   const now = new Date();
@@ -60,18 +73,25 @@ export function currentCountFor(unit, logs) {
 // The core Phase-1 unit-economics calculation: direct costs only (no
 // indirect/allocated costs yet — see AllocationRule in the design plan's
 // Phase 2 Cost Allocation Engine).
-export function unitMetrics(unit, logs, expenses, period) {
+export function unitMetrics(unit, logs, expenses, period, inventoryMoves = []) {
   const unitLogs = logs.filter((l) => l.unitId === unit.id && inPeriod(l.date, period));
   const unitExpenses = expenses.filter((e) => e.unitId === unit.id && inPeriod(e.date, period));
 
   const produced = unitLogs.reduce((s, l) => s + (l.produced || 0), 0);
   const loss = unitLogs.reduce((s, l) => s + (l.loss || 0), 0);
   const mortality = unitLogs.reduce((s, l) => s + (l.mortality || 0), 0);
-  const feedKg = unitLogs.reduce((s, l) => s + (l.feedKg || 0), 0);
-  const directCost = unitExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const feedKg = unitLogs.reduce((s, l) => s + (l.feedQuantity ?? l.feedKg ?? 0), 0);
+  const directExpenseCost = unitExpenses.reduce((s, e) => s + (e.inventoryItemId ? 0 : (e.amount || 0)), 0);
+  const consumedInventoryCost = inventoryMoves
+    .filter(m => m.transactionType === 'consumption' && m.unitId === unit.id && inPeriod(m.date, period))
+    .reduce((s, m) => s + (Number(m.quantity) || 0) * (Number(m.unitCost) || 0), 0);
+  const directCost = directExpenseCost + consumedInventoryCost;
 
   const costPerUnit = produced > 0 ? directCost / produced : null;
   const t = typeOf(unit);
+  const producePrice = Number(unit.producePrice) || 0;
+  const revenue = produced > 0 && producePrice > 0 ? (produced / t.groupSize) * producePrice : 0;
+  const profit = revenue - directCost;
   const costPerGroup = costPerUnit !== null ? costPerUnit * t.groupSize : null;
   const fcr = produced > 0 && feedKg > 0 ? feedKg / produced : null;
 
@@ -83,7 +103,7 @@ export function unitMetrics(unit, logs, expenses, period) {
 
   return {
     produced, loss, mortality, feedKg, directCost,
-    costPerUnit, costPerGroup, fcr, productionRate, mortalityRate,
+    costPerUnit, costPerGroup, fcr, productionRate, mortalityRate, revenue, profit,
     liveCount, logCount: unitLogs.length,
   };
 }

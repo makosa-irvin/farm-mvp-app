@@ -6,7 +6,7 @@ import Metric from '../components/Metric.jsx';
 import { PERIODS } from '../constants.js';
 import { typeOf, unitMetrics, fmtNum, fmtMoney } from '../lib/helpers.js';
 
-export default function AnalyticsView({ units, logs, expenses }) {
+export default function AnalyticsView({ units, logs, expenses, inventoryMoves = [] }) {
   const [period, setPeriod] = useState('month');
 
   if (units.length === 0) {
@@ -31,7 +31,7 @@ export default function AnalyticsView({ units, logs, expenses }) {
         {units.map((u) => {
           const t = typeOf(u);
           const Icon = t.icon;
-          const m = unitMetrics(u, logs, expenses, period);
+          const m = unitMetrics(u, logs, expenses, period, inventoryMoves);
           return (
             <div key={u.id} className="rounded-2xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
               <div className="flex items-center gap-2 mb-4">

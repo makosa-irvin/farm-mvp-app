@@ -5,6 +5,39 @@ tracking design plan: production logging, expense input, direct-cost unit
 economics, and a dashboard — scoped deliberately to what's cheap to build
 and still demonstrates the core value prop (real cost per egg/liter/kg).
 
+## Testing
+
+```bash
+npm test              # unit + component tests, once
+npm run test:watch    # unit + component tests, watch mode
+npm run test:e2e      # end-to-end tests in a real browser (needs setup below, once)
+npm run test:e2e:ui   # same, with Playwright's interactive UI
+```
+
+The Playwright browser only needs installing once: `npx playwright install chromium`.
+
+```
+tests/
+  unit/                          — Vitest, jsdom, no browser needed
+    inventoryLedger.test.js        — pure balance/cost math (src/lib/inventoryLedger.js)
+    feedLinking.test.js             — daily-log ↔ consumption-transaction sync
+    expenseLinking.test.js           — expense ↔ purchase-transaction sync (the core linking feature)
+    helpers.test.js                   — formatting + unitMetrics cost-per-unit calculation
+    useFarmData.test.jsx               — the composed hook end-to-end: add expense → stock increases →
+                                          log consumption → stock decreases → edit/delete safety checks
+    views.smoke.test.jsx                — each view renders without crashing; also pins down the exact
+                                           label/option/button text the e2e suite below selects by, so a
+                                           text change breaks a fast test here before a slow one in a browser
+  e2e/                            — Playwright, real Chromium, drives the actual built app
+    helpers.js                      — shared locator helper (see note below) + state-reset helper
+    smoke.spec.js                    — app loads, every tab is reachable
+    inventory-linking.spec.js         — the core feature end-to-end: record a feed expense in the real
+                                         UI → inventory increases; log feed use → inventory decreases;
+                                         deleting an expense whose stock is in use is blocked, not silent
+```
+
+**Why a custom locator helper in `tests/e2e/helpers.js`:** the app's `FieldLabel` component renders a plain `<label>` with no `for`/`id` link to its input, so Playwright's usual `getByLabel()` can't find these fields (confirmed via the DOM check in `views.smoke.test.jsx` before writing the e2e tests around it). `fieldByLabel(page, text)` walks from the label's text to its parent `<div>` and finds the input there instead. Wiring up proper `htmlFor`/`id` pairs across every form would fix this more fundamentally (and is a real accessibility gap worth closing on its own merits, separate from testing) — noted here rather than done, to keep this change scoped to adding tests.
+
 ## Setup
 
 Requires Node.js 18+.
