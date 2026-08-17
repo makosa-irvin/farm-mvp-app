@@ -1,7 +1,6 @@
-// Cross-domain linking between expenses and the inventory ledger: an
-// expense with an inventoryItemId + inventoryQuantity represents a stock
-// purchase, and should move stock the moment the expense is saved. Pure
-// functions — the hook calls setState with the results.
+// An expense linked to an inventory item represents a stock purchase.
+// These pure functions calculate the corresponding ledger entry and enforce
+// the rule that changing/removing a purchase cannot make stock negative.
 
 import { getBalance, getExpenseUnitCost } from './inventoryLedger.js';
 
@@ -9,11 +8,6 @@ export function expensePurchaseTransactionId(expenseId) {
   return `exppurchase_${expenseId}`;
 }
 
-// Computes the transactions array that should result from saving this
-// expense, or null if applying it would drive stock negative (only
-// possible on edit, when reducing a purchase's quantity after some of it
-// has already been consumed elsewhere) — the caller shows an error and
-// aborts in that case rather than applying a bad state.
 export function syncedTransactionsForExpense(expense, inventory, transactions) {
   const withoutCurrent = transactions.filter((t) => !(t.source === 'expense-purchase' && t.sourceId === expense.id));
   const item = inventory.find((i) => i.id === expense.inventoryItemId);
@@ -48,8 +42,8 @@ export function syncedTransactionsForExpense(expense, inventory, transactions) {
   return projected;
 }
 
-// Whether it's safe to fully remove an expense's linked purchase, and what
-// the resulting balance would be either way.
+// Return both the linked purchase and the resulting balance so the action
+// layer can reject unsafe deletion without mutating state first.
 export function balanceIfExpensePurchaseRemoved(expenseId, inventory, transactions) {
   const linkedTx = transactions.find((t) => t.source === 'expense-purchase' && t.sourceId === expenseId);
   if (!linkedTx) return { linkedTx: null, balance: null };
