@@ -1,6 +1,9 @@
 import { fmtNum } from '../helpers.js';
 import { getBalance, getWeightedAverageCost, normalizeTransaction, checkOutgoing } from '../inventoryLedger.js';
 
+// Inventory actions are the stateful boundary around the pure ledger rules.
+// They validate transactions, persist the result, and surface user feedback;
+// the balance and valuation calculations themselves stay in inventoryLedger.
 export function createInventoryActions({ inventory, transactions, expenses, setInventory, setInventoryTransactions, setExpenses, showToast }) {
   const addInventoryItem = (item) => {
     setInventory((prev) => [...prev, item]);

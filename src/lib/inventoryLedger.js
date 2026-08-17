@@ -1,9 +1,6 @@
-// Pure inventory-ledger math: constants, balance/cost calculations, and
-// the general-purpose transaction normalizer used by manual ledger entries
-// (purchase, wastage, transfer, stock count, etc.). Nothing here reads
-// React state directly — inventory/transactions/expenses are always passed
-// in explicitly, which is what makes this file testable without rendering
-// anything.
+// Inventory domain rules live here as pure functions. The ledger is the
+// source of truth for stock balance and valuation; React state is supplied
+// by callers rather than read directly, keeping these rules easy to test.
 
 export const INVENTORY_TRANSACTION_TYPES = [
   { value: 'purchase', label: 'Purchase / stock in', direction: 'in' },
@@ -50,10 +47,8 @@ export function getWeightedAverageCost(inventory, transactions, itemId) {
   return qty > 0 ? value / qty : Number(item.unitCost) || 0;
 }
 
-// Fills in direction/unit/cost/etc. for a transaction being created or
-// edited manually (purchase, wastage, return, adjustment, sale, stock
-// count — transfers are handled separately in inventoryActions.js, since
-// they produce a paired out/in entry rather than one record).
+// Manual transactions are normalized here so all ledger entries share the
+// same direction, unit, quantity, and unit-cost rules before they are saved.
 export function normalizeTransaction(input, { inventory, expenses, transactions }) {
   const item = inventory.find((i) => i.id === input.itemId);
   if (!item) return null;
@@ -82,7 +77,7 @@ export function normalizeTransaction(input, { inventory, expenses, transactions 
 
   return {
     ...input,
-    type: direction, // backwards-compatible alias
+    type: direction,
     direction,
     transactionType,
     quantity,
@@ -93,10 +88,8 @@ export function normalizeTransaction(input, { inventory, expenses, transactions 
   };
 }
 
-// Whether a record moving stock OUT would exceed what's available. Returns
-// a plain result rather than showing a toast itself, so callers (which
-// know whether they're in a hook with access to showToast) decide how to
-// surface it.
+// Outgoing records are checked against the balance with the record itself
+// excluded. That makes the same rule safe for both new transactions and edits.
 export function checkOutgoing(record, inventory, transactions) {
   if (record.direction !== 'out') return { ok: true };
   const available = getBalance(inventory, transactions, record.itemId, record.id || null);

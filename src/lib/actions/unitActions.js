@@ -1,8 +1,6 @@
-// Production-unit actions. removeUnit cascades into logs, expenses, and
-// inventory transactions, so it needs those setters even though units
-// themselves are a separate concern — that cascade is why this stays a
-// factory taking cross-domain setters, rather than a fully independent
-// per-domain hook.
+// Production-unit actions. Deleting a unit also removes its daily logs and
+// unit-owned ledger transactions, while unit references on expenses are
+// cleared rather than deleting the expense itself.
 
 export function createUnitActions({ setUnits, setLogs, setExpenses, setInventoryTransactions, showToast }) {
   const addUnit = (unit) => {
