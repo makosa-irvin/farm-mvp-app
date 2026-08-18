@@ -40,7 +40,7 @@ export default function MainContent({ tab, farm, setTab }) {
       )}
 
       {tab === 'units' && (
-        <UnitsView units={farm.units} logs={farm.logs} onAdd={farm.addUnit} onUpdate={farm.updateUnit} onRemove={farm.removeUnit} />
+        <UnitsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventoryMoves={farm.inventoryMoves} onAdd={farm.addUnit} onUpdate={farm.updateUnit} onRemove={farm.removeUnit} onNavigateToAnalytics={() => setTab('analytics')} />
       )}
 
       {tab === 'analytics' && (

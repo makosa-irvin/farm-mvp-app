@@ -36,6 +36,16 @@ export const PERIODS = [
   { value: 'all', label: 'All time' },
 ];
 
+// Optional payment method on an expense — not used for any calculation
+// yet, but recorded so a "how much of my spend is cash vs M-Pesa" view
+// is possible once enough expenses carry it.
+export const PAYMENT_METHODS = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'mpesa', label: 'M-Pesa' },
+  { value: 'bank', label: 'Bank' },
+  { value: 'credit', label: 'On credit' },
+];
+
 // Top-level navigation, in display order. App.jsx renders one button per
 // entry and swaps the visible view based on `value`.
 export const TABS = [

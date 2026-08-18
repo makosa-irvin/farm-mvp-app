@@ -1,20 +1,21 @@
 import { useState } from 'react';
-import { Trash2, Pencil, X, Save } from 'lucide-react';
+import { Trash2, Pencil, X, Save, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
 import FieldLabel from '../components/FieldLabel.jsx';
 import { inputClass, inputStyle } from '../lib/styleTokens.js';
 import { UNIT_TYPES } from '../constants.js';
-import { uid, todayISO, typeOf, currentCountFor, fmtNum, fmtMoney } from '../lib/helpers.js';
+import { uid, todayISO, typeOf, currentCountFor, unitMetrics, fmtNum, fmtMoney } from '../lib/helpers.js';
 
 // Add, edit, and remove production units (flocks, herds, plots). Every
 // other view depends on at least one unit existing, so this is usually the
 // first screen a new farm actually needs to use.
-export default function UnitsView({ units, logs, onAdd, onUpdate, onRemove }) {
+export default function UnitsView({ units, logs, expenses = [], inventoryMoves = [], onAdd, onUpdate, onRemove, onNavigateToAnalytics }) {
   const [name, setName] = useState('');
   const [type, setType] = useState('eggs');
   const [initialCount, setInitialCount] = useState('');
   const [producePrice, setProducePrice] = useState('');
   const [startDate, setStartDate] = useState(todayISO());
   const [editingId, setEditingId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   function resetForm() {
     setName('');
@@ -104,32 +105,84 @@ export default function UnitsView({ units, logs, onAdd, onUpdate, onRemove }) {
           {units.map((u) => {
             const Icon = typeOf(u).icon;
             const live = currentCountFor(u, logs);
+            const isExpanded = expandedId === u.id;
             return (
-              <div key={u.id} className="flex items-center justify-between rounded-2xl px-5 py-3.5" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'var(--forest-tint)' }}>
-                    <Icon size={16} style={{ color: 'var(--forest)' }} />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm">{u.name}</div>
-                    <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
-                      {typeOf(u).label} · {fmtNum(live)} live · {u.producePrice ? `${fmtMoney(Number(u.producePrice), 2)} / ${typeOf(u).groupLabel}` : 'price not set'} · since {u.startDate}
+              <div key={u.id} className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                <div
+                  className="flex items-center justify-between px-5 py-3.5 cursor-pointer"
+                  onClick={() => setExpandedId(isExpanded ? null : u.id)}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--forest-tint)' }}>
+                      <Icon size={16} style={{ color: 'var(--forest)' }} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm">{u.name}</div>
+                      <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
+                        {typeOf(u).label} · {fmtNum(live)} live · {u.producePrice ? `${fmtMoney(Number(u.producePrice), 2)} / ${typeOf(u).groupLabel}` : 'price not set'} · since {u.startDate}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isExpanded ? <ChevronUp size={14} style={{ color: 'var(--ink-soft)' }} /> : <ChevronDown size={14} style={{ color: 'var(--ink-soft)' }} />}
+                    <button onClick={(e) => { e.stopPropagation(); editUnit(u); }} className="p-1.5 rounded hover:bg-black/5" aria-label={`Edit ${u.name}`}>
+                      <Pencil size={15} style={{ color: 'var(--ink-soft)' }} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); onRemove(u.id); }} className="p-1.5 rounded hover:bg-black/5" aria-label={`Remove ${u.name}`}>
+                      <Trash2 size={15} style={{ color: 'var(--ink-soft)' }} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={() => editUnit(u)} className="p-1.5 rounded hover:bg-black/5" aria-label={`Edit ${u.name}`}>
-                    <Pencil size={15} style={{ color: 'var(--ink-soft)' }} />
-                  </button>
-                  <button onClick={() => onRemove(u.id)} className="p-1.5 rounded hover:bg-black/5" aria-label={`Remove ${u.name}`}>
-                    <Trash2 size={15} style={{ color: 'var(--ink-soft)' }} />
-                  </button>
-                </div>
+
+                {isExpanded && <UnitSnapshot unit={u} logs={logs} expenses={expenses} inventoryMoves={inventoryMoves} onNavigateToAnalytics={onNavigateToAnalytics} />}
               </div>
             );
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// A quick "how's this unit doing this month" snapshot, without leaving
+// the Units tab to go find it in Analytics. Deliberately just 3 numbers —
+// full detail (cost breakdown, trend chart) already lives in Analytics,
+// so this is a preview, not a duplicate of that page.
+function UnitSnapshot({ unit, logs, expenses, inventoryMoves, onNavigateToAnalytics }) {
+  const m = unitMetrics(unit, logs, expenses, 'month', inventoryMoves);
+  const t = typeOf(unit);
+
+  return (
+    <div className="px-5 pb-4 pt-1" style={{ borderTop: '1px solid var(--line)' }}>
+      <div className="text-xs mb-2.5 mt-3" style={{ color: 'var(--ink-soft)' }}>This month so far</div>
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        <SnapshotStat label="Produced" value={`${fmtNum(m.produced)} ${t.unitLabel}`} />
+        <SnapshotStat label="Spent" value={fmtMoney(m.directCost)} />
+        <SnapshotStat
+          label={Number(unit.producePrice) > 0 ? 'Profit' : 'Cost/unit'}
+          value={Number(unit.producePrice) > 0 ? fmtMoney(m.profit) : (m.costPerUnit !== null ? fmtMoney(m.costPerUnit, 2) : '—')}
+          accent={Number(unit.producePrice) > 0 ? (m.profit >= 0 ? 'var(--forest)' : 'var(--rust)') : undefined}
+        />
+      </div>
+      {onNavigateToAnalytics && (
+        <button
+          type="button"
+          onClick={onNavigateToAnalytics}
+          className="flex items-center gap-1.5 text-xs font-medium"
+          style={{ color: 'var(--forest)' }}
+        >
+          <BarChart3 size={13} /> See full analytics for this unit
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SnapshotStat({ label, value, accent }) {
+  return (
+    <div>
+      <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>{label}</div>
+      <div className="font-mono text-sm font-semibold mt-0.5" style={{ color: accent || 'var(--ink)' }}>{value}</div>
     </div>
   );
 }
