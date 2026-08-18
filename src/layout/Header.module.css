@@ -1,0 +1,12 @@
+.header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.title {
+  color: var(--ink);
+}
+
+.subtitle {
+  color: var(--ink-soft);
+}

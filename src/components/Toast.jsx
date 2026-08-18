@@ -1,5 +1,9 @@
 import { Sparkles } from 'lucide-react';
 
+// Transient bottom-of-screen confirmation banner. App.jsx holds the
+// message in state and clears it on a timer after every action (see
+// showToast in App.jsx) — this component just renders whatever it's
+// currently given, or nothing.
 export default function Toast({ message }) {
   if (!message) return null;
   return (

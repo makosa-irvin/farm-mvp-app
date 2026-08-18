@@ -1,9 +1,16 @@
 import { useRef, useState } from 'react';
-import AppHeader from './components/AppHeader.jsx';
-import AppView from './components/AppView.jsx';
-import Toast from './components/Toast.jsx';
+import { TABS } from './constants.js';
 import { useFarmData } from './hooks/useFarmData.js';
+import Header from './layout/Header.jsx';
+import MainContent from './layout/MainContent.jsx';
+import Toast from './components/Toast.jsx';
 
+// App root: owns the two pieces of state everything else hangs off —
+// which tab is active, and the current toast message — plus the
+// useFarmData() hook, which is the single source of truth for all farm
+// data. Actual layout and rendering is delegated to Header, MainContent,
+// and Toast; App.jsx itself is just composition and the two bits of state
+// above.
 export default function App() {
   const [tab, setTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
@@ -23,12 +30,8 @@ export default function App() {
 
   return (
     <div className="farm-app min-h-screen pb-16">
-      <AppHeader activeTab={tab} onTabChange={setTab} />
-
-      <main className="mx-auto max-w-3xl px-5 pt-6">
-        <AppView tab={tab} farm={farm} onNavigate={setTab} />
-      </main>
-
+      <Header tabs={TABS} activeTab={tab} onSelectTab={setTab} />
+      <MainContent tab={tab} farm={farm} setTab={setTab} />
       <Toast message={toast} />
     </div>
   );

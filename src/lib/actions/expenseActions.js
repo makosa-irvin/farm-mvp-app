@@ -1,3 +1,7 @@
+// Expense CRUD, plus the automatic sync to a linked inventory purchase
+// transaction (see src/lib/expenseLinking.js). This is what makes an
+// expense with an inventory item + quantity actually move stock, rather
+// than the link just being metadata that nothing acts on.
 import { fmtNum } from '../helpers.js';
 import { syncedTransactionsForExpense, balanceIfExpensePurchaseRemoved } from '../expenseLinking.js';
 

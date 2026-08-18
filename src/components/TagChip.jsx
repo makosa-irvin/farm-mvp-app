@@ -1,5 +1,6 @@
-import '../styles/components/tag-chip.css';
-
+// Pill-style selector button — used to pick a production unit in
+// DailyLogView. "active" highlights the current selection; "muted" is
+// available for a dimmed/disabled look but isn't used yet.
 export default function TagChip({ label, active, onClick, icon: Icon, muted }) {
   return (
     <button

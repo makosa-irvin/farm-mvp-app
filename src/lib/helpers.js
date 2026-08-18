@@ -1,13 +1,20 @@
 import { UNIT_TYPES } from '../constants.js';
 
+// Short random id for client-generated records (units, logs, expenses,
+// inventory items — anything created without a server to assign a real id).
 export function uid(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Today's date as a plain YYYY-MM-DD string — the format every date field
+// in the app is stored and compared as (never a full ISO datetime).
 export function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Looks up a unit's UNIT_TYPES entry (icon, labels, whether it tracks egg
+// grades, etc.). Falls back to the last entry ("other") for an unknown type
+// rather than returning undefined, so callers can destructure it safely.
 export function typeOf(unit) {
   return UNIT_TYPES.find((type) => type.value === unit.type) || UNIT_TYPES[3];
 }
@@ -77,6 +84,9 @@ export function inPeriod(dateString, period) {
   return true;
 }
 
+// Number of calendar days a period covers, used as the denominator for
+// rate metrics (production rate, mortality rate) in unitMetrics below.
+// "all" measures from the unit's start date to today.
 export function periodDayCount(period, startDate) {
   const now = new Date();
 
@@ -94,6 +104,10 @@ export function periodDayCount(period, startDate) {
   return 1;
 }
 
+// A unit's current live headcount: how many started, minus everything
+// logged as mortality since. There's no separate "flock movement" record
+// for animals added later, so this is the full picture as the app
+// currently models it.
 export function currentCountFor(unit, logs) {
   const mortality = logs
     .filter((log) => log.unitId === unit.id)

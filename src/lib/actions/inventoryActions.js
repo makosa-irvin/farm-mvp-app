@@ -1,3 +1,9 @@
+// Inventory item CRUD, plus the general-purpose manual ledger form
+// (purchase/wastage/return/transfer/adjustment/sale/stock-count). This is
+// distinct from the automatic sync in expenseActions.js and logActions.js
+// — those create transactions as a side effect of something else being
+// saved; the functions here are the direct "record a transaction" path
+// used by InventoryView's own ledger form.
 import { fmtNum } from '../helpers.js';
 import { getBalance, getWeightedAverageCost, normalizeTransaction, checkOutgoing } from '../inventoryLedger.js';
 

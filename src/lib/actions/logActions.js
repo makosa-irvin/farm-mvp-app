@@ -1,3 +1,6 @@
+// Daily log CRUD, plus the automatic sync to a feed-consumption transaction
+// (see src/lib/feedLinking.js) when a log records feed use against a
+// tracked inventory item.
 import { typeOf, fmtNum } from '../helpers.js';
 import { checkFeedAvailability, syncedTransactionsForLog } from '../feedLinking.js';
 
