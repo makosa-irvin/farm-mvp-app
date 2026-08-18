@@ -1,4 +1,4 @@
-import { LayoutDashboard, ClipboardList, Receipt, Tag, BarChart3, Boxes, Settings, Egg, Droplets, Wheat, Package } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Receipt, Tag, BarChart3, Boxes, Settings, Building2, Egg, Droplets, Wheat, Package } from 'lucide-react';
 
 export const UNIT_TYPES = [
   { value: 'eggs', label: 'Layer flock (eggs)', unitLabel: 'eggs', groupSize: 30, groupLabel: 'tray', hasGrades: true, icon: Egg },
@@ -26,6 +26,7 @@ export const TABS = [
   { value: 'expenses', label: 'Expenses', icon: Receipt },
   { value: 'inventory', label: 'Stock', icon: Boxes },
   { value: 'units', label: 'Groups', icon: Tag },
+  { value: 'suppliers', label: 'Suppliers', icon: Building2 },
   { value: 'analytics', label: 'Analytics', icon: BarChart3 },
   { value: 'settings', label: 'Settings', icon: Settings },
 ];
