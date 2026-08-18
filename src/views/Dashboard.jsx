@@ -23,9 +23,9 @@ export default function Dashboard({
     return (
       <EmptyState
         icon={Tag}
-        title="No production units yet"
-        body="Add your first flock, herd, or plot to start logging daily production and costs against it."
-        actionLabel="Add a production unit"
+        title="No units yet"
+        body="Add your first flock, herd, or plot to start recording what it costs you and what it produces."
+        actionLabel="Add a unit"
         onAction={() => goTo('units')}
       />
     );
@@ -41,11 +41,11 @@ export default function Dashboard({
     0,
   );
 
-  const directCostsMTD = expenses
+  const directCostsThisMonth = expenses
     .filter((expense) => expense.unitId && inPeriod(expense.date, 'month'))
     .reduce((sum, expense) => sum + (expense.amount || 0), 0);
 
-  const unallocatedMTD = expenses
+  const otherCostsThisMonth = expenses
     .filter((expense) => !expense.unitId && inPeriod(expense.date, 'month'))
     .reduce((sum, expense) => sum + (expense.amount || 0), 0);
 
@@ -92,22 +92,22 @@ export default function Dashboard({
           accent="var(--forest)"
         />
         <StatCard
-          label="Direct costs (MTD)"
-          value={fmtMoney(directCostsMTD)}
+          label="Spent this month"
+          value={fmtMoney(directCostsThisMonth)}
           sub="Linked to a unit"
         />
         <StatCard
-          label="Unallocated (MTD)"
-          value={fmtMoney(unallocatedMTD)}
-          sub="Shared costs — no unit link"
+          label="Other costs this month"
+          value={fmtMoney(otherCostsThisMonth)}
+          sub="Not tied to one unit"
           accent="var(--amber)"
         />
         <StatCard
-          label="Inventory value"
+          label="Stock value"
           value={fmtMoney(inventoryValue)}
           sub={
             lowStock
-              ? `${lowStock} item${lowStock > 1 ? 's' : ''} at reorder level`
+              ? `${lowStock} item${lowStock > 1 ? 's' : ''} running low`
               : 'Stock levels healthy'
           }
           accent={lowStock ? 'var(--rust)' : 'var(--forest)'}
@@ -138,13 +138,13 @@ export default function Dashboard({
                 Live count
               </th>
               <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                Today
+                Produce (Today)
               </th>
               <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                Revenue (MTD)
+                Revenue (Today)
               </th>
               <th className="px-5 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                Cost / unit (MTD)
+                Cost / unit
               </th>
             </tr>
           </thead>
@@ -156,6 +156,13 @@ export default function Dashboard({
                 logs,
                 expenses,
                 'month',
+                inventoryMoves,
+              );
+              const todayMetrics = unitMetrics(
+                unit,
+                logs,
+                expenses,
+                'today',
                 inventoryMoves,
               );
               const today = logs.find(
@@ -181,11 +188,11 @@ export default function Dashboard({
                     {today ? fmtNum(today.produced) : '—'}
                   </td>
                   <td className="px-3 py-3 text-right">
-                    {metrics.revenue > 0 ? fmtMoney(metrics.revenue) : '—'}
+                    {metrics.revenue > 0 ? fmtMoney(todayMetrics.revenue) : '—'}
                   </td>
                   <td className="px-5 py-3 text-right">
                     {metrics.costPerUnit !== null
-                      ? `$${metrics.costPerUnit.toFixed(3)}`
+                      ? fmtMoney(metrics.costPerUnit, 2)
                       : '—'}
                   </td>
                 </tr>
@@ -204,7 +211,7 @@ export default function Dashboard({
       >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="font-display text-lg font-semibold">Inventory</div>
+            <div className="font-display text-lg font-semibold">Stock</div>
             <div
               className="mt-1 text-xs"
               style={{ color: 'var(--ink-soft)' }}
@@ -212,8 +219,8 @@ export default function Dashboard({
               {inventory.length} tracked item
               {inventory.length !== 1 ? 's' : ''} ·{' '}
               {lowStock
-                ? `${lowStock} need attention`
-                : 'No low-stock alerts'}
+                ? `${lowStock} running low`
+                : 'Nothing running low'}
             </div>
           </div>
           <button

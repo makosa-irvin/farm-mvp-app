@@ -3,15 +3,15 @@
 // by callers rather than read directly, keeping these rules easy to test.
 
 export const INVENTORY_TRANSACTION_TYPES = [
-  { value: 'purchase', label: 'Purchase / stock in', direction: 'in' },
-  { value: 'consumption', label: 'Consumption / usage', direction: 'out' },
-  { value: 'wastage', label: 'Wastage / spoilage', direction: 'out' },
-  { value: 'return', label: 'Return to stock', direction: 'in' },
-  { value: 'transfer', label: 'Transfer between units', direction: null },
-  { value: 'adjustment_in', label: 'Adjustment increase', direction: 'in' },
-  { value: 'adjustment_out', label: 'Adjustment decrease', direction: 'out' },
-  { value: 'stock_count', label: 'Stock count adjustment', direction: null },
-  { value: 'sale', label: 'Stock sale', direction: 'out' },
+  { value: 'purchase', label: 'Bought stock', direction: 'in' },
+  { value: 'consumption', label: 'Used it up', direction: 'out' },
+  { value: 'wastage', label: 'Lost or spoiled', direction: 'out' },
+  { value: 'return', label: 'Returned to stock', direction: 'in' },
+  { value: 'transfer', label: 'Moved between units', direction: null },
+  { value: 'adjustment_in', label: 'Found extra (correct the count up)', direction: 'in' },
+  { value: 'adjustment_out', label: 'Missing some (correct the count down)', direction: 'out' },
+  { value: 'stock_count', label: 'Counted what I actually have', direction: null },
+  { value: 'sale', label: 'Sold', direction: 'out' },
 ];
 
 export const directionFor = (type) =>

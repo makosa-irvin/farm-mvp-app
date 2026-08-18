@@ -1,9 +1,10 @@
+@import './styles/components/buttons.css';
+@import './styles/components/ledger-table.css';
+@import './styles/components/confirm-dialog.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import './styles/components/buttons.css';
-@import './styles/components/ledger-table.css';
 
 .farm-app {
   --bg: #f3f5ee;
@@ -61,4 +62,18 @@ textarea:focus {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* Small icon-only edit/delete buttons in list rows (UnitsView, ExpensesView,
+   InventoryView, DailyLogView) rely on Tailwind padding alone — around
+   27px, well under the 44px minimum touch-target recommendation. They all
+   share this exact class combination rather than a dedicated component
+   class, so this reaches every occurrence from one place instead of
+   editing each call site individually. */
+button[class*="hover:bg-black/5"] {
+  min-width: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }

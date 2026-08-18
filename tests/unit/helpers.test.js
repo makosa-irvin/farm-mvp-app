@@ -3,7 +3,11 @@ import { fmtMoney, fmtNum, currentCountFor, unitMetrics } from '../../src/lib/he
 
 describe('fmtMoney', () => {
   it('formats a positive number as currency', () => {
-    expect(fmtMoney(105)).toBe('$105.00');
+    expect(fmtMoney(105)).toBe('KSh 105');
+  });
+
+  it('supports extra decimal places for per-unit costs', () => {
+    expect(fmtMoney(4.6667, 2)).toBe('KSh 4.67');
   });
 
   it('shows an em dash for null, undefined, or non-finite values', () => {

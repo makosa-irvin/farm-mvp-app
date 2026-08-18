@@ -10,7 +10,7 @@ describe('App — Header/NavTabs/MainContent composition', () => {
   it('renders the header and starts on the Dashboard tab', () => {
     render(<App />);
     expect(screen.getByText('Field Ledger')).toBeInTheDocument();
-    expect(screen.getByText('No production units yet')).toBeInTheDocument(); // Dashboard empty state
+    expect(screen.getByText('No units yet')).toBeInTheDocument(); // Dashboard empty state
   });
 
   it('clicking a nav tab switches the rendered view', () => {
@@ -18,8 +18,8 @@ describe('App — Header/NavTabs/MainContent composition', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Units' }));
     expect(screen.getByText('Add a production unit')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Inventory' }));
-    expect(screen.getByText('Inventory is ready to track')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Stock' }));
+    expect(screen.getByText('Nothing tracked yet')).toBeInTheDocument();
   });
 
   it('the active tab is visually distinguished from inactive ones', () => {

@@ -10,7 +10,7 @@ import { getBalance, getWeightedAverageCost, normalizeTransaction, checkOutgoing
 // Inventory actions are the stateful boundary around the pure ledger rules.
 // They validate transactions, persist the result, and surface user feedback;
 // the balance and valuation calculations themselves stay in inventoryLedger.
-export function createInventoryActions({ inventory, transactions, expenses, setInventory, setInventoryTransactions, setExpenses, showToast }) {
+export function createInventoryActions({ inventory, transactions, expenses, setInventory, setInventoryTransactions, setExpenses, showToast, confirm }) {
   const addInventoryItem = (item) => {
     setInventory((prev) => [...prev, item]);
     showToast(`${item.name} added to inventory.`);
@@ -21,13 +21,13 @@ export function createInventoryActions({ inventory, transactions, expenses, setI
     showToast(`${item.name} updated.`);
   };
 
-  const removeInventoryItem = (id) => {
+  const removeInventoryItem = async (id) => {
     const item = inventory.find((i) => i.id === id);
-    if (!window.confirm(`Delete ${item?.name || 'this inventory item'}? Its transaction history will also be deleted.`)) return;
+    if (!(await confirm(`Remove ${item?.name || 'this item'}? Its history will be removed too.`))) return;
     setInventory((prev) => prev.filter((i) => i.id !== id));
     setInventoryTransactions((prev) => prev.filter((t) => t.itemId !== id));
     setExpenses((prev) => prev.map((e) => (e.inventoryItemId === id ? { ...e, inventoryItemId: null, inventoryQuantity: null } : e)));
-    showToast('Inventory item deleted.');
+    showToast('Item removed.');
   };
 
   const addInventoryTransaction = (input) => {
@@ -114,11 +114,14 @@ export function createInventoryActions({ inventory, transactions, expenses, setI
     return true;
   };
 
-  const removeInventoryTransaction = (id) => {
+  const removeInventoryTransaction = async (id) => {
     const target = transactions.find((t) => t.id === id);
-    if (!window.confirm(target?.transferId ? 'Delete this transfer? Both sides of the transfer will be removed.' : 'Delete this inventory transaction? Stock balance and valuation will be recalculated.')) return false;
+    const message = target?.transferId
+      ? 'Remove this transfer? Both sides will be removed.'
+      : 'Remove this update? Your stock total will be recalculated.';
+    if (!(await confirm(message))) return false;
     setInventoryTransactions((prev) => (target?.transferId ? prev.filter((t) => t.transferId !== target.transferId) : prev.filter((t) => t.id !== id)));
-    showToast('Inventory transaction deleted.');
+    showToast('Update removed.');
     return true;
   };
 

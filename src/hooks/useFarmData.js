@@ -44,7 +44,12 @@ export { INVENTORY_TRANSACTION_TYPES };
 // This hook is the application state boundary. It owns persistent data slices
 // and composes domain action factories; calculations and cross-domain
 // synchronization live in src/lib so they can be tested without React.
-export function useFarmData(showToast) {
+//
+// `confirm` replaces window.confirm — it's expected to be the `confirm`
+// function from useConfirmDialog() (see src/hooks/useConfirmDialog.js),
+// returning a Promise<boolean> resolved once the user picks an option in
+// the app's own dialog rather than a browser popup.
+export function useFarmData(showToast, confirm) {
   const [units, setUnits] = usePersistentState('farm-units', []);
   const [logs, setLogs] = usePersistentState('farm-logs', []);
   const [expenses, setExpenses] = usePersistentState('farm-expenses', []);
@@ -55,11 +60,13 @@ export function useFarmData(showToast) {
   );
 
   const unitActions = createUnitActions({
+    units,
     setUnits,
     setLogs,
     setExpenses,
     setInventoryTransactions,
     showToast,
+    confirm,
   });
   const expenseActions = createExpenseActions({
     inventory,
@@ -67,6 +74,7 @@ export function useFarmData(showToast) {
     setExpenses,
     setInventoryTransactions,
     showToast,
+    confirm,
   });
   const inventoryActions = createInventoryActions({
     inventory,
@@ -76,6 +84,7 @@ export function useFarmData(showToast) {
     setInventoryTransactions,
     setExpenses,
     showToast,
+    confirm,
   });
   const logActions = createLogActions({
     units,
@@ -85,6 +94,7 @@ export function useFarmData(showToast) {
     setLogs,
     setInventoryTransactions,
     showToast,
+    confirm,
   });
 
   return {

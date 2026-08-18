@@ -13,7 +13,7 @@ test('recording a feed expense increases inventory, and logging feed use decreas
   await expect(page.getByText('Layer House A')).toBeVisible();
 
   // --- Add a Feed inventory item, starting at zero stock ---
-  await page.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await page.getByRole('button', { name: 'Stock', exact: true }).click();
   await fieldByLabel(page, 'Item name').fill('Layer Mash');
   await fieldByLabel(page, 'Category').selectOption('Feed');
   await fieldByLabel(page, 'Unit', { exact: true }).fill('kg');
@@ -30,10 +30,10 @@ test('recording a feed expense increases inventory, and logging feed use decreas
   await fieldByLabel(page, 'Inventory item').selectOption({ label: 'Layer Mash (kg)' });
   await fieldByLabel(page, 'Purchased quantity').fill('150');
   await page.getByRole('button', { name: 'Save expense' }).click();
-  await expect(page.getByText('$105.00')).toBeVisible();
+  await expect(page.getByText('KSh 105')).toBeVisible();
 
   // --- Inventory should have increased, with no second manual step ---
-  await page.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await page.getByRole('button', { name: 'Stock', exact: true }).click();
   await expect(inventoryCard).toContainText('150.0 kg');
 
   // --- THE OTHER HALF: log feed consumption ---
@@ -49,7 +49,7 @@ test('recording a feed expense increases inventory, and logging feed use decreas
   await page.getByRole('button', { name: 'Save log entry' }).click();
 
   // --- Inventory should have decreased by exactly what was consumed ---
-  await page.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await page.getByRole('button', { name: 'Stock', exact: true }).click();
   await expect(inventoryCard).toContainText('105.0 kg');
 });
 
@@ -59,7 +59,7 @@ test('deleting a feed expense whose stock is already in use is blocked, not sile
   await fieldByLabel(page, 'Name').fill('Layer House A');
   await page.getByRole('button', { name: 'Add unit' }).click();
 
-  await page.getByRole('button', { name: 'Inventory', exact: true }).click();
+  await page.getByRole('button', { name: 'Stock', exact: true }).click();
   await fieldByLabel(page, 'Item name').fill('Layer Mash');
   await fieldByLabel(page, 'Category').selectOption('Feed');
   await fieldByLabel(page, 'Unit', { exact: true }).fill('kg');
@@ -85,6 +85,6 @@ test('deleting a feed expense whose stock is already in use is blocked, not sile
 
   // The expense should still be there, and the deletion toast should
   // explain why rather than silently removing it.
-  await expect(page.getByText('$105.00')).toBeVisible();
+  await expect(page.getByText('KSh 105')).toBeVisible();
   await expect(page.getByText(/already been used elsewhere/)).toBeVisible();
 });

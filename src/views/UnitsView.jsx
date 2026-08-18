@@ -3,7 +3,7 @@ import { Trash2, Pencil, X, Save } from 'lucide-react';
 import FieldLabel from '../components/FieldLabel.jsx';
 import { inputClass, inputStyle } from '../lib/styleTokens.js';
 import { UNIT_TYPES } from '../constants.js';
-import { uid, todayISO, typeOf, currentCountFor, fmtNum } from '../lib/helpers.js';
+import { uid, todayISO, typeOf, currentCountFor, fmtNum, fmtMoney } from '../lib/helpers.js';
 
 // Add, edit, and remove production units (flocks, herds, plots). Every
 // other view depends on at least one unit existing, so this is usually the
@@ -75,7 +75,7 @@ export default function UnitsView({ units, logs, onAdd, onUpdate, onRemove }) {
         </div>
 
         <div>
-          {/* Label follows the selected type's natural selling unit (dozen for
+          {/* Label follows the selected type's natural selling unit (tray for
               eggs, liter for milk, etc.) — see UNIT_TYPES in constants.js. */}
           <FieldLabel>Produce selling price ({UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'})</FieldLabel>
           <input type="number" min="0" step="0.01" value={producePrice} onChange={(e) => setProducePrice(e.target.value)} placeholder="0.00" className={inputClass} style={inputStyle} />
@@ -113,7 +113,7 @@ export default function UnitsView({ units, logs, onAdd, onUpdate, onRemove }) {
                   <div>
                     <div className="font-medium text-sm">{u.name}</div>
                     <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
-                      {typeOf(u).label} · {fmtNum(live)} live · {u.producePrice ? `$${Number(u.producePrice).toFixed(2)} / ${typeOf(u).groupLabel}` : 'price not set'} · since {u.startDate}
+                      {typeOf(u).label} · {fmtNum(live)} live · {u.producePrice ? `${fmtMoney(Number(u.producePrice), 2)} / ${typeOf(u).groupLabel}` : 'price not set'} · since {u.startDate}
                     </div>
                   </div>
                 </div>

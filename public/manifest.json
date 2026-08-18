@@ -1,0 +1,13 @@
+{
+  "name": "Field Ledger — Farm Production & Stock Tracking",
+  "short_name": "Field Ledger",
+  "description": "Track what your farm produces, spends, and has in stock — works with no connection.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3F5EE",
+  "theme_color": "#3C5A44",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
