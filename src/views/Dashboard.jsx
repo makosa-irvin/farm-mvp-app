@@ -1,6 +1,7 @@
 import { Plus, Tag, Boxes, AlertTriangle, CheckCircle2, Egg, Droplets, Wheat, Package, Wallet, TrendingUp, ArrowRight } from 'lucide-react';
 import EmptyState from '../components/EmptyState.jsx';
 import { typeOf, todayISO, inPeriod, fmtNum, fmtMoney, unitMetrics } from '../lib/helpers.js';
+import { isInventoryCostDeduction, inventoryTransactionCost } from '../lib/inventoryLedger.js';
 
 // Icons for each production type, used on the "Production this week" list.
 const PRODUCE_ICONS = { eggs: Egg, milk: Droplets, crop: Wheat, other: Package };
@@ -48,9 +49,29 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
   const moneySpentThisMonth = expenses
     .filter((expense) => inPeriod(expense.date, 'month') && !expense.inventoryTransactionId)
     .reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
-  const farmCostsThisMonth = expenses
-    .filter((expense) => inPeriod(expense.date, 'month'))
+
+  // "Farm costs" is meant to be the accrual figure — money the farm has
+  // actually used or lost, not money that merely left the farmer's pocket
+  // (see the explanatory text further down, which already promised this
+  // behavior before the calculation actually matched it). Summing the
+  // expenses array directly got this wrong two ways at once: a stock
+  // purchase's full price counted immediately on the day it was bought,
+  // regardless of how much had actually been used yet, while feed logged
+  // through the Daily Log never counted at all — only a manual Stock
+  // deduction auto-creates a matching expense entry (see
+  // buildInventoryCostExpense in inventoryActions.js), so day-to-day feed
+  // consumption was invisible here. Recomputed to mirror the same accrual
+  // logic already proven correct in unitMetrics/unitCostBreakdown: real
+  // cash expenses not linked to a purchase, plus the actual cost of
+  // whatever was consumed or lost this month, read fresh from the ledger
+  // regardless of which screen recorded it.
+  const directExpenseCostThisMonth = expenses
+    .filter((expense) => inPeriod(expense.date, 'month') && !expense.inventoryItemId)
     .reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+  const inventoryDeductionCostThisMonth = inventoryMoves
+    .filter((move) => inPeriod(move.date, 'month') && isInventoryCostDeduction(move))
+    .reduce((sum, move) => sum + inventoryTransactionCost(move), 0);
+  const farmCostsThisMonth = directExpenseCostThisMonth + inventoryDeductionCostThisMonth;
   const estimatedRevenue = units.reduce((sum, unit) => sum + unitMetrics(unit, logs, expenses, 'month', inventoryMoves).revenue, 0);
   const estimatedSurplus = estimatedRevenue > 0 ? estimatedRevenue - farmCostsThisMonth : null;
 

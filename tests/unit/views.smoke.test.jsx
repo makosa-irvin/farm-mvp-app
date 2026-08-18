@@ -247,3 +247,44 @@ describe('Dashboard — "Today" produced stat does not sum across mismatched uni
     expect(screen.getByText('2')).toBeInTheDocument(); // 2 kinds of produce logged
   });
 });
+
+describe('Dashboard — "Farm costs" is an accrual figure, not the purchase price', () => {
+  // Regression test for a confirmed bug: "Farm costs this month" summed
+  // the expenses array directly, which double-counted a stock purchase's
+  // full price the moment it was bought while also missing the true
+  // consumption cost for anything used through Daily Log (only a manual
+  // Stock deduction auto-creates a matching expense entry — see
+  // buildInventoryCostExpense in inventoryActions.js — so day-to-day feed
+  // logging was invisible to this figure entirely).
+  it('shows only the value actually consumed, not the full purchase price, when a large batch is used gradually', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const units = [{ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: today, producePrice: 0 }];
+    // Bought 50kg of feed for KSh 3500 (70/kg) — but only 5kg has been
+    // used so far via a real daily log, exactly like a farmer would do.
+    const expenses = [
+      { id: 'e1', category: 'feed', amount: 3500, date: today, unitId: null, inventoryItemId: 'i1', inventoryQuantity: 50, description: '', supplier: null, paymentMethod: null },
+    ];
+    const inventoryMoves = [
+      { id: 'exppurchase_e1', itemId: 'i1', transactionType: 'purchase', direction: 'in', type: 'in', quantity: 50, unit: 'kg', unitCost: 70, date: today, source: 'expense-purchase', sourceId: 'e1', expenseId: 'e1' },
+      { id: 'logfeed_l1', itemId: 'i1', transactionType: 'consumption', direction: 'out', type: 'out', quantity: 5, unit: 'kg', unitCost: 70, date: today, source: 'daily-log', sourceId: 'l1', unitId: 'u1' },
+    ];
+
+    render(<Dashboard units={units} logs={[]} expenses={expenses} inventory={[]} inventoryMoves={inventoryMoves} goTo={() => {}} />);
+
+    // 5kg * KSh 70/kg = KSh 350 actually used — the "Farm costs" figure
+    // should show this, not the full KSh 3,500 purchase price. "Money
+    // spent" (the separate cash-flow figure) correctly still shows the
+    // full KSh 3,500 — that one's about cash leaving hand, not accrual,
+    // so both figures being different is the point, not a contradiction.
+    const farmCostsLabel = screen.getByText('Farm costs', { selector: 'div' });
+    const farmCostsValue = farmCostsLabel.parentElement.querySelector('.font-mono');
+    expect(farmCostsValue).toHaveTextContent('KSh 350');
+
+    // "Money spent" appears twice on this screen — today's stat and this
+    // month's — both correctly show the full purchase price here, since
+    // the test expense is dated today.
+    const moneySpentLabels = screen.getAllByText('Money spent', { selector: 'div' });
+    const moneySpentValues = moneySpentLabels.map((label) => label.parentElement.querySelector('.font-mono')?.textContent);
+    expect(moneySpentValues).toContain('KSh 3,500');
+  });
+});
