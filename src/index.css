@@ -27,34 +27,114 @@
   font-family: 'Inter', sans-serif;
 }
 
-.font-display {
-  font-family: 'Fraunces', serif;
-  font-optical-sizing: auto;
-}
+.font-display { font-family: 'Fraunces', serif; font-optical-sizing: auto; }
+.font-mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.01em; }
 
-.font-mono {
-  font-family: 'IBM Plex Mono', monospace;
-  letter-spacing: -0.01em;
-}
+input, select, textarea { font-family: 'Inter', sans-serif; }
 
-input,
-select,
-textarea {
-  font-family: 'Inter', sans-serif;
-}
-
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-button:focus-visible {
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
   outline: 2px solid var(--forest);
   outline-offset: 1px;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--forest) !important;
+input:focus, select:focus, textarea:focus { border-color: var(--forest) !important; }
+
+button[class*="hover:bg-black/5"] {
+  min-width: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-quick-actions { display: none; }
+
+@media (max-width: 639px) {
+  .farm-app {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .farm-app form .grid-cols-2,
+  .farm-app form .grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .farm-app input,
+  .farm-app select,
+  .farm-app textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .farm-app form .btn-primary,
+  .farm-app form .btn-ghost {
+    min-height: 44px;
+  }
+
+  .farm-app table.ledger-table {
+    min-width: 620px;
+  }
+
+  .farm-app main {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .mobile-quick-actions {
+    position: fixed;
+    right: 18px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .mobile-quick-actions__fab {
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--forest);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(38, 43, 31, 0.22);
+  }
+
+  .mobile-quick-actions__menu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 150px;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: 0 14px 36px rgba(38, 43, 31, 0.16);
+  }
+
+  .mobile-quick-actions__menu button {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .mobile-quick-actions__menu button:hover,
+  .mobile-quick-actions__menu button:focus-visible {
+    background: var(--bg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -62,18 +142,4 @@ textarea:focus {
     transition: none !important;
     animation: none !important;
   }
-}
-
-/* Small icon-only edit/delete buttons in list rows (UnitsView, ExpensesView,
-   InventoryView, DailyLogView) rely on Tailwind padding alone — around
-   27px, well under the 44px minimum touch-target recommendation. They all
-   share this exact class combination rather than a dedicated component
-   class, so this reaches every occurrence from one place instead of
-   editing each call site individually. */
-button[class*="hover:bg-black/5"] {
-  min-width: 40px;
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }

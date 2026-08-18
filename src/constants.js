@@ -3,12 +3,7 @@ import {
   Egg, Droplets, Wheat, Package,
 } from 'lucide-react';
 
-// The kinds of production a unit (flock, herd, plot) can track.
-// - groupSize/groupLabel: the natural "selling unit" for cost display,
-//   e.g. eggs are sold by the tray, so costPerUnit * 30 = cost per tray.
-// - hasGrades: eggs are logged by size grade (large/medium/small); other
-//   types just log a single quantity. See DailyLogView for where this
-//   branches the form.
+// The kinds of farm groups (flocks, herds, plots) the farmer manages.
 export const UNIT_TYPES = [
   { value: 'eggs', label: 'Layer flock (eggs)', unitLabel: 'eggs', groupSize: 30, groupLabel: 'tray', hasGrades: true, icon: Egg },
   { value: 'milk', label: 'Dairy herd (milk)', unitLabel: 'liters', groupSize: 1, groupLabel: 'liter', hasGrades: false, icon: Droplets },
@@ -16,9 +11,6 @@ export const UNIT_TYPES = [
   { value: 'other', label: 'Other livestock/produce', unitLabel: 'units', groupSize: 1, groupLabel: 'unit', hasGrades: false, icon: Package },
 ];
 
-// Cost categories for manually recorded expenses (ExpensesView). Any of
-// these can optionally be linked to an inventory item + quantity, which
-// turns the expense into a stock purchase — see src/lib/expenseLinking.js.
 export const EXPENSE_CATEGORIES = [
   { value: 'feed', label: 'Feed' },
   { value: 'medicine', label: 'Medicine / vaccines' },
@@ -28,7 +20,6 @@ export const EXPENSE_CATEGORIES = [
   { value: 'capital', label: 'Capital / equipment' },
 ];
 
-// Date-range filter options used on the Analytics view.
 export const PERIODS = [
   { value: 'today', label: 'Today' },
   { value: 'week', label: 'Last 7 days' },
@@ -36,9 +27,6 @@ export const PERIODS = [
   { value: 'all', label: 'All time' },
 ];
 
-// Optional payment method on an expense — not used for any calculation
-// yet, but recorded so a "how much of my spend is cash vs M-Pesa" view
-// is possible once enough expenses carry it.
 export const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
   { value: 'mpesa', label: 'M-Pesa' },
@@ -46,13 +34,14 @@ export const PAYMENT_METHODS = [
   { value: 'credit', label: 'On credit' },
 ];
 
-// Top-level navigation, in display order. App.jsx renders one button per
-// entry and swaps the visible view based on `value`.
+// "Farm groups" is the user-facing name for the animals, flocks, herds,
+// plots, or other productive groups being managed. The stored value remains
+// "units" so existing data and business logic are not migrated.
 export const TABS = [
   { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { value: 'log', label: 'Daily log', icon: ClipboardList },
   { value: 'expenses', label: 'Expenses', icon: Receipt },
   { value: 'inventory', label: 'Stock', icon: Boxes },
-  { value: 'units', label: 'Units', icon: Tag },
+  { value: 'units', label: 'Groups', icon: Tag },
   { value: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
