@@ -1,4 +1,4 @@
-import { LayoutDashboard, ClipboardList, Receipt, Tag, BarChart3, Boxes, Settings, Building2, Egg, Droplets, Wheat, Package } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Receipt, Tag, BarChart3, Boxes, Settings, Building2, FileBarChart, Egg, Droplets, Wheat, Package } from 'lucide-react';
 
 export const UNIT_TYPES = [
   { value: 'eggs', label: 'Layer flock (eggs)', unitLabel: 'eggs', groupSize: 30, groupLabel: 'tray', hasGrades: true, icon: Egg },
@@ -11,15 +11,12 @@ export const EXPENSE_CATEGORIES = [
   { value: 'feed', label: 'Feed' }, { value: 'medicine', label: 'Medicine / vaccines' }, { value: 'labor', label: 'Labor' },
   { value: 'utilities', label: 'Utilities' }, { value: 'supplies', label: 'Supplies' }, { value: 'capital', label: 'Capital / equipment' },
 ];
-
 export const PERIODS = [
   { value: 'today', label: 'Today' }, { value: 'week', label: 'Last 7 days' }, { value: 'month', label: 'This month' }, { value: 'all', label: 'All time' },
 ];
-
 export const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' }, { value: 'mpesa', label: 'M-Pesa' }, { value: 'bank', label: 'Bank' }, { value: 'credit', label: 'On credit' },
 ];
-
 export const TABS = [
   { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { value: 'log', label: 'Daily log', icon: ClipboardList },
@@ -28,5 +25,6 @@ export const TABS = [
   { value: 'units', label: 'Groups', icon: Tag },
   { value: 'suppliers', label: 'Suppliers', icon: Building2 },
   { value: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { value: 'reports', label: 'Reports', icon: FileBarChart },
   { value: 'settings', label: 'Settings', icon: Settings },
 ];
