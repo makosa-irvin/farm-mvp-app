@@ -13,12 +13,12 @@ const noop = () => {};
 describe('view components render without crashing, empty-state', () => {
   it('UnitsView', () => {
     render(<UnitsView units={[]} logs={[]} onAdd={noop} onUpdate={noop} onRemove={noop} />);
-    expect(screen.getByText('Add a production unit')).toBeInTheDocument();
+    expect(screen.getByText('Add a farm group')).toBeInTheDocument();
   });
 
   it('ExpensesView', () => {
     render(<ExpensesView units={[]} inventory={[]} expenses={[]} onAdd={noop} onUpdate={noop} onRemove={noop} />);
-    expect(screen.getByText('Record an expense')).toBeInTheDocument();
+    expect(screen.getByText('Record money spent')).toBeInTheDocument();
   });
 
   it('InventoryView', () => {
@@ -28,12 +28,12 @@ describe('view components render without crashing, empty-state', () => {
 
   it('DailyLogView with no units shows the empty state instead of the form', () => {
     render(<DailyLogView units={[]} logs={[]} inventory={[]} onAdd={noop} onUpdate={noop} onRemove={noop} goTo={noop} />);
-    expect(screen.getByText('Add a unit before logging')).toBeInTheDocument();
+    expect(screen.getByText('Add a farm group before logging')).toBeInTheDocument();
   });
 
   it('Dashboard with no units shows the empty state', () => {
     render(<Dashboard units={[]} logs={[]} expenses={[]} inventory={[]} inventoryMoves={[]} goTo={noop} />);
-    expect(screen.getByText('No units yet')).toBeInTheDocument();
+    expect(screen.getByText('No farm groups yet')).toBeInTheDocument();
   });
 
   it('AnalyticsView with no units shows the empty state', () => {
@@ -47,11 +47,11 @@ describe('the fields the E2E suite depends on actually exist', () => {
   // real browser. If a label or option text changes and breaks the E2E
   // locators, this (much faster) test should catch it first.
 
-  it('UnitsView exposes a "Name" field and "Add unit" button', () => {
+  it('UnitsView exposes a "What should we call it?" field and "Add group" button', () => {
     render(<UnitsView units={[]} logs={[]} onAdd={noop} onUpdate={noop} onRemove={noop} />);
-    const label = screen.getByText('Name', { selector: 'label' });
+    const label = screen.getByText('What should we call it?', { selector: 'label' });
     expect(label.parentElement.querySelector('input')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add unit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add group' })).toBeInTheDocument();
   });
 
   it('InventoryView exposes "Item name"/"Category"/"Unit" fields and lists items with their balance', () => {
@@ -65,9 +65,9 @@ describe('the fields the E2E suite depends on actually exist', () => {
   it('ExpensesView exposes the inventory-link fields with the option label format the E2E test selects by', () => {
     const inventory = [{ id: 'i1', name: 'Layer Mash', unit: 'kg' }];
     render(<ExpensesView units={[]} inventory={inventory} expenses={[]} onAdd={noop} onUpdate={noop} onRemove={noop} />);
-    expect(screen.getByText('Inventory item — optional', { selector: 'label' })).toBeInTheDocument();
+    expect(screen.getByText('Did you buy stock? (optional)', { selector: 'label' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Layer Mash (kg)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save expense' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
   it('DailyLogView lists feed items with name + balance in the option text', () => {
@@ -152,7 +152,7 @@ describe('ExpensesView — expandable rows with optional detail', () => {
   it('an expense with no extra detail says so, rather than showing an empty panel', () => {
     render(<ExpensesView units={units} inventory={[]} expenses={expenses} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
     fireEvent.click(screen.getAllByText('KSh 200')[0].closest('tr'));
-    expect(screen.getByText('No extra detail recorded for this expense.')).toBeInTheDocument();
+    expect(screen.getByText('No extra detail recorded.')).toBeInTheDocument();
   });
 
   it('clicking Edit or Delete inside a row does not also toggle the row expansion', () => {
@@ -166,7 +166,7 @@ describe('ExpensesView — expandable rows with optional detail', () => {
 
   it('the supplier and payment method fields are optional, not required', () => {
     render(<ExpensesView units={units} inventory={[]} expenses={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
-    expect(screen.getByPlaceholderText('e.g. Wanjiku Agrovet')).not.toBeRequired();
+    expect(screen.getByPlaceholderText('e.g. local agrovet')).not.toBeRequired();
   });
 });
 
@@ -184,14 +184,14 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
     render(<UnitsView units={units} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
     fireEvent.click(screen.getByText('Layer House A'));
     expect(screen.getByText('This month so far')).toBeInTheDocument();
-    expect(screen.getByText('Cost/unit')).toBeInTheDocument(); // no producePrice set on this unit, so cost/unit shows instead of profit
+    expect(screen.getByText('Cost per unit')).toBeInTheDocument(); // no producePrice set on this unit, so cost/unit shows instead of profit
   });
 
   it('shows Profit instead of Cost/unit once the unit has a selling price', () => {
     const pricedUnits = [{ ...units[0], producePrice: 20 }];
     render(<UnitsView units={pricedUnits} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
     fireEvent.click(screen.getByText('Layer House A'));
-    expect(screen.getByText('Profit')).toBeInTheDocument();
+    expect(screen.getByText('Estimated surplus')).toBeInTheDocument();
   });
 
   it('clicking Edit or Remove does not also toggle the snapshot', () => {
@@ -206,7 +206,85 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
       <UnitsView units={units} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} onNavigateToAnalytics={() => { navigated = true; }} />
     );
     fireEvent.click(screen.getByText('Layer House A'));
-    fireEvent.click(screen.getByText('See full analytics for this unit'));
+    fireEvent.click(screen.getByText('See more results'));
     expect(navigated).toBe(true);
+  });
+});
+
+describe('Dashboard — "Today" produced stat does not sum across mismatched units', () => {
+  // Regression test for a confirmed bug: the "Produced today" stat summed
+  // raw quantities across every log entry today regardless of unit type -
+  // adding "30 eggs" to "20 liters of milk" into one meaningless number.
+  it('sums normally when every log entry today is the same production type', () => {
+    const units = [
+      { id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 },
+      { id: 'u2', name: 'Layer House B', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 },
+    ];
+    const today = new Date().toISOString().slice(0, 10);
+    const logs = [
+      { unitId: 'u1', date: today, produced: 30, mortality: 0 },
+      { unitId: 'u2', date: today, produced: 20, mortality: 0 },
+    ];
+    render(<Dashboard units={units} logs={logs} expenses={[]} inventory={[]} inventoryMoves={[]} goTo={() => {}} />);
+    expect(screen.getByText('50')).toBeInTheDocument(); // 30 + 20 eggs — a meaningful sum
+    expect(screen.getAllByText('eggs').length).toBeGreaterThan(0);
+  });
+
+  it('falls back to a count of kinds logged, never a mixed-unit sum, when types differ', () => {
+    const units = [
+      { id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 },
+      { id: 'u2', name: 'Dairy Herd', type: 'milk', initialCount: 10, startDate: '2026-08-01', producePrice: 0 },
+    ];
+    const today = new Date().toISOString().slice(0, 10);
+    const logs = [
+      { unitId: 'u1', date: today, produced: 30, mortality: 0 }, // 30 eggs
+      { unitId: 'u2', date: today, produced: 20, mortality: 0 }, // 20 liters
+    ];
+    render(<Dashboard units={units} logs={logs} expenses={[]} inventory={[]} inventoryMoves={[]} goTo={() => {}} />);
+    // Must never show "50" here — that would be eggs + liters added together.
+    expect(screen.queryByText('50')).not.toBeInTheDocument();
+    expect(screen.getByText('Logged today')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument(); // 2 kinds of produce logged
+  });
+});
+
+describe('Dashboard — "Farm costs" is an accrual figure, not the purchase price', () => {
+  // Regression test for a confirmed bug: "Farm costs this month" summed
+  // the expenses array directly, which double-counted a stock purchase's
+  // full price the moment it was bought while also missing the true
+  // consumption cost for anything used through Daily Log (only a manual
+  // Stock deduction auto-creates a matching expense entry — see
+  // buildInventoryCostExpense in inventoryActions.js — so day-to-day feed
+  // logging was invisible to this figure entirely).
+  it('shows only the value actually consumed, not the full purchase price, when a large batch is used gradually', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const units = [{ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: today, producePrice: 0 }];
+    // Bought 50kg of feed for KSh 3500 (70/kg) — but only 5kg has been
+    // used so far via a real daily log, exactly like a farmer would do.
+    const expenses = [
+      { id: 'e1', category: 'feed', amount: 3500, date: today, unitId: null, inventoryItemId: 'i1', inventoryQuantity: 50, description: '', supplier: null, paymentMethod: null },
+    ];
+    const inventoryMoves = [
+      { id: 'exppurchase_e1', itemId: 'i1', transactionType: 'purchase', direction: 'in', type: 'in', quantity: 50, unit: 'kg', unitCost: 70, date: today, source: 'expense-purchase', sourceId: 'e1', expenseId: 'e1' },
+      { id: 'logfeed_l1', itemId: 'i1', transactionType: 'consumption', direction: 'out', type: 'out', quantity: 5, unit: 'kg', unitCost: 70, date: today, source: 'daily-log', sourceId: 'l1', unitId: 'u1' },
+    ];
+
+    render(<Dashboard units={units} logs={[]} expenses={expenses} inventory={[]} inventoryMoves={inventoryMoves} goTo={() => {}} />);
+
+    // 5kg * KSh 70/kg = KSh 350 actually used — the "Farm costs" figure
+    // should show this, not the full KSh 3,500 purchase price. "Money
+    // spent" (the separate cash-flow figure) correctly still shows the
+    // full KSh 3,500 — that one's about cash leaving hand, not accrual,
+    // so both figures being different is the point, not a contradiction.
+    const farmCostsLabel = screen.getByText('Farm costs', { selector: 'div' });
+    const farmCostsValue = farmCostsLabel.parentElement.querySelector('.font-mono');
+    expect(farmCostsValue).toHaveTextContent('KSh 350');
+
+    // "Money spent" appears twice on this screen — today's stat and this
+    // month's — both correctly show the full purchase price here, since
+    // the test expense is dated today.
+    const moneySpentLabels = screen.getAllByText('Money spent', { selector: 'div' });
+    const moneySpentValues = moneySpentLabels.map((label) => label.parentElement.querySelector('.font-mono')?.textContent);
+    expect(moneySpentValues).toContain('KSh 3,500');
   });
 });

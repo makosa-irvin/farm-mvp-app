@@ -3,6 +3,14 @@ import { useState } from 'react';
 
 // Mobile-first quick capture menu. It keeps the most common farm actions
 // reachable with one thumb without adding more permanent top-level tabs.
+//
+// Known overlap, not yet resolved: all three actions here (Daily log,
+// Stock, Expense) are also directly one tap away on the persistent mobile
+// bottom nav (see Header.jsx's mobilePrimary list) — this FAB currently
+// adds a second, slower path to the same three destinations rather than
+// covering something the bottom nav doesn't. Worth a product decision on
+// whether this should cover different actions, or be removed in favor of
+// the bottom nav alone.
 export default function MobileQuickActions({ onNavigate }) {
   const [open, setOpen] = useState(false);
 

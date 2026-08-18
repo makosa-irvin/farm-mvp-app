@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fmtMoney, fmtNum, currentCountFor, unitMetrics, unitCostBreakdown, dailyProductionTrend } from '../../src/lib/helpers.js';
+import { isInventoryCostDeduction } from '../../src/lib/inventoryLedger.js';
 
 describe('fmtMoney', () => {
   it('formats a positive number as currency', () => {
@@ -47,7 +48,7 @@ describe('unitMetrics — the core linking behavior', () => {
     const logs = [{ unitId: 'u1', date: '2026-08-18', produced: 90, feedKg: 45, mortality: 0 }];
     // A $105 purchase — but only 45kg (at 0.7/kg = $31.50) was actually consumed.
     const expenses = [{ unitId: null, date: '2026-08-17', amount: 105, inventoryItemId: 'i1' }];
-    const inventoryMoves = [{ transactionType: 'consumption', unitId: 'u1', date: '2026-08-18', quantity: 45, unitCost: 0.7 }];
+    const inventoryMoves = [{ transactionType: 'consumption', direction: 'out', unitId: 'u1', date: '2026-08-18', quantity: 45, unitCost: 0.7 }];
 
     const metrics = unitMetrics(unit, logs, expenses, 'all', inventoryMoves);
     expect(metrics.directCost).toBeCloseTo(31.5);
@@ -64,7 +65,7 @@ describe('unitMetrics — the core linking behavior', () => {
   it('counts consumption transactions attributed to the unit regardless of source (daily-log or manual)', () => {
     const unit = { id: 'u1', type: 'eggs', initialCount: 100, startDate: '2026-08-01' };
     const logs = [{ unitId: 'u1', date: '2026-08-18', produced: 90, mortality: 0 }];
-    const manualConsumption = [{ transactionType: 'consumption', source: 'manual', unitId: 'u1', date: '2026-08-18', quantity: 10, unitCost: 1 }];
+    const manualConsumption = [{ transactionType: 'consumption', direction: 'out', source: 'manual', unitId: 'u1', date: '2026-08-18', quantity: 10, unitCost: 1 }];
     const metrics = unitMetrics(unit, logs, [], 'all', manualConsumption);
     expect(metrics.directCost).toBe(10);
   });
@@ -97,7 +98,7 @@ describe('unitCostBreakdown', () => {
   it('attributes consumed inventory cost to the inventory item\'s own category', () => {
     const inventory = [{ id: 'i1', category: 'Feed' }];
     const inventoryMoves = [
-      { transactionType: 'consumption', unitId: 'u1', date: '2026-08-05', itemId: 'i1', quantity: 10, unitCost: 7 },
+      { transactionType: 'consumption', direction: 'out', unitId: 'u1', date: '2026-08-05', itemId: 'i1', quantity: 10, unitCost: 7 },
     ];
     const rows = unitCostBreakdown(unit, [], [], 'all', inventoryMoves, inventory);
     expect(rows).toEqual([{ label: 'Feed', amount: 70 }]);
@@ -107,7 +108,7 @@ describe('unitCostBreakdown', () => {
     const inventory = [{ id: 'i1', category: 'Feed' }];
     const expenses = [{ unitId: 'u1', date: '2026-08-01', category: 'feed', amount: 100, inventoryItemId: null }];
     const inventoryMoves = [
-      { transactionType: 'consumption', unitId: 'u1', date: '2026-08-05', itemId: 'i1', quantity: 5, unitCost: 8 },
+      { transactionType: 'consumption', direction: 'out', unitId: 'u1', date: '2026-08-05', itemId: 'i1', quantity: 5, unitCost: 8 },
     ];
     const rows = unitCostBreakdown(unit, [], expenses, 'all', inventoryMoves, inventory);
     expect(rows).toEqual([{ label: 'Feed', amount: 140 }]); // 100 + 5*8
@@ -163,5 +164,30 @@ describe('dailyProductionTrend', () => {
     const trend = dailyProductionTrend(unit, [], 1);
     expect(trend).toHaveLength(1);
     expect(trend[0].value).toBe(0);
+  });
+});
+
+// Regression coverage for a confirmed backward-compatibility gap:
+// isInventoryCostDeduction() used to check transaction.direction alone,
+// with no fallback to transaction.type. This app has no backend and no
+// data migrations — an existing user's already-stored transactions from
+// before `direction` existed as a field may only have `type` set. Without
+// the fallback, a real user's genuine historical costs would silently
+// stop counting the moment they loaded a newer build, with no error and
+// no explanation. Every other balance calculation in this codebase
+// (getBalance, the InventoryView balance calc) already checks
+// (move.direction || move.type) for exactly this reason.
+describe('isInventoryCostDeduction — backward compatibility with older stored data', () => {
+  it('recognizes a deduction using the current `direction` field', () => {
+    expect(isInventoryCostDeduction({ transactionType: 'wastage', direction: 'out' })).toBe(true);
+  });
+
+  it('also recognizes a deduction using only the older `type` field, with no `direction` set', () => {
+    expect(isInventoryCostDeduction({ transactionType: 'wastage', type: 'out' })).toBe(true);
+  });
+
+  it('still correctly excludes transfers and sales regardless of which field is used', () => {
+    expect(isInventoryCostDeduction({ transactionType: 'transfer', direction: 'out' })).toBe(false);
+    expect(isInventoryCostDeduction({ transactionType: 'sale', type: 'out' })).toBe(false);
   });
 });

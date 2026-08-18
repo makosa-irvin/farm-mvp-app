@@ -40,11 +40,26 @@ export default function MainContent({ tab, farm, setTab }) {
       )}
 
       {tab === 'units' && (
-        <UnitsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventoryMoves={farm.inventoryMoves} onAdd={farm.addUnit} onUpdate={farm.updateUnit} onRemove={farm.removeUnit} onNavigateToAnalytics={() => setTab('analytics')} />
+        <UnitsView
+          units={farm.units}
+          logs={farm.logs}
+          expenses={farm.expenses}
+          inventoryMoves={farm.inventoryMoves}
+          onAdd={farm.addUnit}
+          onUpdate={farm.updateUnit}
+          onRemove={farm.removeUnit}
+          onNavigateToAnalytics={() => setTab('analytics')}
+        />
       )}
 
       {tab === 'analytics' && (
-        <AnalyticsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} />
+        <AnalyticsView
+          units={farm.units}
+          logs={farm.logs}
+          expenses={farm.expenses}
+          inventory={farm.inventory}
+          inventoryMoves={farm.inventoryMoves}
+        />
       )}
 
       {tab === 'inventory' && (

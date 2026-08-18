@@ -5,7 +5,7 @@
 import { fmtNum, fmtMoney } from '../helpers.js';
 import { syncedTransactionsForExpense, balanceIfExpensePurchaseRemoved } from '../expenseLinking.js';
 
-export function createExpenseActions({ inventory, transactions, setExpenses, setInventoryTransactions, showToast, confirm }) {
+export function createExpenseActions({ expenses, inventory, transactions, setExpenses, setInventoryTransactions, showToast, confirm }) {
   // Expense-linked purchases must be synchronized before an edit is saved.
   // A failed synchronization leaves both the expense and ledger unchanged.
   const syncExpensePurchaseTransaction = (expense) => {
@@ -27,6 +27,19 @@ export function createExpenseActions({ inventory, transactions, setExpenses, set
   };
 
   const updateExpense = (expense) => {
+    // Synthetic records (auto-created when stock is used/lost/adjusted
+    // down — see buildInventoryCostExpense in inventoryActions.js) are not
+    // real cash expenses. syncExpensePurchaseTransaction() below only
+    // understands the opposite direction of link (an expense that creates
+    // a purchase), so running a synthetic record through it fabricates a
+    // fake purchase transaction that cancels out the real inventory
+    // deduction it was generated from. Route corrections through Stock,
+    // where inventoryActions.js keeps the synthetic record in sync
+    // automatically.
+    if (expense.nonCash || expense.inventoryTransactionId) {
+      showToast("This is stock usage or loss, not a payment — edit it from Stock instead.");
+      return false;
+    }
     if (!syncExpensePurchaseTransaction(expense)) return false;
     setExpenses((prev) => prev.map((x) => (x.id === expense.id ? expense : x)));
     showToast('Expense updated.');
@@ -34,6 +47,11 @@ export function createExpenseActions({ inventory, transactions, setExpenses, set
   };
 
   const removeExpense = async (id) => {
+    const target = expenses.find((e) => e.id === id);
+    if (target?.nonCash || target?.inventoryTransactionId) {
+      showToast("This is stock usage or loss, not a payment — remove it from Stock instead.");
+      return;
+    }
     const { linkedTx, balance } = balanceIfExpensePurchaseRemoved(id, inventory, transactions);
     if (linkedTx && balance < -1e-9) {
       const item = inventory.find((i) => i.id === linkedTx.itemId);

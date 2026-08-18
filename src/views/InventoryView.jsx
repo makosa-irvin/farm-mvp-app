@@ -394,7 +394,7 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
 
         {moveType === 'consumption' && (
           <div>
-            <FieldLabel>Which unit used it — optional</FieldLabel>
+            <FieldLabel>Which farm group used it — optional</FieldLabel>
             <select value={unitId} onChange={(e) => setUnitId(e.target.value)} className={inputClass} style={inputStyle}>
               <option value="">General use / not one unit</option>
               {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}

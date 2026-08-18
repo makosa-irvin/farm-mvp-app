@@ -43,9 +43,9 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
     return (
       <EmptyState
         icon={ClipboardList}
-        title="Add a unit before logging"
+        title="Add a farm group before logging"
         body="Daily logs are recorded against a specific flock, herd, or plot."
-        actionLabel="Add a production unit"
+        actionLabel="Add a farm group"
         onAction={() => goTo('units')}
       />
     );
@@ -128,7 +128,7 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
   return (
     <div className="space-y-6">
       <div>
-        <FieldLabel>Production unit</FieldLabel>
+        <FieldLabel>Farm group</FieldLabel>
         <div className="flex gap-2 flex-wrap">
           {units.map((u) => {
             const Icon = typeOf(u).icon;

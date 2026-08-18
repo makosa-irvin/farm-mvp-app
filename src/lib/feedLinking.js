@@ -21,7 +21,7 @@ export function buildFeedTransaction(log, units, previousLog = null) {
     direction: 'out',
     quantity: qty,
     date: log.date,
-    note: `Feed consumed by ${units.find((u) => u.id === log.unitId)?.name || 'production unit'}`,
+    note: `Feed consumed by ${units.find((u) => u.id === log.unitId)?.name || 'farm group'}`,
     source: 'daily-log',
     sourceId: log.id,
     unitId: log.unitId,

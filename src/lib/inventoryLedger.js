@@ -51,9 +51,17 @@ export function getWeightedAverageCost(inventory, transactions, itemId) {
 // Transfers and sales are deliberately excluded: transfers are internal
 // movements, while a sale should be paired with revenue/COGS accounting
 // rather than treated as an operating expense.
+//
+// Checks (transaction.direction || transaction.type) rather than direction
+// alone, matching the fallback pattern used everywhere else in this file
+// (see getBalance, getWeightedAverageCost). This app has no backend and no
+// data migrations — some already-stored transactions from before the
+// `direction` field existed may only have `type` set, and this needs to
+// recognize those too, or an existing user's real costs could silently
+// stop counting the moment they load a newer build.
 export const isInventoryCostDeduction = (transaction) =>
   ['consumption', 'wastage', 'adjustment_out'].includes(transaction?.transactionType) &&
-  transaction?.direction === 'out';
+  (transaction?.direction || transaction?.type) === 'out';
 
 export const inventoryTransactionCost = (transaction) =>
   (Number(transaction?.quantity) || 0) * (Number(transaction?.unitCost) || 0);

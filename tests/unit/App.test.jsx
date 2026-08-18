@@ -10,22 +10,28 @@ describe('App — Header/NavTabs/MainContent composition', () => {
   it('renders the header and starts on the Dashboard tab', () => {
     render(<App />);
     expect(screen.getByText('Field Ledger')).toBeInTheDocument();
-    expect(screen.getByText('No units yet')).toBeInTheDocument(); // Dashboard empty state
+    expect(screen.getByText('No farm groups yet')).toBeInTheDocument(); // Dashboard empty state
   });
 
   it('clicking a nav tab switches the rendered view', () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Units' }));
-    expect(screen.getByText('Add a production unit')).toBeInTheDocument();
+    // The responsive header renders both the desktop top nav and the
+    // mobile bottom nav in the DOM at once (jsdom doesn't evaluate the
+    // `hidden sm:block` media query the way a real browser viewport
+    // would), so some labels now match more than one button. Either one
+    // triggers the same onSelectTab callback, so clicking the first match
+    // is a faithful test of the actual behavior.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Groups' })[0]);
+    expect(screen.getByText('Add a farm group')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stock' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Stock' })[0]);
     expect(screen.getByText('Nothing tracked yet')).toBeInTheDocument();
   });
 
   it('the active tab is visually distinguished from inactive ones', () => {
     render(<App />);
-    const dashboardTab = screen.getByRole('button', { name: 'Dashboard' });
-    const unitsTab = screen.getByRole('button', { name: 'Units' });
+    const dashboardTab = screen.getByRole('button', { name: 'Dashboard' }); // unique: mobile nav labels this "Home" instead
+    const unitsTab = screen.getAllByRole('button', { name: 'Groups' })[0];
     // Active/inactive are separate CSS module classes (NavTabs.module.css)
     // rather than inline styles now — just confirm they actually differ.
     expect(dashboardTab.className).not.toBe(unitsTab.className);
