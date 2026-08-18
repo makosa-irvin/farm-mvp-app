@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './styles/components/buttons.css';
+@import './styles/components/ledger-table.css';
+
 .farm-app {
   --bg: #f3f5ee;
   --surface: #ffffff;
