@@ -19,14 +19,19 @@ export function typeOf(unit) {
   return UNIT_TYPES.find((type) => type.value === unit.type) || UNIT_TYPES[3];
 }
 
-export function fmtMoney(value) {
+// Formats a Kenyan Shilling amount. Whole totals (expenses, revenue) round
+// to the nearest shilling by default, matching how KSh amounts are
+// normally written day-to-day — pass decimals=2 (or more) for per-unit
+// costs like "cost per egg", where a fraction of a shilling is the whole
+// point (KSh 4 vs KSh 5 per egg is a real difference at that scale).
+export function fmtMoney(value, decimals = 0) {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return '—';
   }
 
-  return '$' + value.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  return 'KSh ' + value.toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   });
 }
 
