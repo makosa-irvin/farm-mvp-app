@@ -1,15 +1,10 @@
 import { usePersistentState } from '../lib/usePersistentState.js';
-import {
-  INVENTORY_TRANSACTION_TYPES,
-  getExpenseUnitCost,
-  getBalance as getBalanceRaw,
-  getWeightedAverageCost as getWeightedAverageCostRaw,
-} from '../lib/inventoryLedger.js';
+import { INVENTORY_TRANSACTION_TYPES, getExpenseUnitCost, getBalance as getBalanceRaw, getWeightedAverageCost as getWeightedAverageCostRaw } from '../lib/inventoryLedger.js';
 import { createUnitActions } from '../lib/actions/unitActions.js';
 import { createExpenseActions } from '../lib/actions/expenseActions.js';
 import { createInventoryActions } from '../lib/actions/inventoryActions.js';
 import { createLogActions } from '../lib/actions/logActions.js';
-import { buildBackup, downloadBackup } from '../lib/dataBackup.js';
+import { buildBackup, downloadBackup, validateBackup } from '../lib/dataBackup.js';
 
 const LEGACY_KEY = 'farm-inventory-movements';
 const LEDGER_KEY = 'farm-inventory-ledger';
@@ -48,6 +43,24 @@ export function useFarmData(showToast, confirm) {
     showToast('Backup downloaded. Keep it somewhere safe.');
   };
 
+  const importData = async (file) => {
+    try {
+      const parsed = JSON.parse(await file.text());
+      const data = validateBackup(parsed);
+      if (!(await confirm('Restore this backup? Current farm records on this device will be replaced.'))) return false;
+      setUnits(data.units);
+      setLogs(data.logs);
+      setExpenses(data.expenses);
+      setInventory(data.inventory);
+      setInventoryTransactions(data.inventoryTransactions);
+      showToast('Backup restored successfully.');
+      return true;
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not restore this backup.');
+      return false;
+    }
+  };
+
   return {
     units, logs, expenses, inventory,
     inventoryMoves: transactions,
@@ -63,5 +76,6 @@ export function useFarmData(showToast, confirm) {
     getTransactions: () => transactions,
     transactionTypes: INVENTORY_TRANSACTION_TYPES,
     exportData,
+    importData,
   };
 }
