@@ -2,6 +2,7 @@
   background: var(--forest);
   color: #fff;
   font-weight: 600;
+  min-height: 44px;
   transition: background 0.15s ease;
 }
 
@@ -19,6 +20,7 @@
   background: transparent;
   color: var(--ink);
   font-weight: 500;
+  min-height: 44px;
   transition: border-color 0.15s ease;
 }
 

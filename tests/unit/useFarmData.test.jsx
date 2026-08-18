@@ -1,12 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useFarmData } from '../../src/hooks/useFarmData.js';
 
 // Sets up a unit + a Feed inventory item that every test in this file
 // builds on. Each test gets its own renderHook() call — tests intentionally
 // don't share state with each other, only this common starting point.
+//
+// confirm() always resolves true here, standing in for a user who always
+// clicks "Yes, remove it" in the real ConfirmDialog — this hook no longer
+// uses window.confirm at all (see useConfirmDialog.js), so mocking that is
+// no longer relevant.
 function setupFarm(toasts) {
-  const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg)));
+  const confirm = async () => true;
+  const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
   act(() => {
     result.current.addUnit({ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0.2 });
     result.current.addInventoryItem({ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 0, reorderLevel: 20, unitCost: 0 });
@@ -40,7 +46,6 @@ describe('useFarmData — expense/inventory/log linking', () => {
   beforeEach(() => {
     localStorage.clear();
     toasts = [];
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   it('adding a feed expense linked to an inventory item increases stock and creates a linked purchase transaction', () => {
@@ -101,25 +106,25 @@ describe('useFarmData — expense/inventory/log linking', () => {
     expect(result.current.getBalance('i1')).toBe(155); // 200 - 45
   });
 
-  it('blocks deleting an expense while its stock is still in use', () => {
+  it('blocks deleting an expense while its stock is still in use', async () => {
     const result = setupFarm(toasts);
     addFeedExpense(result);
     addFeedLog(result);
 
-    act(() => result.current.removeExpense('e1'));
+    await act(async () => { await result.current.removeExpense('e1'); });
 
     expect(result.current.expenses.some((e) => e.id === 'e1')).toBe(true);
     expect(result.current.getBalance('i1')).toBe(105);
   });
 
-  it('allows deleting an expense once nothing depends on its stock, and fully removes the linked transaction', () => {
+  it('allows deleting an expense once nothing depends on its stock, and fully removes the linked transaction', async () => {
     const result = setupFarm(toasts);
     addFeedExpense(result);
     addFeedLog(result);
-    act(() => result.current.removeLog('l1'));
+    await act(async () => { await result.current.removeLog('l1'); });
     expect(result.current.getBalance('i1')).toBe(150);
 
-    act(() => result.current.removeExpense('e1'));
+    await act(async () => { await result.current.removeExpense('e1'); });
 
     expect(result.current.expenses.some((e) => e.id === 'e1')).toBe(false);
     expect(result.current.getBalance('i1')).toBe(0);
@@ -143,7 +148,6 @@ describe('useFarmData — manual inventory ledger and unit cascade', () => {
   beforeEach(() => {
     localStorage.clear();
     toasts = [];
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   it('records a manual purchase transaction directly (not via an expense)', () => {
@@ -172,12 +176,12 @@ describe('useFarmData — manual inventory ledger and unit cascade', () => {
     expect(pair).toHaveLength(2);
   });
 
-  it('removing a unit un-attributes its expenses and cleans up its transactions, without deleting the expenses themselves', () => {
+  it('removing a unit un-attributes its expenses and cleans up its transactions, without deleting the expenses themselves', async () => {
     const result = setupFarm(toasts);
     act(() => { result.current.addUnit({ id: 'u2', name: 'Barn B', type: 'milk', initialCount: 20, startDate: '2026-08-01' }); });
     act(() => { result.current.addExpense({ id: 'e2', category: 'labor', amount: 50, date: '2026-08-17', unitId: 'u2', description: '', inventoryItemId: null, inventoryQuantity: null }); });
 
-    act(() => result.current.removeUnit('u2'));
+    await act(async () => { await result.current.removeUnit('u2'); });
 
     expect(result.current.units.some((u) => u.id === 'u2')).toBe(false);
     expect(result.current.expenses.find((e) => e.id === 'e2').unitId).toBeNull();

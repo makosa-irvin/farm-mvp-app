@@ -2,10 +2,10 @@
 // transaction (see src/lib/expenseLinking.js). This is what makes an
 // expense with an inventory item + quantity actually move stock, rather
 // than the link just being metadata that nothing acts on.
-import { fmtNum } from '../helpers.js';
+import { fmtNum, fmtMoney } from '../helpers.js';
 import { syncedTransactionsForExpense, balanceIfExpensePurchaseRemoved } from '../expenseLinking.js';
 
-export function createExpenseActions({ inventory, transactions, setExpenses, setInventoryTransactions, showToast }) {
+export function createExpenseActions({ inventory, transactions, setExpenses, setInventoryTransactions, showToast, confirm }) {
   // Expense-linked purchases must be synchronized before an edit is saved.
   // A failed synchronization leaves both the expense and ledger unchanged.
   const syncExpensePurchaseTransaction = (expense) => {
@@ -22,7 +22,7 @@ export function createExpenseActions({ inventory, transactions, setExpenses, set
   const addExpense = (expense) => {
     setExpenses((prev) => [...prev, expense]);
     syncExpensePurchaseTransaction(expense);
-    showToast(`${expense.amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' })} expense logged.`);
+    showToast(`${fmtMoney(expense.amount)} expense logged.`);
     return true;
   };
 
@@ -33,17 +33,20 @@ export function createExpenseActions({ inventory, transactions, setExpenses, set
     return true;
   };
 
-  const removeExpense = (id) => {
+  const removeExpense = async (id) => {
     const { linkedTx, balance } = balanceIfExpensePurchaseRemoved(id, inventory, transactions);
     if (linkedTx && balance < -1e-9) {
       const item = inventory.find((i) => i.id === linkedTx.itemId);
-      showToast(`Can't delete — ${fmtNum(Math.abs(balance))} ${item?.unit || ''} of ${item?.name || 'this item'} from this purchase has already been used elsewhere.`);
+      showToast(`Can't remove — ${fmtNum(Math.abs(balance))} ${item?.unit || ''} of ${item?.name || 'this item'} from this purchase has already been used elsewhere.`);
       return;
     }
-    if (!window.confirm(linkedTx ? 'Delete this expense? Its linked inventory purchase will also be removed, reducing stock back down.' : 'Delete this expense?')) return;
+    const message = linkedTx
+      ? 'Remove this expense? The stock it added will be removed too, so the amount goes back down.'
+      : 'Remove this expense?';
+    if (!(await confirm(message))) return;
     setExpenses((prev) => prev.filter((e) => e.id !== id));
     if (linkedTx) setInventoryTransactions((prev) => prev.filter((t) => t.id !== linkedTx.id));
-    showToast('Expense deleted.');
+    showToast('Expense removed.');
   };
 
   return { addExpense, updateExpense, removeExpense };

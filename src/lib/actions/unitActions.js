@@ -2,7 +2,7 @@
 // unit-owned ledger transactions, while unit references on expenses are
 // cleared rather than deleting the expense itself.
 
-export function createUnitActions({ setUnits, setLogs, setExpenses, setInventoryTransactions, showToast }) {
+export function createUnitActions({ units, setUnits, setLogs, setExpenses, setInventoryTransactions, showToast, confirm }) {
   const addUnit = (unit) => {
     setUnits((prev) => [...prev, unit]);
     showToast(`${unit.name} added — ready to log production.`);
@@ -13,13 +13,14 @@ export function createUnitActions({ setUnits, setLogs, setExpenses, setInventory
     showToast(`${unit.name} updated.`);
   };
 
-  const removeUnit = (id) => {
-    if (!window.confirm('Delete this production unit? Its daily logs will also be deleted.')) return;
+  const removeUnit = async (id) => {
+    const unit = units.find((u) => u.id === id);
+    if (!(await confirm(`Remove ${unit?.name || 'this unit'}? Its daily records will be removed too.`))) return;
     setUnits((prev) => prev.filter((u) => u.id !== id));
     setLogs((prev) => prev.filter((l) => l.unitId !== id));
     setExpenses((prev) => prev.map((e) => (e.unitId === id ? { ...e, unitId: null } : e)));
     setInventoryTransactions((prev) => prev.filter((t) => t.unitId !== id && t.sourceUnitId !== id && t.destinationUnitId !== id));
-    showToast('Production unit deleted.');
+    showToast('Unit removed.');
   };
 
   return { addUnit, updateUnit, removeUnit };

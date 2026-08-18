@@ -4,7 +4,7 @@
 import { typeOf, fmtNum } from '../helpers.js';
 import { checkFeedAvailability, syncedTransactionsForLog } from '../feedLinking.js';
 
-export function createLogActions({ units, logs, inventory, transactions, setLogs, setInventoryTransactions, showToast }) {
+export function createLogActions({ units, logs, inventory, transactions, setLogs, setInventoryTransactions, showToast, confirm }) {
   function rejectIfNotEnoughFeed(entry) {
     const check = checkFeedAvailability(entry, units, inventory, transactions);
     if (!check.ok) {
@@ -36,11 +36,11 @@ export function createLogActions({ units, logs, inventory, transactions, setLogs
     return true;
   };
 
-  const removeLog = (id) => {
-    if (!window.confirm('Delete this daily log entry? Its linked feed consumption transaction will also be removed.')) return;
+  const removeLog = async (id) => {
+    if (!(await confirm('Remove this entry? Any feed it used will go back into your stock total.'))) return;
     setLogs((prev) => prev.filter((l) => l.id !== id));
     setInventoryTransactions((prev) => prev.filter((t) => !(t.source === 'daily-log' && t.sourceId === id)));
-    showToast('Daily log deleted.');
+    showToast('Entry removed.');
   };
 
   return { addLog, updateLog, removeLog };
