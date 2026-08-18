@@ -250,3 +250,126 @@ describe('synthetic (non-cash) expense records — must not be editable via expe
     expect(result.current.expenses.some((e) => e.id === 'e1')).toBe(false); // real removal still works
   });
 });
+
+describe('useFarmData — backup export/import round-trip', () => {
+  let toasts;
+
+  beforeEach(() => {
+    localStorage.clear();
+    toasts = [];
+  });
+
+  it('importData replaces all five data slices, after confirmation, and reports success', async () => {
+    const confirm = async () => true;
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      result.current.addUnit({ id: 'u1', name: 'Old Unit', type: 'eggs', initialCount: 5, startDate: '2026-01-01' });
+    });
+    expect(result.current.units).toHaveLength(1);
+
+    const backupFile = {
+      text: () => Promise.resolve(JSON.stringify({
+        kind: 'field-ledger-backup',
+        version: 1,
+        data: {
+          units: [{ id: 'u2', name: 'Restored Unit', type: 'milk', initialCount: 20, startDate: '2026-02-01' }],
+          logs: [{ id: 'l1', unitId: 'u2', date: '2026-02-02', produced: 10, mortality: 0 }],
+          expenses: [],
+          inventory: [],
+          inventoryTransactions: [],
+        },
+      })),
+    };
+
+    let success;
+    await act(async () => {
+      success = await result.current.importData(backupFile);
+    });
+
+    expect(success).toBe(true);
+    expect(result.current.units).toEqual([{ id: 'u2', name: 'Restored Unit', type: 'milk', initialCount: 20, startDate: '2026-02-01' }]);
+    expect(result.current.logs).toHaveLength(1);
+    expect(toasts.some((t) => t.includes('restored'))).toBe(true);
+  });
+
+  it('importData asks for confirmation before overwriting, and does nothing if declined', async () => {
+    const confirm = async () => false; // user clicks "cancel"
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      result.current.addUnit({ id: 'u1', name: 'Keep Me', type: 'eggs', initialCount: 5, startDate: '2026-01-01' });
+    });
+
+    const backupFile = {
+      text: () => Promise.resolve(JSON.stringify({
+        kind: 'field-ledger-backup',
+        version: 1,
+        data: { units: [{ id: 'u2', name: 'Should Not Appear' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] },
+      })),
+    };
+
+    let success;
+    await act(async () => {
+      success = await result.current.importData(backupFile);
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.units).toEqual([{ id: 'u1', name: 'Keep Me', type: 'eggs', initialCount: 5, startDate: '2026-01-01' }]);
+  });
+
+  it('importData rejects an invalid file without touching existing data', async () => {
+    const confirm = async () => true;
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      result.current.addUnit({ id: 'u1', name: 'Untouched', type: 'eggs', initialCount: 5, startDate: '2026-01-01' });
+    });
+
+    const notABackupFile = { text: () => Promise.resolve(JSON.stringify({ random: 'file' })) };
+
+    let success;
+    await act(async () => {
+      success = await result.current.importData(notABackupFile);
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.units).toHaveLength(1);
+    expect(toasts.some((t) => t.includes('not a Field Ledger backup'))).toBe(true);
+  });
+
+  it('a full export -> import round-trip preserves every record exactly', async () => {
+    const confirm = async () => true;
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      result.current.addUnit({ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-01-01', producePrice: 12 });
+      result.current.addInventoryItem({ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 50, reorderLevel: 10, unitCost: 70 });
+      result.current.addExpense({ id: 'e1', category: 'labor', amount: 500, date: '2026-01-02', unitId: 'u1', description: '', inventoryItemId: null, inventoryQuantity: null });
+    });
+
+    const originalUnits = result.current.units;
+    const originalInventory = result.current.inventory;
+    const originalExpenses = result.current.expenses;
+
+    // Simulate exporting then immediately re-importing the same data,
+    // the way a user might do to move to a new phone.
+    const { buildBackup } = await import('../../src/lib/dataBackup.js');
+    const exported = buildBackup({
+      units: result.current.units,
+      logs: result.current.logs,
+      expenses: result.current.expenses,
+      inventory: result.current.inventory,
+      inventoryTransactions: result.current.inventoryTransactions,
+    });
+    const roundTripFile = { text: () => Promise.resolve(JSON.stringify(exported)) };
+
+    await act(async () => {
+      await result.current.importData(roundTripFile);
+    });
+
+    expect(result.current.units).toEqual(originalUnits);
+    expect(result.current.inventory).toEqual(originalInventory);
+    expect(result.current.expenses).toEqual(originalExpenses);
+  });
+});

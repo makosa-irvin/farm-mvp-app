@@ -1,4 +1,4 @@
-import { Plus, Tag, Boxes, AlertTriangle, CheckCircle2, Egg, Droplets, Wheat, Package, Wallet, TrendingUp, ArrowRight } from 'lucide-react';
+import { Plus, Tag, Boxes, AlertTriangle, Egg, Droplets, Wheat, Package, Wallet, TrendingUp, ArrowRight } from 'lucide-react';
 import EmptyState from '../components/EmptyState.jsx';
 import { typeOf, todayISO, inPeriod, fmtNum, fmtMoney, unitMetrics } from '../lib/helpers.js';
 import { isInventoryCostDeduction, inventoryTransactionCost } from '../lib/inventoryLedger.js';
@@ -6,12 +6,10 @@ import { isInventoryCostDeduction, inventoryTransactionCost } from '../lib/inven
 // Icons for each production type, used on the "Production this week" list.
 const PRODUCE_ICONS = { eggs: Egg, milk: Droplets, crop: Wheat, other: Package };
 
-// The farmer's first screen. Everything here is ordered by how urgently it
-// needs a decision, not by how the data happens to be structured:
-// actionable alerts ("Needs your attention") come before passive stats
-// ("Today", "Production this week"), on the assumption that someone
-// opening this on a phone between other jobs wants to know what to *do*
-// before they want to browse numbers.
+// The farmer's first screen (numbers half of it — the actionable alerts
+// live in FarmAlerts.jsx, rendered directly above this component by
+// MainContent.jsx, on the same "urgent before passive" ordering
+// principle: what needs a decision comes before what's just informative).
 export default function Dashboard({ units, logs, expenses, inventory = [], inventoryMoves = [], goTo }) {
   if (units.length === 0) {
     return (
@@ -75,18 +73,6 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
   const estimatedRevenue = units.reduce((sum, unit) => sum + unitMetrics(unit, logs, expenses, 'month', inventoryMoves).revenue, 0);
   const estimatedSurplus = estimatedRevenue > 0 ? estimatedRevenue - farmCostsThisMonth : null;
 
-  const getInventoryBalance = (item) => {
-    const movementBalance = inventoryMoves
-      .filter((move) => move.itemId === item.id)
-      .reduce((sum, move) => sum + ((move.direction || move.type) === 'in' ? Number(move.quantity) : -Number(move.quantity)), 0);
-    return (Number(item.openingStock) || 0) + movementBalance;
-  };
-
-  const lowStockItems = inventory.filter((item) => getInventoryBalance(item) <= (Number(item.reorderLevel) || 0));
-  const recentLosses = inventoryMoves.filter((move) => move.transactionType === 'wastage' && inPeriod(move.date, 'week')).length;
-  const attentionItems = lowStockItems.slice(0, 3);
-  const hasAttentionItems = attentionItems.length > 0 || recentLosses > 0;
-
   const productionByUnit = units.map((unit) => ({
     unit,
     produced: logs.filter((log) => log.unitId === unit.id && inPeriod(log.date, 'week')).reduce((sum, log) => sum + (Number(log.produced) || 0), 0),
@@ -118,36 +104,6 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
             : 'Estimated produce value minus farm costs. This is not a cash balance.'}
         </div>
       </section>
-
-      {/* Actionable items come first — before passive stats — since this is
-          what most directly helps someone decide what to do next. */}
-      {hasAttentionItems ? (
-        <section className="rounded-2xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-          <div className="font-display text-lg font-semibold">Needs your attention</div>
-          <div className="mt-1 text-xs" style={{ color: 'var(--ink-soft)' }}>A few things worth checking today.</div>
-          <div className="mt-3 space-y-2">
-            {attentionItems.map((item) => (
-              <button key={item.id} type="button" onClick={() => goTo('inventory')} className="w-full flex items-center gap-3 rounded-xl p-3 text-left" style={{ background: 'var(--rust-tint)' }}>
-                <AlertTriangle size={18} style={{ color: 'var(--rust)' }} />
-                <span className="text-sm flex-1"><strong>{item.name}</strong> is running low. Check your stock.</span>
-                <ArrowRight size={15} style={{ color: 'var(--rust)' }} />
-              </button>
-            ))}
-            {recentLosses > 0 && (
-              <button type="button" onClick={() => goTo('inventory')} className="w-full flex items-center gap-3 rounded-xl p-3 text-left" style={{ background: 'var(--amber-tint)' }}>
-                <AlertTriangle size={18} style={{ color: 'var(--amber)' }} />
-                <span className="text-sm flex-1"><strong>{recentLosses} stock loss{recentLosses > 1 ? 'es' : ''}</strong> recorded this week.</span>
-                <ArrowRight size={15} style={{ color: 'var(--amber)' }} />
-              </button>
-            )}
-          </div>
-        </section>
-      ) : (
-        <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: 'var(--forest-tint)', color: 'var(--forest-dark)' }}>
-          <CheckCircle2 size={20} />
-          <span className="text-sm font-medium">Nothing needs your attention right now.</span>
-        </div>
-      )}
 
       <section>
         <div className="font-display text-lg font-semibold">Today</div>
