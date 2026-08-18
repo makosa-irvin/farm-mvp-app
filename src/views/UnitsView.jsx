@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { Trash2, Pencil, X, Save, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
+import { Trash2, Pencil, X, Save, ChevronDown, ChevronUp, BarChart3, Plus } from 'lucide-react';
 import FieldLabel from '../components/FieldLabel.jsx';
 import { inputClass, inputStyle } from '../lib/styleTokens.js';
 import { UNIT_TYPES } from '../constants.js';
 import { uid, todayISO, typeOf, currentCountFor, unitMetrics, fmtNum, fmtMoney } from '../lib/helpers.js';
 
-// Add, edit, and remove production units (flocks, herds, plots). Every
-// other view depends on at least one unit existing, so this is usually the
-// first screen a new farm actually needs to use.
+// Production groups are the farm's flocks, herds, plots, or other productive
+// groups. The UI calls these "Production" rather than the technical "Units".
 export default function UnitsView({ units, logs, expenses = [], inventoryMoves = [], onAdd, onUpdate, onRemove, onNavigateToAnalytics }) {
   const [name, setName] = useState('');
   const [type, setType] = useState('eggs');
@@ -55,16 +54,19 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
   return (
     <div className="space-y-6">
       <form onSubmit={submit} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-        <div className="font-display text-lg font-semibold">{editingId ? `Edit ${name || 'production unit'}` : 'Add a production unit'}</div>
+        <div className="font-display text-lg font-semibold">{editingId ? `Edit ${name || 'production group'}` : 'Add production group'}</div>
+        <div className="text-sm" style={{ color: 'var(--ink-soft)' }}>
+          Add a flock, herd, crop plot, or other group that produces something on your farm.
+        </div>
 
         <div>
           <FieldLabel>Name</FieldLabel>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Layer House A" required className={inputClass} style={inputStyle} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-2 gap-3.5 mobile-stack-form">
           <div>
-            <FieldLabel>Type</FieldLabel>
+            <FieldLabel>What are you managing?</FieldLabel>
             <select value={type} onChange={(e) => setType(e.target.value)} className={inputClass} style={inputStyle}>
               {UNIT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
@@ -76,11 +78,9 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
         </div>
 
         <div>
-          {/* Label follows the selected type's natural selling unit (tray for
-              eggs, liter for milk, etc.) — see UNIT_TYPES in constants.js. */}
           <FieldLabel>Produce selling price ({UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'})</FieldLabel>
           <input type="number" min="0" step="0.01" value={producePrice} onChange={(e) => setProducePrice(e.target.value)} placeholder="0.00" className={inputClass} style={inputStyle} />
-          <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>Used to estimate revenue from production logs for this unit.</div>
+          <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>Used to estimate revenue from production logs for this group.</div>
         </div>
 
         <div>
@@ -90,7 +90,8 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
 
         <div className="flex gap-2 flex-wrap">
           <button type="submit" className="btn-primary rounded-xl px-5 py-2.5 text-sm flex items-center gap-2">
-            <Save size={15} /> {editingId ? 'Save changes' : 'Add unit'}
+            {editingId ? <Save size={15} /> : <Plus size={15} />}
+            {editingId ? 'Save changes' : 'Add production'}
           </button>
           {editingId && (
             <button type="button" onClick={resetForm} className="btn-ghost rounded-xl px-4 py-2.5 text-sm flex items-center gap-2">
@@ -108,10 +109,7 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
             const isExpanded = expandedId === u.id;
             return (
               <div key={u.id} className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-                <div
-                  className="flex items-center justify-between px-5 py-3.5 cursor-pointer"
-                  onClick={() => setExpandedId(isExpanded ? null : u.id)}
-                >
+                <div className="flex items-center justify-between px-5 py-3.5 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : u.id)}>
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--forest-tint)' }}>
                       <Icon size={16} style={{ color: 'var(--forest)' }} />
@@ -144,10 +142,6 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
   );
 }
 
-// A quick "how's this unit doing this month" snapshot, without leaving
-// the Units tab to go find it in Analytics. Deliberately just 3 numbers —
-// full detail (cost breakdown, trend chart) already lives in Analytics,
-// so this is a preview, not a duplicate of that page.
 function UnitSnapshot({ unit, logs, expenses, inventoryMoves, onNavigateToAnalytics }) {
   const m = unitMetrics(unit, logs, expenses, 'month', inventoryMoves);
   const t = typeOf(unit);
@@ -158,20 +152,11 @@ function UnitSnapshot({ unit, logs, expenses, inventoryMoves, onNavigateToAnalyt
       <div className="grid grid-cols-3 gap-3 mb-3">
         <SnapshotStat label="Produced" value={`${fmtNum(m.produced)} ${t.unitLabel}`} />
         <SnapshotStat label="Spent" value={fmtMoney(m.directCost)} />
-        <SnapshotStat
-          label={Number(unit.producePrice) > 0 ? 'Profit' : 'Cost/unit'}
-          value={Number(unit.producePrice) > 0 ? fmtMoney(m.profit) : (m.costPerUnit !== null ? fmtMoney(m.costPerUnit, 2) : '—')}
-          accent={Number(unit.producePrice) > 0 ? (m.profit >= 0 ? 'var(--forest)' : 'var(--rust)') : undefined}
-        />
+        <SnapshotStat label={Number(unit.producePrice) > 0 ? 'Profit' : 'Cost/unit'} value={Number(unit.producePrice) > 0 ? fmtMoney(m.profit) : (m.costPerUnit !== null ? fmtMoney(m.costPerUnit, 2) : '—')} accent={Number(unit.producePrice) > 0 ? (m.profit >= 0 ? 'var(--forest)' : 'var(--rust)') : undefined} />
       </div>
       {onNavigateToAnalytics && (
-        <button
-          type="button"
-          onClick={onNavigateToAnalytics}
-          className="flex items-center gap-1.5 text-xs font-medium"
-          style={{ color: 'var(--forest)' }}
-        >
-          <BarChart3 size={13} /> See full analytics for this unit
+        <button type="button" onClick={onNavigateToAnalytics} className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--forest)' }}>
+          <BarChart3 size={13} /> See full analytics for this production
         </button>
       )}
     </div>
