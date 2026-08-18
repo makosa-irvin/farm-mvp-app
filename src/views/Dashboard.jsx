@@ -138,10 +138,10 @@ export default function Dashboard({
                 Live count
               </th>
               <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                Today
+                Produce (Today)
               </th>
               <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
-                Revenue
+                Revenue (Today)
               </th>
               <th className="px-5 py-2.5 text-right text-xs font-medium uppercase tracking-wide">
                 Cost / unit
@@ -156,6 +156,13 @@ export default function Dashboard({
                 logs,
                 expenses,
                 'month',
+                inventoryMoves,
+              );
+              const todayMetrics = unitMetrics(
+                unit,
+                logs,
+                expenses,
+                'today',
                 inventoryMoves,
               );
               const today = logs.find(
@@ -181,7 +188,7 @@ export default function Dashboard({
                     {today ? fmtNum(today.produced) : '—'}
                   </td>
                   <td className="px-3 py-3 text-right">
-                    {metrics.revenue > 0 ? fmtMoney(metrics.revenue) : '—'}
+                    {metrics.revenue > 0 ? fmtMoney(todayMetrics.revenue) : '—'}
                   </td>
                   <td className="px-5 py-3 text-right">
                     {metrics.costPerUnit !== null
