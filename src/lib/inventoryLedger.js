@@ -1,6 +1,5 @@
-// Inventory domain rules live here as pure functions. The ledger is the
-// source of truth for stock balance and valuation; React state is supplied
-// by callers rather than read directly, keeping these rules easy to test.
+// Inventory rules are pure functions. Callers provide state so the ledger can
+// be tested independently of React and remains the source of truth for stock.
 
 export const INVENTORY_TRANSACTION_TYPES = [
   { value: 'purchase', label: 'Bought stock', direction: 'in' },
@@ -47,18 +46,9 @@ export function getWeightedAverageCost(inventory, transactions, itemId) {
   return qty > 0 ? value / qty : Number(item.unitCost) || 0;
 }
 
-// These are inventory deductions that represent a cost in the period.
-// Transfers and sales are deliberately excluded: transfers are internal
-// movements, while a sale should be paired with revenue/COGS accounting
-// rather than treated as an operating expense.
-//
-// Checks (transaction.direction || transaction.type) rather than direction
-// alone, matching the fallback pattern used everywhere else in this file
-// (see getBalance, getWeightedAverageCost). This app has no backend and no
-// data migrations — some already-stored transactions from before the
-// `direction` field existed may only have `type` set, and this needs to
-// recognize those too, or an existing user's real costs could silently
-// stop counting the moment they load a newer build.
+// Consumption, wastage, and downward adjustments represent inventory costs.
+// Transfers are internal movements and sales require revenue/COGS treatment,
+// so neither should be classified as operating expenses here.
 export const isInventoryCostDeduction = (transaction) =>
   ['consumption', 'wastage', 'adjustment_out'].includes(transaction?.transactionType) &&
   (transaction?.direction || transaction?.type) === 'out';
@@ -66,8 +56,8 @@ export const isInventoryCostDeduction = (transaction) =>
 export const inventoryTransactionCost = (transaction) =>
   (Number(transaction?.quantity) || 0) * (Number(transaction?.unitCost) || 0);
 
-// Manual transactions are normalized here so all ledger entries share the
-// same direction, unit, quantity, and unit-cost rules before they are saved.
+// Normalize manual input so saved transactions share the same direction,
+// quantity, unit, and unit-cost rules as automatically generated entries.
 export function normalizeTransaction(input, { inventory, expenses, transactions }) {
   const item = inventory.find((i) => i.id === input.itemId);
   if (!item) return null;

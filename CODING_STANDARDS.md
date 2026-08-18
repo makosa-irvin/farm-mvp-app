@@ -1,81 +1,83 @@
 # Coding Standards
 
-This document defines the conventions for contributing to Field Ledger. The goal is predictable code, clear domain boundaries, and business logic that is easy to test.
+These conventions keep Field Ledger predictable to maintain and safe to change. They are intentionally practical: prefer simple code, explicit domain rules, and tests that protect user data.
 
 ## 1. General principles
 
 - Prefer simple, explicit code over clever abstractions.
-- Keep functions small enough that their purpose is obvious from their name and inputs.
+- Keep functions small enough that their purpose is clear from the name and inputs.
 - Use early returns for invalid or exceptional cases instead of deeply nested conditionals.
-- Avoid duplicating business rules in views. Put reusable calculations and domain rules in `src/lib`.
-- Do not introduce a second source of truth for data that can be derived from existing state.
-- Preserve existing behavior unless a change is intentional and documented.
+- Keep business rules out of views when the rule can live in a reusable domain function.
+- Do not create a second mutable source of truth for values that can be derived.
+- Preserve existing behavior unless the change is intentional and documented.
 
 ## 2. JavaScript and JSX
 
-- Use modern ES modules and `import` / `export` syntax.
+- Use ES modules with `import` / `export`.
 - Use `const` by default; use `let` only when reassignment is required.
-- Prefer strict equality (`===`) and explicit numeric conversion when values originate from form fields or `localStorage`.
+- Use strict equality (`===`).
+- Convert form and `localStorage` values explicitly before numeric calculations.
 - Use optional chaining and nullish coalescing when they make missing values explicit.
-- Do not mix `??` and `||` in one expression without parentheses. Group the intended precedence explicitly.
-- Prefer named functions for exported domain operations and clear callback names for event handlers.
-- Keep JSX readable. If a JSX expression becomes difficult to scan, extract it into a variable, helper, or component.
-- Avoid inline business calculations in JSX when the calculation affects application behavior.
+- Do not mix `??` and `||` without parentheses. Make the intended precedence explicit.
+- Prefer named exported domain functions with descriptive parameters.
+- Keep JSX readable. Extract complex expressions into variables, helpers, or components.
+- Avoid putting business calculations directly in JSX.
 
 ## 3. React components
 
-- Components should primarily handle rendering, local UI state, and user interaction.
-- Keep cross-feature business logic out of presentational components.
-- Use props to pass data and callbacks; do not reach into unrelated state from a component.
-- Keep reusable UI pieces in `src/components`.
-- Keep complete feature screens in `src/views`.
-- Follow React hook rules and keep persistent application state centralized in `useFarmData`.
-- Do not add a new global state mechanism for a problem already handled by the existing hook/state architecture.
+- Components primarily render UI, manage local UI state, and respond to user interaction.
+- Keep cross-feature business rules out of presentational components.
+- Pass data and callbacks through props rather than reaching into unrelated application state.
+- Put reusable UI pieces in `src/components`.
+- Put complete feature screens in `src/views`.
+- Keep persistent application state centralized in `useFarmData`.
+- Do not introduce another global state mechanism for a problem already solved by the existing architecture.
 
 ## 4. Application state and persistence
 
-`src/hooks/useFarmData.js` owns the application's persistent state slices and composes the domain action modules.
+`src/hooks/useFarmData.js` is the persistent application-state boundary.
 
-- Add new persistent state here unless there is a strong architectural reason not to.
-- Action modules receive the state and setters they need rather than creating their own persistent state.
-- Keep state mutations predictable and immutable.
-- When a change affects more than one domain, make the relationship explicit in an action or pure linking function.
-- Do not silently update a derived value when it can be calculated from authoritative state.
-- Preserve migration logic when changing localStorage keys or data shapes, and document the migration reason.
+- Add persistent state there unless there is a documented architectural reason not to.
+- Action modules receive the state and setters they need; they should not create competing persistent state.
+- Keep mutations predictable and immutable.
+- Make cross-domain relationships explicit in an action or pure linking function.
+- Calculate derived values from authoritative state rather than storing duplicate values.
+- Treat existing `localStorage` data as user data. Preserve migration compatibility when changing keys or shapes.
+- Document the reason for any persistence migration and add a regression test.
 
-## 5. Domain and business logic
+## 5. Domain logic
 
 Pure domain logic belongs in `src/lib` whenever possible.
 
-- `inventoryLedger.js` owns inventory transaction normalization, balance calculation, and weighted-average valuation.
+- `inventoryLedger.js` owns inventory normalization, balances, valuation, and inventory cost rules.
 - `feedLinking.js` owns synchronization between daily logs and feed-consumption transactions.
 - `expenseLinking.js` owns synchronization between inventory-linked expenses and purchase transactions.
-- `src/lib/actions` owns domain CRUD operations and coordinates state changes.
-- Pure functions should receive their dependencies as arguments instead of reading React state or global mutable state directly.
-- Return data or a result from pure functions; do not make them responsible for UI concerns such as displaying toasts.
+- `src/lib/actions` owns domain CRUD and coordinates state changes.
+- Pure functions receive their dependencies as arguments instead of reading React state or global mutable state.
+- Pure functions should return data or results and should not display toasts or dialogs.
 
-### Inventory rules
+### Inventory invariants
 
-- Inventory balance is derived from opening stock plus signed ledger transactions.
-- Outgoing inventory must not make the balance negative.
-- Purchases linked to expenses use the expense amount divided by the purchased quantity as unit cost.
-- Outgoing stock uses weighted-average cost unless a more specific domain rule applies.
-- Transfers are represented as paired outgoing/incoming entries and must not create or destroy stock.
-- Linked transactions should have deterministic identifiers so the originating record can be edited or removed safely.
+- Balance is derived from opening stock plus signed ledger transactions.
+- Outgoing transactions must not make available stock negative.
+- Inventory-linked purchases derive unit cost from expense amount divided by purchased quantity.
+- Outgoing stock uses weighted-average cost unless a specific domain rule says otherwise.
+- Transfers use paired outgoing/incoming entries and must not create or destroy stock.
+- Linked transactions need deterministic relationships so edits and deletes can safely update the originating record and its generated record.
 
 ## 6. Naming
 
-Use names that describe the domain meaning rather than implementation details.
+Use names that communicate domain meaning.
 
-Good examples:
+Prefer:
 
 ```js
 getWeightedAverageCost(itemId)
-syncedTransactionsForExpense(expense, inventory, transactions)
 removeInventoryTransaction(id)
+syncedTransactionsForExpense(expense, inventory, transactions)
 ```
 
-Avoid vague names such as:
+Avoid vague names:
 
 ```js
 handleData(data)
@@ -83,27 +85,28 @@ doThing(x)
 processStuff(value)
 ```
 
-Use established terminology consistently: `unit`, `log`, `expense`, `inventory`, `transaction`, `item`, `quantity`, `unitCost`, and `balance`.
+Use established domain terminology consistently: `unit`, `log`, `expense`, `inventory`, `transaction`, `item`, `quantity`, `unitCost`, and `balance`.
 
 ## 7. Comments and documentation
 
-Comments are part of the maintenance surface and must be treated as code.
+Comments are maintenance code. A comment should explain something that would otherwise be difficult to infer.
 
-### Write comments when they explain:
+### Good reasons to comment
 
-- Why an unusual implementation exists.
-- A business invariant that is not obvious from the code.
-- A compatibility or migration decision.
-- A non-obvious relationship between domains.
-- A deliberate limitation or workaround that future maintainers need to know.
+- A business invariant is not obvious from the implementation.
+- A compatibility or migration path exists for existing user data.
+- A non-obvious cross-domain relationship must be preserved.
+- A deliberate workaround is required because of a platform or browser constraint.
+- A safety check exists to prevent a specific class of data corruption.
 
-### Do not write comments that:
+### Do not comment
 
-- Restate the next line of code.
-- Describe obvious variable names or JSX markup.
-- Preserve obsolete debugging information.
-- Refer to a previous coding pass, temporary fix, or historical conversation unless that history is still operationally relevant.
-- Promise behavior that the implementation does not actually provide.
+- Obvious syntax or variable assignments.
+- JSX that already explains itself.
+- Temporary debugging information.
+- Historical details that no longer affect the code.
+- Old bug references that describe behavior no longer present.
+- Promised behavior that the implementation does not provide.
 
 Prefer:
 
@@ -120,76 +123,83 @@ Avoid:
 const withoutCurrent = transactions.filter((t) => t.id !== input.id);
 ```
 
-When behavior changes, update nearby comments in the same change so they remain accurate.
+When behavior changes, update or remove nearby comments in the same change.
 
-## 8. Error handling and user feedback
+## 8. Validation and user feedback
 
-- Validate user-controlled numeric values before applying them to inventory or financial calculations.
-- Reject invalid state transitions rather than silently creating inconsistent data.
-- Use the existing toast mechanism for actionable user-facing validation failures.
-- Do not put UI notifications inside pure domain functions.
-- Preserve user-entered form data when an operation fails validation.
-- Use confirmation dialogs for destructive operations where the existing UI pattern calls for confirmation.
+- Validate user-controlled numeric values before financial or inventory calculations.
+- Reject invalid state transitions instead of silently creating inconsistent data.
+- Use the existing toast mechanism for actionable user-facing validation errors.
+- Keep UI notifications out of pure domain functions.
+- Preserve form input when validation fails where practical.
+- Use confirmation dialogs for destructive actions where the existing UX pattern requires them.
 
 ## 9. Tests
 
-Every business-rule change should have a test at the lowest practical level.
+Test business rules at the lowest useful level.
 
-- Put pure-function tests in `tests/unit`.
-- Test cross-domain state behavior through `useFarmData.test.jsx` when multiple actions interact.
-- Keep view smoke tests focused on rendering and stable user-facing controls.
-- Use Playwright for important user journeys that cross multiple screens or depend on real browser behavior.
-- Prefer assertions about user-visible behavior and domain outcomes over implementation details.
-- When fixing a regression, add a test that would have failed before the fix.
+- Pure functions → `tests/unit`.
+- Cross-domain state behavior → hook/action tests.
+- View rendering and stable controls → component smoke tests.
+- Important multi-screen or browser-specific workflows → Playwright E2E tests.
 
-Run the relevant checks before committing:
+When fixing a regression, add a test that would have failed against the old behavior.
+
+Before a pull request, run at least:
 
 ```bash
 npm test
 npm run build
+```
+
+For relevant changes, also run:
+
+```bash
+npm run verify:mobile-css
 npm run test:e2e
 ```
 
-If Playwright browsers are not installed, run `npx playwright install chromium` once.
-
 ## 10. Accessibility and forms
 
-- Every form control should have an accessible, programmatically associated label.
+- Give every form control an accessible, programmatically associated label.
 - Prefer native semantic elements and meaningful button text.
-- Use `htmlFor`/`id` associations for labels and controls rather than relying only on visual proximity.
-- Preserve keyboard usability when adding custom controls.
-- Do not remove accessible names or roles merely to simplify styling.
+- Use `htmlFor` / `id` associations for labels and controls.
+- Preserve keyboard access when building custom controls.
+- Do not remove accessible names or roles for styling convenience.
+- Keep touch targets practical for phone use.
 
 ## 11. Styling
 
-- Follow the existing Tailwind utility approach and the CSS custom properties in `src/index.css`.
-- Reuse existing design tokens and component patterns before introducing new one-off styles.
+- Follow the existing Tailwind utility approach and CSS custom properties in `src/index.css`.
+- Reuse existing design tokens and component patterns before adding one-off styles.
 - Keep presentation concerns out of domain libraries.
-- Avoid introducing a new styling framework for an isolated feature.
+- Do not introduce a new styling framework for a small isolated feature.
+- After meaningful CSS changes, verify the production build in a real browser as well as through automated checks.
 
 ## 12. Dependencies
 
-- Prefer the existing dependency set when it can solve the problem adequately.
-- Add a dependency only when it provides meaningful value that would be expensive or error-prone to reproduce locally.
+- Prefer existing dependencies when they solve the problem adequately.
+- Add a dependency only when its value justifies the maintenance cost.
 - Keep `package-lock.json` synchronized with `package.json`.
-- Do not commit generated dependency caches or build output.
+- Do not commit generated caches, build output, secrets, or local environment files.
 
 ## 13. Git and pull requests
 
 - Keep commits focused and descriptive.
-- Do not mix unrelated refactors with a feature or bug fix.
+- Do not mix unrelated refactors with feature or bug-fix work.
 - Update tests and documentation in the same change when behavior changes.
 - Pull requests should explain what changed, why it changed, and how it was validated.
-- Do not commit secrets, credentials, local environment files, or user data.
+- Keep user-data and persistence changes especially explicit in the PR description.
 
 ## 14. Definition of done
 
 A change is ready when:
 
-1. The implementation follows the architecture and naming conventions above.
+1. The implementation follows the architecture and naming conventions.
 2. Obsolete comments and documentation have been removed or corrected.
 3. Relevant tests have been added or updated.
 4. `npm test` passes.
 5. `npm run build` passes.
-6. Relevant end-to-end tests pass when user workflows changed.
-7. README or other documentation is updated when the application's behavior, setup, or architecture changed.
+6. Relevant E2E and browser checks pass when applicable.
+7. README or architecture documentation is updated when setup, behavior, or structure changes.
+8. No secrets, credentials, or user data are included.
