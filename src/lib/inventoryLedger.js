@@ -47,6 +47,17 @@ export function getWeightedAverageCost(inventory, transactions, itemId) {
   return qty > 0 ? value / qty : Number(item.unitCost) || 0;
 }
 
+// These are inventory deductions that represent a cost in the period.
+// Transfers and sales are deliberately excluded: transfers are internal
+// movements, while a sale should be paired with revenue/COGS accounting
+// rather than treated as an operating expense.
+export const isInventoryCostDeduction = (transaction) =>
+  ['consumption', 'wastage', 'adjustment_out'].includes(transaction?.transactionType) &&
+  transaction?.direction === 'out';
+
+export const inventoryTransactionCost = (transaction) =>
+  (Number(transaction?.quantity) || 0) * (Number(transaction?.unitCost) || 0);
+
 // Manual transactions are normalized here so all ledger entries share the
 // same direction, unit, quantity, and unit-cost rules before they are saved.
 export function normalizeTransaction(input, { inventory, expenses, transactions }) {
@@ -88,8 +99,6 @@ export function normalizeTransaction(input, { inventory, expenses, transactions 
   };
 }
 
-// Outgoing records are checked against the balance with the record itself
-// excluded. That makes the same rule safe for both new transactions and edits.
 export function checkOutgoing(record, inventory, transactions) {
   if (record.direction !== 'out') return { ok: true };
   const available = getBalance(inventory, transactions, record.itemId, record.id || null);
