@@ -39,7 +39,7 @@ export const PAYMENT_METHODS = [
   { value: 'credit', label: 'On credit' },
 ];
 
-// "Production" is the user-facing name for the groups being managed —
+// "Farm group" is the user-facing name for the groups being managed —
 // for example, a layer flock, dairy herd, or crop plot. The stored value
 // remains "units" so existing data and business logic are unchanged.
 export const TABS = [
@@ -47,6 +47,6 @@ export const TABS = [
   { value: 'log', label: 'Daily log', icon: ClipboardList },
   { value: 'expenses', label: 'Expenses', icon: Receipt },
   { value: 'inventory', label: 'Stock', icon: Boxes },
-  { value: 'units', label: 'Production', icon: Tag },
+  { value: 'units', label: 'Farm Group', icon: Tag },
   { value: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];

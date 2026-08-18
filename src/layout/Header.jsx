@@ -43,7 +43,7 @@ export default function Header({ tabs, activeTab, onSelectTab }) {
               aria-current={active ? 'page' : undefined}
             >
               <Icon size={20} strokeWidth={2.25} />
-              <span>{t.value === 'dashboard' ? 'Home' : t.value === 'log' ? 'Log' : t.value === 'inventory' ? 'Stock' : 'Money'}</span>
+              <span>{t.value === 'dashboard' ? 'Home' : t.value === 'log' ? 'Log' : t.value === 'Inventory' ? 'Stock' : 'Expenses'}</span>
             </button>
           );
         })}
