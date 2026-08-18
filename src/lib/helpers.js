@@ -211,3 +211,75 @@ export function unitMetrics(
     logCount: unitLogs.length,
   };
 }
+
+// Expense categories ('feed', 'medicine', ...) and inventory item
+// categories ('Feed', 'Medicine', 'Seed', ...) are two separate lists that
+// happen to overlap in meaning for a few values. This reconciles them into
+// one shared label so a bag of feed bought as a plain expense and a bag of
+// feed bought through the inventory ledger land in the same "Feed" bucket,
+// instead of silently splitting into two entries that don't add up right
+// in front of the user.
+const EXPENSE_CATEGORY_LABELS = {
+  feed: 'Feed',
+  medicine: 'Medicine',
+  labor: 'Labor',
+  utilities: 'Utilities',
+  supplies: 'Supplies',
+  capital: 'Capital',
+};
+
+// Same direct-cost accounting as unitMetrics (direct expenses excluding
+// inventory purchases, plus the actual cost of what was consumed from
+// inventory) — just split out by category instead of summed into one
+// number. `inventory` is needed here (unlike unitMetrics) to look up which
+// category each consumed inventory item belongs to.
+export function unitCostBreakdown(unit, logs, expenses, period, inventoryMoves = [], inventory = []) {
+  const unitExpenses = expenses.filter(
+    (expense) => expense.unitId === unit.id && inPeriod(expense.date, period),
+  );
+
+  const totals = new Map(); // label -> amount
+
+  for (const expense of unitExpenses) {
+    if (expense.inventoryItemId) continue; // counted via consumption below instead
+    const label = EXPENSE_CATEGORY_LABELS[expense.category] || 'Other';
+    totals.set(label, (totals.get(label) || 0) + (expense.amount || 0));
+  }
+
+  const consumption = inventoryMoves.filter(
+    (move) =>
+      move.transactionType === 'consumption' &&
+      move.unitId === unit.id &&
+      inPeriod(move.date, period),
+  );
+  for (const move of consumption) {
+    const item = inventory.find((i) => i.id === move.itemId);
+    const label = item?.category || 'Other';
+    const cost = (Number(move.quantity) || 0) * (Number(move.unitCost) || 0);
+    totals.set(label, (totals.get(label) || 0) + cost);
+  }
+
+  return [...totals.entries()]
+    .map(([label, amount]) => ({ label, amount }))
+    .filter((row) => row.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+}
+
+// Daily production totals for the last `days` days, oldest first — the
+// shape a simple bar chart wants. Always returns exactly `days` entries;
+// a day with no log becomes a zero rather than a gap, since a flat bar at
+// zero reads honestly while a missing bar could look like a data error.
+export function dailyProductionTrend(unit, logs, days = 14) {
+  const result = [];
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const value = logs
+      .filter((log) => log.unitId === unit.id && log.date === dateStr)
+      .reduce((sum, log) => sum + (log.produced || 0), 0);
+    result.push({ date: dateStr, value });
+  }
+  return result;
+}

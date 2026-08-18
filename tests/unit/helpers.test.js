@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fmtMoney, fmtNum, currentCountFor, unitMetrics } from '../../src/lib/helpers.js';
+import { fmtMoney, fmtNum, currentCountFor, unitMetrics, unitCostBreakdown, dailyProductionTrend } from '../../src/lib/helpers.js';
 
 describe('fmtMoney', () => {
   it('formats a positive number as currency', () => {
@@ -67,5 +67,101 @@ describe('unitMetrics — the core linking behavior', () => {
     const manualConsumption = [{ transactionType: 'consumption', source: 'manual', unitId: 'u1', date: '2026-08-18', quantity: 10, unitCost: 1 }];
     const metrics = unitMetrics(unit, logs, [], 'all', manualConsumption);
     expect(metrics.directCost).toBe(10);
+  });
+});
+
+describe('unitCostBreakdown', () => {
+  const unit = { id: 'u1' };
+
+  it('groups plain (non-inventory-linked) expenses by category', () => {
+    const expenses = [
+      { unitId: 'u1', date: '2026-08-01', category: 'feed', amount: 500, inventoryItemId: null },
+      { unitId: 'u1', date: '2026-08-02', category: 'labor', amount: 200, inventoryItemId: null },
+      { unitId: 'u1', date: '2026-08-03', category: 'feed', amount: 100, inventoryItemId: null },
+    ];
+    const rows = unitCostBreakdown(unit, [], expenses, 'all', [], []);
+    expect(rows).toEqual([
+      { label: 'Feed', amount: 600 },
+      { label: 'Labor', amount: 200 },
+    ]);
+  });
+
+  it('excludes expenses that already moved through an inventory purchase, so they are not double-counted', () => {
+    const expenses = [
+      { unitId: 'u1', date: '2026-08-01', category: 'feed', amount: 500, inventoryItemId: 'i1' },
+    ];
+    const rows = unitCostBreakdown(unit, [], expenses, 'all', [], []);
+    expect(rows).toEqual([]);
+  });
+
+  it('attributes consumed inventory cost to the inventory item\'s own category', () => {
+    const inventory = [{ id: 'i1', category: 'Feed' }];
+    const inventoryMoves = [
+      { transactionType: 'consumption', unitId: 'u1', date: '2026-08-05', itemId: 'i1', quantity: 10, unitCost: 7 },
+    ];
+    const rows = unitCostBreakdown(unit, [], [], 'all', inventoryMoves, inventory);
+    expect(rows).toEqual([{ label: 'Feed', amount: 70 }]);
+  });
+
+  it('merges a plain "feed" expense and consumed "Feed" inventory into one Feed bucket', () => {
+    const inventory = [{ id: 'i1', category: 'Feed' }];
+    const expenses = [{ unitId: 'u1', date: '2026-08-01', category: 'feed', amount: 100, inventoryItemId: null }];
+    const inventoryMoves = [
+      { transactionType: 'consumption', unitId: 'u1', date: '2026-08-05', itemId: 'i1', quantity: 5, unitCost: 8 },
+    ];
+    const rows = unitCostBreakdown(unit, [], expenses, 'all', inventoryMoves, inventory);
+    expect(rows).toEqual([{ label: 'Feed', amount: 140 }]); // 100 + 5*8
+  });
+
+  it('sorts largest first and drops zero/negative rows', () => {
+    const expenses = [
+      { unitId: 'u1', date: '2026-08-01', category: 'labor', amount: 50, inventoryItemId: null },
+      { unitId: 'u1', date: '2026-08-02', category: 'utilities', amount: 300, inventoryItemId: null },
+      { unitId: 'u1', date: '2026-08-03', category: 'capital', amount: 0, inventoryItemId: null },
+    ];
+    const rows = unitCostBreakdown(unit, [], expenses, 'all', [], []);
+    expect(rows.map((r) => r.label)).toEqual(['Utilities', 'Labor']);
+  });
+
+  it('ignores expenses and consumption for other units', () => {
+    const expenses = [{ unitId: 'u2', date: '2026-08-01', category: 'feed', amount: 999, inventoryItemId: null }];
+    const rows = unitCostBreakdown(unit, [], expenses, 'all', [], []);
+    expect(rows).toEqual([]);
+  });
+});
+
+describe('dailyProductionTrend', () => {
+  const unit = { id: 'u1' };
+
+  it('returns exactly `days` entries even with no logs, all zero', () => {
+    const trend = dailyProductionTrend(unit, [], 7);
+    expect(trend).toHaveLength(7);
+    expect(trend.every((row) => row.value === 0)).toBe(true);
+  });
+
+  it('sums same-day production and orders oldest first', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const logs = [
+      { unitId: 'u1', date: yesterday, produced: 10 },
+      { unitId: 'u1', date: today, produced: 20 },
+      { unitId: 'u1', date: today, produced: 5 }, // a second entry same day, same unit
+    ];
+    const trend = dailyProductionTrend(unit, logs, 3);
+    expect(trend.at(-1)).toEqual({ date: today, value: 25 });
+    expect(trend.at(-2)).toEqual({ date: yesterday, value: 10 });
+  });
+
+  it('ignores logs for other units', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const logs = [{ unitId: 'u2', date: today, produced: 999 }];
+    const trend = dailyProductionTrend(unit, logs, 1);
+    expect(trend[0].value).toBe(0);
+  });
+
+  it('a day with no entry is a real zero, not missing from the array', () => {
+    const trend = dailyProductionTrend(unit, [], 1);
+    expect(trend).toHaveLength(1);
+    expect(trend[0].value).toBe(0);
   });
 });
