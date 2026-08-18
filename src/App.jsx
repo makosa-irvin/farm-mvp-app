@@ -10,8 +10,6 @@ import MobileQuickActions from './components/MobileQuickActions.jsx';
 import OfflineStatus from './components/OfflineStatus.jsx';
 import PWAInstallPrompt from './components/PWAInstallPrompt.jsx';
 
-// App root owns navigation and global feedback state. Farm data remains local-
-// first so the core recording workflows continue to work without internet.
 export default function App() {
   const [tab, setTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
@@ -21,6 +19,7 @@ export default function App() {
   const farm = useFarmData(showToast, confirm);
   return (
     <div className="farm-app min-h-screen pb-16">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:px-3 focus:py-2" style={{ background: 'var(--surface)', color: 'var(--forest)', border: '1px solid var(--line)' }}>Skip to main content</a>
       <Header tabs={TABS} activeTab={tab} onSelectTab={setTab} />
       <div className="mx-auto max-w-6xl px-4 pt-3 sm:px-6 flex justify-end"><OfflineStatus /></div>
       <MainContent tab={tab} farm={farm} setTab={setTab} />
