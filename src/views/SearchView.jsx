@@ -2,7 +2,7 @@ import { Search, Tag, Boxes, Receipt, ClipboardList } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { fmtMoney, fmtNum } from '../lib/helpers.js';
 
-export default function SearchView({ units = [], logs = [], expenses = [], inventory = [], inventoryMoves = [] }) {
+export default function SearchView({ units = [], logs = [], expenses = [], inventory = [], goTo }) {
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
   const results = useMemo(() => {
@@ -18,9 +18,9 @@ export default function SearchView({ units = [], logs = [], expenses = [], inven
   return (
     <div className="space-y-5">
       <header><div className="font-display text-2xl font-semibold">Search your farm</div><p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>Find groups, stock items, expenses, suppliers, and daily logs from one place.</p></header>
-      <div className="relative"><Search size={18} className="absolute left-3 top-3.5" style={{ color: 'var(--ink-soft)' }} /><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search e.g. Layer House, feed, supplier..." className="w-full rounded-xl pl-10 pr-4 py-3" style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--ink)' }} /></div>
+      <div className="relative"><Search size={18} className="absolute left-3 top-3.5" style={{ color: 'var(--ink-soft)' }} /><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search e.g. Layer House, feed, supplier..." aria-label="Search farm records" className="w-full rounded-xl pl-10 pr-4 py-3" style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--ink)' }} /></div>
       {query && !results.length && <div className="rounded-2xl p-5 text-sm" style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--ink-soft)' }}>No records matched “{query}”.</div>}
-      <div className="space-y-2">{results.map(({ key, icon: Icon, type, title, detail, tab }) => <button key={key} type="button" className="w-full rounded-2xl p-4 flex items-center gap-3 text-left" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick={() => window.dispatchEvent(new CustomEvent('farm:navigate', { detail: tab }))}><Icon size={17} style={{ color: 'var(--forest)' }} /><div className="min-w-0 flex-1"><div className="text-xs" style={{ color: 'var(--ink-soft)' }}>{type}</div><div className="font-medium truncate">{title}</div><div className="text-xs mt-0.5" style={{ color: 'var(--ink-soft)' }}>{detail}</div></div></button>)}</div>
+      <div className="space-y-2">{results.map(({ key, icon: Icon, type, title, detail, tab }) => <button key={key} type="button" className="w-full rounded-2xl p-4 flex items-center gap-3 text-left" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick={() => goTo(tab)}><Icon size={17} style={{ color: 'var(--forest)' }} /><div className="min-w-0 flex-1"><div className="text-xs" style={{ color: 'var(--ink-soft)' }}>{type}</div><div className="font-medium truncate">{title}</div><div className="text-xs mt-0.5" style={{ color: 'var(--ink-soft)' }}>{detail}</div></div></button>)}</div>
     </div>
   );
 }
