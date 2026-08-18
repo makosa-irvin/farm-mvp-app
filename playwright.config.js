@@ -16,5 +16,22 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // The existing specs (smoke, inventory-linking) assume the desktop
+    // top nav is clickable. At mobile viewport widths that nav is
+    // legitimately CSS-hidden (`hidden sm:block` — see Header.jsx), not
+    // just visually small, so Playwright's click() correctly refuses to
+    // click it there. Explicitly excluding mobile.spec.js keeps desktop
+    // tests off the mobile project rather than letting them fail for a
+    // reason that has nothing to do with an actual bug.
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: '**/mobile.spec.js' },
+    // Android, not iPhone: Android holds the large majority of the
+    // Kenyan smartphone market, so this is the more realistic target
+    // device for this app's actual persona. Also practical — this
+    // device preset defaults to Chromium (`defaultBrowserType:
+    // 'chromium'`), matching the only browser this project installs
+    // (`npx playwright install chromium`); an iOS device preset would
+    // default to WebKit, which isn't installed here.
+    { name: 'mobile', use: { ...devices['Pixel 5'] }, testMatch: '**/mobile.spec.js' },
+  ],
 });
