@@ -1,3 +1,5 @@
+import '../styles/components/tag-chip.css';
+
 export default function TagChip({ label, active, onClick, icon: Icon, muted }) {
   return (
     <button
