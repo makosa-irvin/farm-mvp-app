@@ -1,5 +1,6 @@
-// Inventory item CRUD, plus the general-purpose manual ledger form
-// (purchase/wastage/return/transfer/adjustment/sale/stock-count).
+// Inventory item CRUD and manual ledger operations.
+// The action layer coordinates inventory state with derived expense records;
+// calculation and validation rules live in inventoryLedger.js.
 import { fmtNum } from '../helpers.js';
 import { getBalance, getWeightedAverageCost, normalizeTransaction, checkOutgoing, isInventoryCostDeduction, inventoryTransactionCost } from '../inventoryLedger.js';
 
@@ -86,10 +87,9 @@ export function createInventoryActions({ inventory, transactions, expenses, setI
     const finalRecord = { ...record, id: record.id || `txn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`, createdAt: record.createdAt || Date.now() };
     setInventoryTransactions((prev) => [...prev, finalRecord]);
 
-    // Every inventory deduction that consumes economic value gets a matching
-    // non-cash expense. This means stock used, lost/spoiled, or written off
-    // is visible in Expenses without pretending that another cash payment
-    // happened. Purchases remain linked to their original cash expense.
+    // Inventory deductions have economic cost but are not new cash payments.
+    // Mirror them as non-cash expenses so reports include stock consumption,
+    // losses, and write-offs without double-counting purchases.
     if (isInventoryCostDeduction(finalRecord) && !finalRecord.expenseId) {
       const item = inventory.find((i) => i.id === finalRecord.itemId);
       setExpenses((prev) => [...prev, buildInventoryCostExpense(finalRecord, item)]);
@@ -136,8 +136,7 @@ export function createInventoryActions({ inventory, transactions, expenses, setI
     const updated = { ...record, id: input.id, createdAt: previous.createdAt || Date.now() };
     setInventoryTransactions((prev) => prev.map((t) => (t.id === input.id ? updated : t)));
 
-    // Keep the corresponding non-cash expense synchronized with the ledger
-    // transaction when a deduction is edited.
+    // Keep the derived non-cash expense synchronized with edited deductions.
     const generatedExpenseId = `inv_cost_${input.id}`;
     if (isInventoryCostDeduction(previous) || isInventoryCostDeduction(updated)) {
       const item = inventory.find((i) => i.id === updated.itemId);
