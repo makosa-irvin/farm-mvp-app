@@ -13,8 +13,8 @@ import { createLogActions } from '../lib/actions/logActions.js';
 const LEGACY_KEY = 'farm-inventory-movements';
 const LEDGER_KEY = 'farm-inventory-ledger';
 
-// Keep the legacy key readable so existing browser data can be migrated to
-// the ledger without requiring the user to re-enter historical movements.
+// Keep legacy movements readable so existing browser data can be migrated
+// without requiring the user to re-enter historical inventory records.
 function readLegacyTransactions() {
   try {
     const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || '[]');
@@ -41,14 +41,10 @@ function readLegacyTransactions() {
 
 export { INVENTORY_TRANSACTION_TYPES };
 
-// This hook is the application state boundary. It owns persistent data slices
-// and composes domain action factories; calculations and cross-domain
-// synchronization live in src/lib so they can be tested without React.
-//
-// `confirm` replaces window.confirm — it's expected to be the `confirm`
-// function from useConfirmDialog() (see src/hooks/useConfirmDialog.js),
-// returning a Promise<boolean> resolved once the user picks an option in
-// the app's own dialog rather than a browser popup.
+/**
+ * Application state boundary. Persistent records are owned here while
+ * domain actions and calculations remain in src/lib for independent testing.
+ */
 export function useFarmData(showToast, confirm) {
   const [units, setUnits] = usePersistentState('farm-units', []);
   const [logs, setLogs] = usePersistentState('farm-logs', []);
@@ -115,9 +111,7 @@ export function useFarmData(showToast, confirm) {
     updateInventoryMove: inventoryActions.updateInventoryTransaction,
     removeInventoryMove: inventoryActions.removeInventoryTransaction,
 
-    // Keep the hook API stable while the ledger implementation remains pure.
-    // Views can request a balance or cost without knowing how inventory state
-    // is stored internally.
+    // Keep the public hook API independent of the ledger's internal storage.
     getExpenseUnitCost,
     getBalance: (
       itemId,
