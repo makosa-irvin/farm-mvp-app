@@ -44,7 +44,7 @@ export default function MainContent({ tab, farm, setTab }) {
       )}
 
       {tab === 'analytics' && (
-        <AnalyticsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventoryMoves={farm.inventoryMoves} />
+        <AnalyticsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} />
       )}
 
       {tab === 'inventory' && (
