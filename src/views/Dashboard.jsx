@@ -2,8 +2,15 @@ import { Plus, Tag, Boxes, AlertTriangle, CheckCircle2, Egg, Droplets, Wheat, Pa
 import EmptyState from '../components/EmptyState.jsx';
 import { typeOf, todayISO, inPeriod, fmtNum, fmtMoney, unitMetrics } from '../lib/helpers.js';
 
+// Icons for each production type, used on the "Production this week" list.
 const PRODUCE_ICONS = { eggs: Egg, milk: Droplets, crop: Wheat, other: Package };
 
+// The farmer's first screen. Everything here is ordered by how urgently it
+// needs a decision, not by how the data happens to be structured:
+// actionable alerts ("Needs your attention") come before passive stats
+// ("Today", "Production this week"), on the assumption that someone
+// opening this on a phone between other jobs wants to know what to *do*
+// before they want to browse numbers.
 export default function Dashboard({ units, logs, expenses, inventory = [], inventoryMoves = [], goTo }) {
   if (units.length === 0) {
     return (
@@ -19,8 +26,25 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
 
   const today = todayISO();
   const todayLogs = logs.filter((log) => log.date === today);
-  const producedToday = todayLogs.reduce((sum, log) => sum + (Number(log.produced) || 0), 0);
+
+  // "Produced today" is only meaningful as a single number when every log
+  // entry today is the same kind of produce — adding "30 eggs" to "20
+  // liters of milk" would give a technically-computable but meaningless
+  // number. When today's entries span more than one production type, this
+  // falls back to counting how many groups were logged instead, which is
+  // still honest and still useful at a glance.
+  const producedTodayByType = todayLogs.reduce((totals, log) => {
+    const unit = units.find((u) => u.id === log.unitId);
+    const type = unit?.type || 'other';
+    totals[type] = (totals[type] || 0) + (Number(log.produced) || 0);
+    return totals;
+  }, {});
+  const typesLoggedToday = Object.keys(producedTodayByType);
+  const singleTypeToday = typesLoggedToday.length === 1 ? typesLoggedToday[0] : null;
+
   const mortalityToday = todayLogs.reduce((sum, log) => sum + (Number(log.mortality) || 0), 0);
+  const todaySpend = expenses.filter((expense) => expense.date === today && !expense.inventoryTransactionId).reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+
   const moneySpentThisMonth = expenses
     .filter((expense) => inPeriod(expense.date, 'month') && !expense.inventoryTransactionId)
     .reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
@@ -40,7 +64,7 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
   const lowStockItems = inventory.filter((item) => getInventoryBalance(item) <= (Number(item.reorderLevel) || 0));
   const recentLosses = inventoryMoves.filter((move) => move.transactionType === 'wastage' && inPeriod(move.date, 'week')).length;
   const attentionItems = lowStockItems.slice(0, 3);
-  const todaySpend = expenses.filter((expense) => expense.date === today && !expense.inventoryTransactionId).reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+  const hasAttentionItems = attentionItems.length > 0 || recentLosses > 0;
 
   const productionByUnit = units.map((unit) => ({
     unit,
@@ -74,17 +98,9 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
         </div>
       </section>
 
-      <section>
-        <div className="font-display text-lg font-semibold">Today</div>
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          <TodayCard icon={Egg} label="Produced" value={fmtNum(producedToday)} sub="units of produce" />
-          <TodayCard icon={Wallet} label="Money spent" value={fmtMoney(todaySpend)} sub="today" />
-          <TodayCard icon={Boxes} label="Stock used" value={fmtNum(inventoryMoves.filter((move) => move.date === today && move.direction === 'out').length)} sub="stock movements" />
-          <TodayCard icon={AlertTriangle} label="Losses" value={fmtNum(mortalityToday)} sub="animals today" />
-        </div>
-      </section>
-
-      {(attentionItems.length > 0 || recentLosses > 0) ? (
+      {/* Actionable items come first — before passive stats — since this is
+          what most directly helps someone decide what to do next. */}
+      {hasAttentionItems ? (
         <section className="rounded-2xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
           <div className="font-display text-lg font-semibold">Needs your attention</div>
           <div className="mt-1 text-xs" style={{ color: 'var(--ink-soft)' }}>A few things worth checking today.</div>
@@ -111,6 +127,20 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
           <span className="text-sm font-medium">Nothing needs your attention right now.</span>
         </div>
       )}
+
+      <section>
+        <div className="font-display text-lg font-semibold">Today</div>
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          {singleTypeToday ? (
+            <TodayCard icon={Egg} label="Produced" value={fmtNum(producedTodayByType[singleTypeToday])} sub={typeOf({ type: singleTypeToday }).unitLabel} />
+          ) : (
+            <TodayCard icon={Egg} label="Logged today" value={fmtNum(typesLoggedToday.length)} sub={typesLoggedToday.length === 1 ? 'kind of produce' : 'kinds of produce'} />
+          )}
+          <TodayCard icon={Wallet} label="Money spent" value={fmtMoney(todaySpend)} sub="today" />
+          <TodayCard icon={Boxes} label="Stock used" value={fmtNum(inventoryMoves.filter((move) => move.date === today && move.direction === 'out').length)} sub="stock movements" />
+          <TodayCard icon={AlertTriangle} label="Losses" value={fmtNum(mortalityToday)} sub="animals today" />
+        </div>
+      </section>
 
       {productionByUnit.length > 0 && (
         <section>
@@ -145,6 +175,13 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
           <div><div className="text-xs" style={{ color: 'var(--ink-soft)' }}>Farm costs</div><div className="font-mono text-lg font-semibold mt-1">{fmtMoney(farmCostsThisMonth)}</div></div>
           <div><div className="text-xs" style={{ color: 'var(--ink-soft)' }}>Money spent</div><div className="font-mono text-lg font-semibold mt-1">{fmtMoney(moneySpentThisMonth)}</div></div>
         </div>
+        {/* Moved here from a page-level footnote — the explanation is much
+            more likely to actually be read sitting right next to the two
+            numbers it explains, rather than at the very bottom of the page
+            with no visual connection to them. */}
+        <div className="text-xs mt-3 leading-5" style={{ color: 'var(--ink-soft)' }}>
+          <strong>Farm costs</strong> also counts stock the farm used or lost, even if you paid for it earlier. <strong>Money spent</strong> is only new cash payments made this month.
+        </div>
         <button type="button" onClick={() => goTo('analytics')} className="mt-4 flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--forest)' }}>
           See more financial details <ArrowRight size={13} />
         </button>
@@ -159,14 +196,11 @@ export default function Dashboard({ units, logs, expenses, inventory = [], inven
           <button type="button" onClick={() => goTo('units')} className="btn-ghost flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm"><Plus size={16} /> Add group</button>
         </div>
       </section>
-
-      <div className="text-xs leading-5" style={{ color: 'var(--ink-soft)' }}>
-        <strong>Farm costs</strong> include things the farm has used or lost, even when you paid for them earlier. This keeps the farm's true costs separate from cash spent.
-      </div>
     </div>
   );
 }
 
+// One of the four small stat tiles in the "Today" section.
 function TodayCard({ icon: Icon, label, value, sub }) {
   return (
     <div className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>

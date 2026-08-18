@@ -210,3 +210,40 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
     expect(navigated).toBe(true);
   });
 });
+
+describe('Dashboard — "Today" produced stat does not sum across mismatched units', () => {
+  // Regression test for a confirmed bug: the "Produced today" stat summed
+  // raw quantities across every log entry today regardless of unit type -
+  // adding "30 eggs" to "20 liters of milk" into one meaningless number.
+  it('sums normally when every log entry today is the same production type', () => {
+    const units = [
+      { id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 },
+      { id: 'u2', name: 'Layer House B', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 },
+    ];
+    const today = new Date().toISOString().slice(0, 10);
+    const logs = [
+      { unitId: 'u1', date: today, produced: 30, mortality: 0 },
+      { unitId: 'u2', date: today, produced: 20, mortality: 0 },
+    ];
+    render(<Dashboard units={units} logs={logs} expenses={[]} inventory={[]} inventoryMoves={[]} goTo={() => {}} />);
+    expect(screen.getByText('50')).toBeInTheDocument(); // 30 + 20 eggs — a meaningful sum
+    expect(screen.getAllByText('eggs').length).toBeGreaterThan(0);
+  });
+
+  it('falls back to a count of kinds logged, never a mixed-unit sum, when types differ', () => {
+    const units = [
+      { id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 },
+      { id: 'u2', name: 'Dairy Herd', type: 'milk', initialCount: 10, startDate: '2026-08-01', producePrice: 0 },
+    ];
+    const today = new Date().toISOString().slice(0, 10);
+    const logs = [
+      { unitId: 'u1', date: today, produced: 30, mortality: 0 }, // 30 eggs
+      { unitId: 'u2', date: today, produced: 20, mortality: 0 }, // 20 liters
+    ];
+    render(<Dashboard units={units} logs={logs} expenses={[]} inventory={[]} inventoryMoves={[]} goTo={() => {}} />);
+    // Must never show "50" here — that would be eggs + liters added together.
+    expect(screen.queryByText('50')).not.toBeInTheDocument();
+    expect(screen.getByText('Logged today')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument(); // 2 kinds of produce logged
+  });
+});
