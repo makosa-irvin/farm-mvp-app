@@ -73,7 +73,7 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
         </div>
         <div className="grid grid-cols-2 gap-3.5">
           <div><FieldLabel>When?</FieldLabel><input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} required className={inputClass} style={inputStyle} /></div>
-          <div><FieldLabel>Which group? (optional)</FieldLabel><select value={unitId} onChange={(e) => setUnitId(e.target.value)} className={inputClass} style={inputStyle}><option value="">Shared across farm</option>{units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
+          <div><FieldLabel>Which farm group? (optional)</FieldLabel><select value={unitId} onChange={(e) => setUnitId(e.target.value)} className={inputClass} style={inputStyle}><option value="">Shared across farm</option>{units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
         </div>
         <div className="grid grid-cols-2 gap-3.5">
           <div><FieldLabel>Did you buy stock? (optional)</FieldLabel><select value={inventoryItemId} onChange={(e) => setInventoryItemId(e.target.value)} className={inputClass} style={inputStyle}><option value="">No</option>{inventory.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}</select></div>

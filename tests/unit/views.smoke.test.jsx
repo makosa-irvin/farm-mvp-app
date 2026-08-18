@@ -13,12 +13,12 @@ const noop = () => {};
 describe('view components render without crashing, empty-state', () => {
   it('UnitsView', () => {
     render(<UnitsView units={[]} logs={[]} onAdd={noop} onUpdate={noop} onRemove={noop} />);
-    expect(screen.getByText('Add a production unit')).toBeInTheDocument();
+    expect(screen.getByText('Add a farm group')).toBeInTheDocument();
   });
 
   it('ExpensesView', () => {
     render(<ExpensesView units={[]} inventory={[]} expenses={[]} onAdd={noop} onUpdate={noop} onRemove={noop} />);
-    expect(screen.getByText('Record an expense')).toBeInTheDocument();
+    expect(screen.getByText('Record money spent')).toBeInTheDocument();
   });
 
   it('InventoryView', () => {
@@ -28,12 +28,12 @@ describe('view components render without crashing, empty-state', () => {
 
   it('DailyLogView with no units shows the empty state instead of the form', () => {
     render(<DailyLogView units={[]} logs={[]} inventory={[]} onAdd={noop} onUpdate={noop} onRemove={noop} goTo={noop} />);
-    expect(screen.getByText('Add a unit before logging')).toBeInTheDocument();
+    expect(screen.getByText('Add a farm group before logging')).toBeInTheDocument();
   });
 
   it('Dashboard with no units shows the empty state', () => {
     render(<Dashboard units={[]} logs={[]} expenses={[]} inventory={[]} inventoryMoves={[]} goTo={noop} />);
-    expect(screen.getByText('No units yet')).toBeInTheDocument();
+    expect(screen.getByText('No farm groups yet')).toBeInTheDocument();
   });
 
   it('AnalyticsView with no units shows the empty state', () => {
@@ -47,11 +47,11 @@ describe('the fields the E2E suite depends on actually exist', () => {
   // real browser. If a label or option text changes and breaks the E2E
   // locators, this (much faster) test should catch it first.
 
-  it('UnitsView exposes a "Name" field and "Add unit" button', () => {
+  it('UnitsView exposes a "What should we call it?" field and "Add group" button', () => {
     render(<UnitsView units={[]} logs={[]} onAdd={noop} onUpdate={noop} onRemove={noop} />);
-    const label = screen.getByText('Name', { selector: 'label' });
+    const label = screen.getByText('What should we call it?', { selector: 'label' });
     expect(label.parentElement.querySelector('input')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add unit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add group' })).toBeInTheDocument();
   });
 
   it('InventoryView exposes "Item name"/"Category"/"Unit" fields and lists items with their balance', () => {
@@ -65,9 +65,9 @@ describe('the fields the E2E suite depends on actually exist', () => {
   it('ExpensesView exposes the inventory-link fields with the option label format the E2E test selects by', () => {
     const inventory = [{ id: 'i1', name: 'Layer Mash', unit: 'kg' }];
     render(<ExpensesView units={[]} inventory={inventory} expenses={[]} onAdd={noop} onUpdate={noop} onRemove={noop} />);
-    expect(screen.getByText('Inventory item — optional', { selector: 'label' })).toBeInTheDocument();
+    expect(screen.getByText('Did you buy stock? (optional)', { selector: 'label' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Layer Mash (kg)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save expense' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
   it('DailyLogView lists feed items with name + balance in the option text', () => {
@@ -152,7 +152,7 @@ describe('ExpensesView — expandable rows with optional detail', () => {
   it('an expense with no extra detail says so, rather than showing an empty panel', () => {
     render(<ExpensesView units={units} inventory={[]} expenses={expenses} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
     fireEvent.click(screen.getAllByText('KSh 200')[0].closest('tr'));
-    expect(screen.getByText('No extra detail recorded for this expense.')).toBeInTheDocument();
+    expect(screen.getByText('No extra detail recorded.')).toBeInTheDocument();
   });
 
   it('clicking Edit or Delete inside a row does not also toggle the row expansion', () => {
@@ -166,7 +166,7 @@ describe('ExpensesView — expandable rows with optional detail', () => {
 
   it('the supplier and payment method fields are optional, not required', () => {
     render(<ExpensesView units={units} inventory={[]} expenses={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
-    expect(screen.getByPlaceholderText('e.g. Wanjiku Agrovet')).not.toBeRequired();
+    expect(screen.getByPlaceholderText('e.g. local agrovet')).not.toBeRequired();
   });
 });
 
@@ -184,14 +184,14 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
     render(<UnitsView units={units} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
     fireEvent.click(screen.getByText('Layer House A'));
     expect(screen.getByText('This month so far')).toBeInTheDocument();
-    expect(screen.getByText('Cost/unit')).toBeInTheDocument(); // no producePrice set on this unit, so cost/unit shows instead of profit
+    expect(screen.getByText('Cost per unit')).toBeInTheDocument(); // no producePrice set on this unit, so cost/unit shows instead of profit
   });
 
   it('shows Profit instead of Cost/unit once the unit has a selling price', () => {
     const pricedUnits = [{ ...units[0], producePrice: 20 }];
     render(<UnitsView units={pricedUnits} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
     fireEvent.click(screen.getByText('Layer House A'));
-    expect(screen.getByText('Profit')).toBeInTheDocument();
+    expect(screen.getByText('Estimated surplus')).toBeInTheDocument();
   });
 
   it('clicking Edit or Remove does not also toggle the snapshot', () => {
@@ -206,7 +206,7 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
       <UnitsView units={units} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} onNavigateToAnalytics={() => { navigated = true; }} />
     );
     fireEvent.click(screen.getByText('Layer House A'));
-    fireEvent.click(screen.getByText('See full analytics for this unit'));
+    fireEvent.click(screen.getByText('See more results'));
     expect(navigated).toBe(true);
   });
 });

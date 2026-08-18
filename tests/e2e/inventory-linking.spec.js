@@ -7,9 +7,9 @@ test.beforeEach(async ({ page }) => {
 
 test('recording a feed expense increases inventory, and logging feed use decreases it', async ({ page }) => {
   // --- Add a production unit ---
-  await page.getByRole('button', { name: 'Units', exact: true }).click();
-  await fieldByLabel(page, 'Name').fill('Layer House A');
-  await page.getByRole('button', { name: 'Add unit' }).click();
+  await page.getByRole('button', { name: 'Groups', exact: true }).click();
+  await fieldByLabel(page, 'What should we call it?').fill('Layer House A');
+  await page.getByRole('button', { name: 'Add group' }).click();
   await expect(page.getByText('Layer House A')).toBeVisible();
 
   // --- Add a Feed inventory item, starting at zero stock ---
@@ -26,10 +26,10 @@ test('recording a feed expense increases inventory, and logging feed use decreas
 
   // --- THE CORE BEHAVIOR: record a feed purchase via Expenses ---
   await page.getByRole('button', { name: 'Expenses', exact: true }).click();
-  await fieldByLabel(page, 'Amount').fill('105');
-  await fieldByLabel(page, 'Inventory item').selectOption({ label: 'Layer Mash (kg)' });
-  await fieldByLabel(page, 'Purchased quantity').fill('150');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await fieldByLabel(page, 'How much did you pay? (KSh)').fill('105');
+  await fieldByLabel(page, 'Did you buy stock? (optional)').selectOption({ label: 'Layer Mash (kg)' });
+  await fieldByLabel(page, 'How much stock?').fill('150');
+  await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText('KSh 105')).toBeVisible();
 
   // --- Inventory should have increased, with no second manual step ---
@@ -55,9 +55,9 @@ test('recording a feed expense increases inventory, and logging feed use decreas
 
 test('deleting a feed expense whose stock is already in use is blocked, not silently applied', async ({ page }) => {
   // Same setup as above, compressed.
-  await page.getByRole('button', { name: 'Units', exact: true }).click();
-  await fieldByLabel(page, 'Name').fill('Layer House A');
-  await page.getByRole('button', { name: 'Add unit' }).click();
+  await page.getByRole('button', { name: 'Groups', exact: true }).click();
+  await fieldByLabel(page, 'What should we call it?').fill('Layer House A');
+  await page.getByRole('button', { name: 'Add group' }).click();
 
   await page.getByRole('button', { name: 'Stock', exact: true }).click();
   await fieldByLabel(page, 'Item name').fill('Layer Mash');
@@ -66,10 +66,10 @@ test('deleting a feed expense whose stock is already in use is blocked, not sile
   await page.getByRole('button', { name: 'Add item' }).click();
 
   await page.getByRole('button', { name: 'Expenses', exact: true }).click();
-  await fieldByLabel(page, 'Amount').fill('105');
-  await fieldByLabel(page, 'Inventory item').selectOption({ label: 'Layer Mash (kg)' });
-  await fieldByLabel(page, 'Purchased quantity').fill('150');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await fieldByLabel(page, 'How much did you pay? (KSh)').fill('105');
+  await fieldByLabel(page, 'Did you buy stock? (optional)').selectOption({ label: 'Layer Mash (kg)' });
+  await fieldByLabel(page, 'How much stock?').fill('150');
+  await page.getByRole('button', { name: 'Save' }).click();
 
   await page.getByRole('button', { name: 'Daily log', exact: true }).click();
   await page.getByRole('button', { name: 'Layer House A' }).click();
