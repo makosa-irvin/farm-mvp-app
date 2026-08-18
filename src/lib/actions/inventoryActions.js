@@ -1,15 +1,8 @@
 // Inventory item CRUD, plus the general-purpose manual ledger form
-// (purchase/wastage/return/transfer/adjustment/sale/stock-count). This is
-// distinct from the automatic sync in expenseActions.js and logActions.js
-// — those create transactions as a side effect of something else being
-// saved; the functions here are the direct "record a transaction" path
-// used by InventoryView's own ledger form.
+// (purchase/wastage/return/transfer/adjustment/sale/stock-count).
 import { fmtNum } from '../helpers.js';
-import { getBalance, getWeightedAverageCost, normalizeTransaction, checkOutgoing } from '../inventoryLedger.js';
+import { getBalance, getWeightedAverageCost, normalizeTransaction, checkOutgoing, isInventoryCostDeduction, inventoryTransactionCost } from '../inventoryLedger.js';
 
-// Inventory actions are the stateful boundary around the pure ledger rules.
-// They validate transactions, persist the result, and surface user feedback;
-// the balance and valuation calculations themselves stay in inventoryLedger.
 export function createInventoryActions({ inventory, transactions, expenses, setInventory, setInventoryTransactions, setExpenses, showToast, confirm }) {
   const addInventoryItem = (item) => {
     setInventory((prev) => [...prev, item]);
@@ -109,19 +102,58 @@ export function createInventoryActions({ inventory, transactions, expenses, setI
       showToast(`Not enough ${check.itemName}. Available: ${fmtNum(check.available)} ${check.itemUnit}.`);
       return false;
     }
-    setInventoryTransactions((prev) => prev.map((t) => (t.id === input.id ? { ...record, id: input.id, createdAt: previous.createdAt || Date.now() } : t)));
+    setInventoryTransactions((prev) => (prev.map((t) => (t.id === input.id ? { ...record, id: input.id, createdAt: previous.createdAt || Date.now() } : t))));
     showToast('Inventory transaction updated.');
     return true;
   };
 
   const removeInventoryTransaction = async (id) => {
     const target = transactions.find((t) => t.id === id);
+    const linkedExpense = target?.expenseId ? expenses.find((e) => e.id === target.expenseId) : null;
+    const isCostDeduction = isInventoryCostDeduction(target);
+    const cost = inventoryTransactionCost(target);
     const message = target?.transferId
       ? 'Remove this transfer? Both sides will be removed.'
-      : 'Remove this update? Your stock total will be recalculated.';
+      : linkedExpense
+        ? 'Remove this inventory-linked purchase? Remove the linked expense too?'
+        : isCostDeduction
+          ? `Remove this ${target?.transactionType === 'wastage' ? 'loss' : 'stock deduction'}? The inventory balance and expense record will be updated.`
+          : 'Remove this update? Your stock total will be recalculated.';
+
     if (!(await confirm(message))) return false;
+
     setInventoryTransactions((prev) => (target?.transferId ? prev.filter((t) => t.transferId !== target.transferId) : prev.filter((t) => t.id !== id)));
-    showToast('Update removed.');
+
+    // Purchases entered from Expenses own their expense record, so deleting
+    // the inventory purchase also removes that expense instead of leaving an
+    // orphaned cash expense with no stock behind it.
+    if (linkedExpense) {
+      setExpenses((prev) => prev.filter((e) => e.id !== linkedExpense.id));
+    }
+
+    // A wastage/deduction is a non-cash cost: it reduces inventory value but
+    // should still appear on Expenses so profit/cost reporting reflects what
+    // was actually lost. It is recorded at the ledger's valuation cost.
+    if (isCostDeduction && !target?.expenseId) {
+      const item = inventory.find((i) => i.id === target.itemId);
+      const lossExpense = {
+        id: `inv_loss_${target.id}`,
+        category: item?.category?.toLowerCase() || 'supplies',
+        amount: cost,
+        date: target.date,
+        unitId: target.unitId || null,
+        description: target.note || `${target.transactionType === 'wastage' ? 'Lost/spoiled' : 'Inventory deduction'}: ${fmtNum(target.quantity)} ${target.unit || item?.unit || ''} of ${item?.name || 'stock'}`,
+        inventoryItemId: target.itemId,
+        inventoryQuantity: target.quantity,
+        inventoryTransactionId: target.id,
+        expenseType: target.transactionType === 'wastage' ? 'inventory_loss' : 'inventory_deduction',
+        nonCash: true,
+        createdAt: Date.now(),
+      };
+      setExpenses((prev) => [...prev, lossExpense]);
+    }
+
+    showToast('Inventory update removed.');
     return true;
   };
 
