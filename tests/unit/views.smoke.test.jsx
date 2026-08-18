@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import UnitsView from '../../src/views/UnitsView.jsx';
 import ExpensesView from '../../src/views/ExpensesView.jsx';
 import InventoryView from '../../src/views/InventoryView.jsx';
@@ -23,7 +23,7 @@ describe('view components render without crashing, empty-state', () => {
 
   it('InventoryView', () => {
     render(<InventoryView units={[]} inventory={[]} expenses={[]} moves={[]} transactionTypes={INVENTORY_TRANSACTION_TYPES} onAddItem={noop} onUpdateItem={noop} onRemoveItem={noop} onAddMove={noop} onUpdateMove={noop} onRemoveMove={noop} getExpenseUnitCost={noop} />);
-    expect(screen.getByText('Inventory is ready to track')).toBeInTheDocument();
+    expect(screen.getByText('Nothing tracked yet')).toBeInTheDocument();
   });
 
   it('DailyLogView with no units shows the empty state instead of the form', () => {
@@ -33,12 +33,12 @@ describe('view components render without crashing, empty-state', () => {
 
   it('Dashboard with no units shows the empty state', () => {
     render(<Dashboard units={[]} logs={[]} expenses={[]} inventory={[]} inventoryMoves={[]} goTo={noop} />);
-    expect(screen.getByText('No production units yet')).toBeInTheDocument();
+    expect(screen.getByText('No units yet')).toBeInTheDocument();
   });
 
   it('AnalyticsView with no units shows the empty state', () => {
     render(<AnalyticsView units={[]} logs={[]} expenses={[]} inventoryMoves={[]} />);
-    expect(screen.getByText('Nothing to analyze yet')).toBeInTheDocument();
+    expect(screen.getByText('Nothing to look at yet')).toBeInTheDocument();
   });
 });
 
@@ -77,5 +77,34 @@ describe('the fields the E2E suite depends on actually exist', () => {
     expect(screen.getByRole('button', { name: 'Layer House A' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Layer Mash · 150.0 kg' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save log entry' })).toBeInTheDocument();
+  });
+});
+
+describe('InventoryView — progressive disclosure for stock updates', () => {
+  const inventory = [{ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 100, reorderLevel: 20, unitCost: 50 }];
+  const baseProps = {
+    units: [], inventory, expenses: [], moves: [],
+    transactionTypes: INVENTORY_TRANSACTION_TYPES,
+    onAddItem: noop, onUpdateItem: noop, onRemoveItem: noop,
+    onAddMove: noop, onUpdateMove: noop, onRemoveMove: noop,
+    getExpenseUnitCost: noop,
+  };
+
+  it('shows the two common-action buttons by default, not the full type picker', () => {
+    render(<InventoryView {...baseProps} />);
+    expect(screen.getByRole('button', { name: /I bought stock/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /I used stock/ })).toBeInTheDocument();
+    // The advanced dropdown (9 transaction types) shouldn't be present yet.
+    expect(screen.queryByText('Lost or spoiled')).not.toBeInTheDocument();
+  });
+
+  it('reveals the full type picker after "Something else?" is clicked', () => {
+    render(<InventoryView {...baseProps} />);
+    fireEvent.click(screen.getByText(/Something else\?/));
+    expect(screen.getByRole('option', { name: 'Lost or spoiled' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Bought stock' })).toBeInTheDocument();
+    // Can toggle back to the simple view.
+    fireEvent.click(screen.getByText('Back to common options'));
+    expect(screen.getByRole('button', { name: /I bought stock/ })).toBeInTheDocument();
   });
 });

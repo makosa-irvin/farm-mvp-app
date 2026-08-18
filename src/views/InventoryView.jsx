@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Boxes, Trash2, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, Pencil, X, Save, Scale } from 'lucide-react';
+import { Boxes, Trash2, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, Pencil, X, Save, Scale, ShoppingBasket, PackageMinus, SlidersHorizontal } from 'lucide-react';
 import FieldLabel from '../components/FieldLabel.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import { inputClass, inputStyle } from '../lib/styleTokens.js';
@@ -8,7 +8,7 @@ import { uid, todayISO, fmtNum, fmtMoney } from '../lib/helpers.js';
 const DEFAULT_CATEGORIES = ['Feed', 'Seed', 'Fertilizer', 'Medicine', 'Packaging', 'Fuel', 'Supplies', 'Other'];
 
 // Two independent things live on this page:
-//  1. Inventory items — what you track (name, category, unit, reorder level).
+//  1. Inventory items — what you track (name, category, unit, low-stock warning level).
 //  2. The transaction ledger — every movement of stock in or out. Balances
 //     are always *derived* from the ledger (opening stock + sum of
 //     transactions), never stored or edited directly, so they can't drift.
@@ -16,10 +16,17 @@ const DEFAULT_CATEGORIES = ['Feed', 'Seed', 'Fertilizer', 'Medicine', 'Packaging
 // Most day-to-day stock movement happens automatically elsewhere — a feed
 // expense creates a purchase transaction (src/lib/expenseLinking.js), a
 // daily log's feed use creates a consumption transaction
-// (src/lib/feedLinking.js). The "Record stock movement" form here is the
-// manual/general path: purchases not tied to a formal expense, wastage,
-// returns, transfers between units, corrective adjustments, sales, and
-// stock counts.
+// (src/lib/feedLinking.js). The "Update your stock" form here is the
+// manual/general path.
+//
+// UI note: the transaction-type picker defaults to just two big buttons —
+// "I bought stock" and "I used stock" — since that covers almost every
+// real update. The other seven types (returns, transfers, corrections,
+// counts, sales) are real but rare, and are tucked behind "Something
+// else?" rather than sitting in one dropdown with equal visual weight to
+// the common case. Editing an existing entry of one of those rarer types
+// opens straight into the advanced picker, since the simple two-button
+// view can't represent it.
 export default function InventoryView({ inventory, units = [], expenses = [], moves, onAddItem, onUpdateItem, onRemoveItem, onAddMove, onUpdateMove, onRemoveMove, getExpenseUnitCost, transactionTypes = [] }) {
   // --- "add inventory item" form state ---
   const [name, setName] = useState('');
@@ -30,9 +37,10 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
   const [unitCost, setUnitCost] = useState('');
   const [editingItemId, setEditingItemId] = useState(null);
 
-  // --- "record stock movement" form state ---
+  // --- "update your stock" form state ---
   const [moveItemId, setMoveItemId] = useState(inventory[0]?.id || '');
   const [moveType, setMoveType] = useState('purchase');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [moveQty, setMoveQty] = useState('');
   const [moveCountQty, setMoveCountQty] = useState('');
   const [moveDate, setMoveDate] = useState(todayISO());
@@ -114,15 +122,21 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
     setEditingMoveId(null);
     setMoveDate(todayISO());
     setMoveType('purchase');
+    setShowAdvanced(false);
     setUnitId('');
     setDestinationUnitId('');
     if (inventory[0]) setMoveItemId(inventory[0].id);
   }
 
   function editMove(m) {
+    const type = m.transactionType || (m.type === 'in' ? 'purchase' : 'consumption');
     setEditingMoveId(m.id);
     setMoveItemId(m.itemId);
-    setMoveType(m.transactionType || (m.type === 'in' ? 'purchase' : 'consumption'));
+    setMoveType(type);
+    // The simple two-button picker can only represent purchase/consumption
+    // — anything else needs the full picker open right away so the type
+    // being edited is actually visible and changeable.
+    setShowAdvanced(type !== 'purchase' && type !== 'consumption');
     setMoveQty(String(m.quantity || ''));
     setMoveCountQty(String(m.countQuantity ?? ''));
     setMoveDate(m.date);
@@ -184,7 +198,7 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
   return (
     <div className="space-y-6">
       <form onSubmit={addItem} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-        <div className="font-display text-lg font-semibold">{editingItemId ? 'Edit inventory item' : 'Add inventory item'}</div>
+        <div className="font-display text-lg font-semibold">{editingItemId ? 'Edit stock item' : 'Add a stock item'}</div>
 
         <div className="grid grid-cols-2 gap-3.5">
           <div>
@@ -202,18 +216,18 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
           <div>
             <FieldLabel>Unit</FieldLabel>
-            <input value={unit} onChange={(e) => setUnit(e.target.value)} required className={inputClass} style={inputStyle} />
+            <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="kg, litre, bag..." required className={inputClass} style={inputStyle} />
           </div>
           <div>
-            <FieldLabel>Opening stock</FieldLabel>
+            <FieldLabel>How much do you have now</FieldLabel>
             <input type="number" min="0" step="0.1" value={openingStock} onChange={(e) => setOpeningStock(e.target.value)} className={inputClass} style={inputStyle} />
           </div>
           <div>
-            <FieldLabel>Reorder level</FieldLabel>
+            <FieldLabel>Warn me when below</FieldLabel>
             <input type="number" min="0" step="0.1" value={reorderLevel} onChange={(e) => setReorderLevel(e.target.value)} className={inputClass} style={inputStyle} />
           </div>
           <div>
-            <FieldLabel>Fallback unit cost</FieldLabel>
+            <FieldLabel>Usual price per unit</FieldLabel>
             <input type="number" min="0" step="0.01" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} className={inputClass} style={inputStyle} />
           </div>
         </div>
@@ -233,7 +247,7 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
       </form>
 
       {inventory.length === 0 ? (
-        <EmptyState icon={Boxes} title="Inventory is ready to track" body="Add feed, seed, fertilizer, medicine, packaging, fuel, or any other stock item." />
+        <EmptyState icon={Boxes} title="Nothing tracked yet" body="Add feed, seed, fertilizer, medicine, or anything else you keep stock of." />
       ) : (
         <div className="space-y-2.5">
           {inventory.map((item) => {
@@ -248,21 +262,21 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
                     {low && (
                       <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--rust-tint)', color: 'var(--rust)' }}>
                         <AlertTriangle size={11} />
-                        Reorder
+                        Low stock
                       </span>
                     )}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>{item.category} · fallback {fmtMoney(item.unitCost || 0)} / {item.unit}</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>{item.category} · usually {fmtMoney(item.unitCost || 0, 2)} / {item.unit}</div>
                 </div>
                 <div className="text-right font-mono">
                   <div className="text-lg font-semibold">{fmtNum(balance, 1)} {item.unit}</div>
-                  <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>reorder at {fmtNum(item.reorderLevel, 1)}</div>
+                  <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>warn below {fmtNum(item.reorderLevel, 1)}</div>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => editItem(item)} className="p-1.5 rounded hover:bg-black/5" aria-label="Edit inventory item">
+                  <button onClick={() => editItem(item)} className="p-1.5 rounded hover:bg-black/5" aria-label="Edit stock item">
                     <Pencil size={15} />
                   </button>
-                  <button onClick={() => onRemoveItem(item.id)} className="p-1.5 rounded hover:bg-black/5" aria-label="Delete inventory item">
+                  <button onClick={() => onRemoveItem(item.id)} className="p-1.5 rounded hover:bg-black/5" aria-label="Delete stock item">
                     <Trash2 size={15} />
                   </button>
                 </div>
@@ -273,42 +287,86 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
       )}
 
       <div className="rounded-2xl px-5 py-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-        <div className="font-display text-lg font-semibold">Inventory transaction ledger</div>
+        <div className="font-display text-lg font-semibold">Your stock history</div>
         <div className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>
-          Every purchase, consumption, wastage, return, transfer, adjustment, sale, and stock count is recorded as a transaction. Balances are calculated from the ledger instead of being manually edited.
+          Every time stock is bought, used, lost, or corrected, it's recorded below — that's how the totals above stay accurate.
         </div>
       </div>
 
       <form onSubmit={addMove} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-        <div className="font-display text-lg font-semibold">{editingMoveId ? 'Edit stock movement' : 'Record stock movement'}</div>
+        <div className="font-display text-lg font-semibold">{editingMoveId ? 'Edit this update' : 'Update your stock'}</div>
 
-        <div className="grid grid-cols-2 gap-3.5">
+        <div>
+          <FieldLabel>Which item</FieldLabel>
+          <select value={moveItemId} onChange={(e) => { setMoveItemId(e.target.value); setExpenseId(''); }} className={inputClass} style={inputStyle}>
+            {inventory.map((i) => <option key={i.id} value={i.id}>{i.name} — {fmtNum(balances[i.id], 1)} {i.unit}</option>)}
+          </select>
+        </div>
+
+        {!showAdvanced ? (
           <div>
-            <FieldLabel>Item</FieldLabel>
-            <select value={moveItemId} onChange={(e) => { setMoveItemId(e.target.value); setExpenseId(''); }} className={inputClass} style={inputStyle}>
-              {inventory.map((i) => <option key={i.id} value={i.id}>{i.name} — {fmtNum(balances[i.id], 1)} {i.unit}</option>)}
-            </select>
+            <FieldLabel>What happened</FieldLabel>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setMoveType('purchase')}
+                className="rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-center gap-2"
+                style={{
+                  border: `1.5px solid ${moveType === 'purchase' ? 'var(--forest)' : 'var(--line)'}`,
+                  background: moveType === 'purchase' ? 'var(--forest-tint)' : 'var(--surface)',
+                  color: moveType === 'purchase' ? 'var(--forest)' : 'var(--ink)',
+                }}
+              >
+                <ShoppingBasket size={16} /> I bought stock
+              </button>
+              <button
+                type="button"
+                onClick={() => setMoveType('consumption')}
+                className="rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-center gap-2"
+                style={{
+                  border: `1.5px solid ${moveType === 'consumption' ? 'var(--forest)' : 'var(--line)'}`,
+                  background: moveType === 'consumption' ? 'var(--forest-tint)' : 'var(--surface)',
+                  color: moveType === 'consumption' ? 'var(--forest)' : 'var(--ink)',
+                }}
+              >
+                <PackageMinus size={16} /> I used stock
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(true)}
+              className="flex items-center gap-1 text-xs font-medium mt-2.5"
+              style={{ color: 'var(--forest)' }}
+            >
+              <SlidersHorizontal size={12} /> Something else? (returns, transfers, corrections...)
+            </button>
           </div>
+        ) : (
           <div>
-            <FieldLabel>Transaction type</FieldLabel>
+            <div className="flex items-center justify-between mb-1.5">
+              <FieldLabel>What happened</FieldLabel>
+              <button type="button" onClick={() => setShowAdvanced(false)} className="text-xs font-medium" style={{ color: 'var(--forest)' }}>
+                Back to common options
+              </button>
+            </div>
             <select value={moveType} onChange={(e) => { setMoveType(e.target.value); if (e.target.value !== 'purchase') setExpenseId(''); }} className={inputClass} style={inputStyle}>
               {transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
-        </div>
+        )}
 
         {moveType === 'purchase' && (
           <div>
-            <FieldLabel>Purchase expense — optional</FieldLabel>
+            <FieldLabel>Link to an expense you already logged — optional</FieldLabel>
             <select value={expenseId} onChange={(e) => setExpenseId(e.target.value)} className={inputClass} style={inputStyle}>
-              <option value="">Use item's fallback cost</option>
+              <option value="">Use this item's usual price instead</option>
               {purchaseExpenses.filter((e) => e.inventoryItemId === moveItemId).map((e) => (
-                <option key={e.id} value={e.id}>{e.date} · {fmtMoney(e.amount)} / {fmtNum(e.inventoryQuantity, 2)} = {fmtMoney(getExpenseUnitCost(e))} per unit</option>
+                <option key={e.id} value={e.id}>{e.date} · {fmtMoney(e.amount)} / {fmtNum(e.inventoryQuantity, 2)} = {fmtMoney(getExpenseUnitCost(e), 2)} per unit</option>
               ))}
             </select>
             {selectedExpenseUnitCost != null && (
               <div className="text-xs mt-1" style={{ color: 'var(--forest)' }}>
-                Unit cost from expense: {fmtMoney(selectedExpenseUnitCost)} / {inventory.find((i) => i.id === moveItemId)?.unit}
+                Price from that expense: {fmtMoney(selectedExpenseUnitCost, 2)} / {inventory.find((i) => i.id === moveItemId)?.unit}
               </div>
             )}
           </div>
@@ -318,12 +376,12 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
           <div>
             {moveType === 'stock_count' ? (
               <>
-                <FieldLabel>Actual counted stock</FieldLabel>
+                <FieldLabel>What you actually counted</FieldLabel>
                 <input type="number" min="0" step="0.1" value={moveCountQty} onChange={(e) => setMoveCountQty(e.target.value)} required className={inputClass} style={inputStyle} />
               </>
             ) : (
               <>
-                <FieldLabel>Quantity</FieldLabel>
+                <FieldLabel>How much</FieldLabel>
                 <input type="number" min="0.1" step="0.1" value={moveQty} onChange={(e) => setMoveQty(e.target.value)} required className={inputClass} style={inputStyle} />
               </>
             )}
@@ -336,9 +394,9 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
 
         {moveType === 'consumption' && (
           <div>
-            <FieldLabel>Production unit — optional</FieldLabel>
+            <FieldLabel>Which unit used it — optional</FieldLabel>
             <select value={unitId} onChange={(e) => setUnitId(e.target.value)} className={inputClass} style={inputStyle}>
-              <option value="">No unit / general stock</option>
+              <option value="">General use / not one unit</option>
               {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </div>
@@ -365,13 +423,13 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
 
         <div>
           <FieldLabel>Note — optional</FieldLabel>
-          <input value={moveNote} onChange={(e) => setMoveNote(e.target.value)} placeholder="Supplier, usage, adjustment..." className={inputClass} style={inputStyle} />
+          <input value={moveNote} onChange={(e) => setMoveNote(e.target.value)} placeholder="Supplier, reason, anything worth remembering" className={inputClass} style={inputStyle} />
         </div>
 
         <div className="flex gap-2 flex-wrap">
           <button className="btn-primary rounded-xl px-5 py-2.5 text-sm flex items-center gap-2">
             {moveType === 'purchase' || moveType === 'return' || moveType === 'adjustment_in' ? <ArrowDownToLine size={15} /> : moveType === 'stock_count' ? <Scale size={15} /> : <ArrowUpFromLine size={15} />}
-            {' '}{editingMoveId ? 'Save changes' : 'Record movement'}
+            {' '}{editingMoveId ? 'Save changes' : 'Save this update'}
           </button>
           {editingMoveId && (
             <button type="button" onClick={resetMove} className="btn-ghost rounded-xl px-4 py-2.5 text-sm flex items-center gap-2">
@@ -385,7 +443,7 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
       {recentMoves.length > 0 && (
         <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
           <div className="px-5 pt-4 pb-3 font-display text-lg font-semibold" style={{ borderBottom: '1px solid var(--line)' }}>
-            Recent movements
+            Recent updates
           </div>
           <table className="w-full text-sm ledger-table">
             <tbody>
@@ -397,15 +455,15 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
                     <td className="px-3 py-2.5 font-sans">{item?.name || 'Removed item'}</td>
                     <td className="px-3 py-2.5 text-right">{m.type === 'in' ? '+' : '-'}{fmtNum(m.quantity, 1)} {m.unit}</td>
                     <td className="px-3 py-2.5 font-sans" style={{ color: 'var(--ink-soft)' }}>
-                      {m.source === 'daily-log' ? 'Daily log' : (transactionTypes.find((t) => t.value === m.transactionType)?.label || (m.expenseId ? 'Purchase expense' : 'Manual'))}
-                      {m.unitCost ? ` · ${fmtMoney(m.unitCost)}/${m.unit}` : ''}
+                      {m.source === 'daily-log' ? 'Daily log' : (transactionTypes.find((t) => t.value === m.transactionType)?.label || (m.expenseId ? 'Linked expense' : 'Manual'))}
+                      {m.unitCost ? ` · ${fmtMoney(m.unitCost, 2)}/${m.unit}` : ''}
                     </td>
                     <td className="px-5 py-2.5 text-right">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => editMove(m)} className="p-1 rounded hover:bg-black/5" aria-label="Edit movement">
+                        <button onClick={() => editMove(m)} className="p-1 rounded hover:bg-black/5" aria-label="Edit update">
                           <Pencil size={14} />
                         </button>
-                        <button onClick={() => onRemoveMove(m.id)} className="p-1 rounded hover:bg-black/5" aria-label="Delete movement">
+                        <button onClick={() => onRemoveMove(m.id)} className="p-1 rounded hover:bg-black/5" aria-label="Delete update">
                           <Trash2 size={14} />
                         </button>
                       </div>
