@@ -27,34 +27,45 @@
   font-family: 'Inter', sans-serif;
 }
 
-.font-display {
-  font-family: 'Fraunces', serif;
-  font-optical-sizing: auto;
-}
+.font-display { font-family: 'Fraunces', serif; font-optical-sizing: auto; }
+.font-mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.01em; }
 
-.font-mono {
-  font-family: 'IBM Plex Mono', monospace;
-  letter-spacing: -0.01em;
-}
+input, select, textarea { font-family: 'Inter', sans-serif; }
 
-input,
-select,
-textarea {
-  font-family: 'Inter', sans-serif;
-}
-
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-button:focus-visible {
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
   outline: 2px solid var(--forest);
   outline-offset: 1px;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--forest) !important;
+input:focus, select:focus, textarea:focus { border-color: var(--forest) !important; }
+
+button[class*="hover:bg-black/5"] {
+  min-width: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 639px) {
+  .farm-app {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  /* Prevent mobile forms from becoming dense two-column desktop forms. */
+  .mobile-stack-form {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Keep tables usable without shrinking text below readable sizes. */
+  .ledger-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ledger-table {
+    min-width: 620px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -62,18 +73,4 @@ textarea:focus {
     transition: none !important;
     animation: none !important;
   }
-}
-
-/* Small icon-only edit/delete buttons in list rows (UnitsView, ExpensesView,
-   InventoryView, DailyLogView) rely on Tailwind padding alone — around
-   27px, well under the 44px minimum touch-target recommendation. They all
-   share this exact class combination rather than a dedicated component
-   class, so this reaches every occurrence from one place instead of
-   editing each call site individually. */
-button[class*="hover:bg-black/5"] {
-  min-width: 40px;
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
