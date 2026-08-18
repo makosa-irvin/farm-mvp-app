@@ -6,12 +6,11 @@ import Header from './layout/Header.jsx';
 import MainContent from './layout/MainContent.jsx';
 import Toast from './components/Toast.jsx';
 import ConfirmDialog from './components/ConfirmDialog.jsx';
+import MobileQuickActions from './components/MobileQuickActions.jsx';
 
-// App root: owns the state everything else hangs off — which tab is
-// active, the current toast message, and the confirm-dialog request —
-// plus the useFarmData() hook, the single source of truth for all farm
-// data. Actual layout and rendering is delegated to Header, MainContent,
-// Toast, and ConfirmDialog; App.jsx itself is just composition and state.
+// App root owns navigation and global feedback state. Mobile-specific
+// navigation/actions remain presentation concerns so the farm data model
+// stays unchanged.
 export default function App() {
   const [tab, setTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
@@ -34,6 +33,7 @@ export default function App() {
     <div className="farm-app min-h-screen pb-16">
       <Header tabs={TABS} activeTab={tab} onSelectTab={setTab} />
       <MainContent tab={tab} farm={farm} setTab={setTab} />
+      <MobileQuickActions onNavigate={setTab} />
       <Toast message={toast} />
       <ConfirmDialog {...dialogProps} />
     </div>
