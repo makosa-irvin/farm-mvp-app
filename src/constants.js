@@ -5,12 +5,12 @@ import {
 
 // The kinds of production a unit (flock, herd, plot) can track.
 // - groupSize/groupLabel: the natural "selling unit" for cost display,
-//   e.g. eggs are sold by the dozen, so costPerUnit * 12 = cost per dozen.
+//   e.g. eggs are sold by the tray, so costPerUnit * 30 = cost per tray.
 // - hasGrades: eggs are logged by size grade (large/medium/small); other
 //   types just log a single quantity. See DailyLogView for where this
 //   branches the form.
 export const UNIT_TYPES = [
-  { value: 'eggs', label: 'Layer flock (eggs)', unitLabel: 'eggs', groupSize: 12, groupLabel: 'dozen', hasGrades: true, icon: Egg },
+  { value: 'eggs', label: 'Layer flock (eggs)', unitLabel: 'eggs', groupSize: 30, groupLabel: 'tray', hasGrades: true, icon: Egg },
   { value: 'milk', label: 'Dairy herd (milk)', unitLabel: 'liters', groupSize: 1, groupLabel: 'liter', hasGrades: false, icon: Droplets },
   { value: 'crop', label: 'Crop plot (produce)', unitLabel: 'kg', groupSize: 1, groupLabel: 'kg', hasGrades: false, icon: Wheat },
   { value: 'other', label: 'Other livestock/produce', unitLabel: 'units', groupSize: 1, groupLabel: 'unit', hasGrades: false, icon: Package },

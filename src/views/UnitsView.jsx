@@ -75,7 +75,7 @@ export default function UnitsView({ units, logs, onAdd, onUpdate, onRemove }) {
         </div>
 
         <div>
-          {/* Label follows the selected type's natural selling unit (dozen for
+          {/* Label follows the selected type's natural selling unit (tray for
               eggs, liter for milk, etc.) — see UNIT_TYPES in constants.js. */}
           <FieldLabel>Produce selling price ({UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'})</FieldLabel>
           <input type="number" min="0" step="0.01" value={producePrice} onChange={(e) => setProducePrice(e.target.value)} placeholder="0.00" className={inputClass} style={inputStyle} />

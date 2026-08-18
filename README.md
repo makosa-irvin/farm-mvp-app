@@ -46,7 +46,7 @@ Outgoing stock is valued using weighted-average cost. Transfers are represented 
 
 The dashboard summarizes current production and direct costs. Analytics provide direct-cost and operating metrics such as:
 
-- Cost per production unit / dozen where applicable
+- Cost per production unit / tray where applicable
 - Feed conversion ratio
 - Production rate
 - Mortality rate
