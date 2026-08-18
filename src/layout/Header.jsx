@@ -4,7 +4,7 @@ import styles from './Header.module.css';
 
 export default function Header({ tabs, activeTab, onSelectTab }) {
   const mobilePrimary = tabs.filter((t) => ['dashboard', 'log', 'inventory', 'expenses'].includes(t.value));
-  const mobileMore = tabs.filter((t) => ['units', 'suppliers', 'analytics', 'reports', 'settings'].includes(t.value));
+  const mobileMore = tabs.filter((t) => ['units', 'suppliers', 'analytics', 'reports', 'search', 'settings'].includes(t.value));
   return (
     <>
       <header className={`sticky top-0 z-20 px-5 pt-5 pb-3 ${styles.header}`}>
