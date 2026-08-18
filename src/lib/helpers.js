@@ -1,13 +1,20 @@
 import { UNIT_TYPES } from '../constants.js';
 
+// Short random id for client-generated records (units, logs, expenses,
+// inventory items — anything created without a server to assign a real id).
 export function uid(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Today's date as a plain YYYY-MM-DD string — the format every date field
+// in the app is stored and compared as (never a full ISO datetime).
 export function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Looks up a unit's UNIT_TYPES entry (icon, labels, whether it tracks egg
+// grades, etc.). Falls back to the last entry ("other") for an unknown type
+// rather than returning undefined, so callers can destructure it safely.
 export function typeOf(unit) {
   return UNIT_TYPES.find((t) => t.value === unit.type) || UNIT_TYPES[3];
 }
@@ -22,7 +29,12 @@ export function fmtNum(n, digits = 0) {
   return n.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-
+// Weighted-average cost per unit of an inventory item, blending its
+// starting (opening-stock) cost with every incoming ("in") transaction
+// since. Used for display (Dashboard's "Inventory value" card) — the
+// authoritative version used when actually costing a new outgoing
+// transaction is inventoryLedger.js's getWeightedAverageCost, which this
+// mirrors but takes the item object directly instead of an id + array.
 export function inventoryUnitCost(item, moves) {
   if (!item) return 0;
   let qty = Number(item.openingStock) || 0;
@@ -35,6 +47,9 @@ export function inventoryUnitCost(item, moves) {
   return qty > 0 ? value / qty : Number(item.unitCost) || 0;
 }
 
+// Whether a plain YYYY-MM-DD date string falls within the given period,
+// relative to *now* (not relative to some other reference date) — "today"
+// means today, "week" means the last 7 days including today, etc.
 export function inPeriod(dateStr, period) {
   const d = new Date(dateStr + 'T00:00:00');
   const now = new Date();
@@ -51,6 +66,9 @@ export function inPeriod(dateStr, period) {
   return true;
 }
 
+// Number of calendar days a period covers, used as the denominator for
+// rate metrics (production rate, mortality rate) in unitMetrics below.
+// "all" measures from the unit's start date to today.
 export function periodDayCount(period, startDate) {
   const now = new Date();
   if (period === 'today') return 1;
@@ -63,6 +81,10 @@ export function periodDayCount(period, startDate) {
   return 1;
 }
 
+// A unit's current live headcount: how many started, minus everything
+// logged as mortality since. There's no separate "flock movement" record
+// for animals added later, so this is the full picture as the app
+// currently models it.
 export function currentCountFor(unit, logs) {
   const mortality = logs
     .filter((l) => l.unitId === unit.id)
@@ -70,9 +92,21 @@ export function currentCountFor(unit, logs) {
   return Math.max(0, (unit.initialCount || 0) - mortality);
 }
 
-// The core Phase-1 unit-economics calculation: direct costs only (no
-// indirect/allocated costs yet — see AllocationRule in the design plan's
-// Phase 2 Cost Allocation Engine).
+// The core unit-economics calculation behind the Dashboard and Analytics
+// views: production, feed use, cost, and (if a selling price is set)
+// revenue and profit for one unit over one period.
+//
+// The cost side has one deliberate subtlety: an expense linked to an
+// inventory item (e.g. "bought 150kg of feed for $105") is excluded from
+// directExpenseCost entirely. Its economic effect only shows up later, and
+// only for whatever was actually *consumed*, via consumedInventoryCost —
+// which reads the ledger's consumption transactions (weighted-average
+// costed, see inventoryLedger.js) rather than the purchase amount. This
+// means buying a large batch of feed doesn't spike a unit's cost-per-egg
+// the day it's purchased; the cost lands gradually as the feed is used,
+// which is closer to how the money is actually "spent" (the rest is still
+// on-hand inventory, not yet consumed). See src/lib/expenseLinking.js and
+// src/lib/feedLinking.js for how these transactions get created.
 export function unitMetrics(unit, logs, expenses, period, inventoryMoves = []) {
   const unitLogs = logs.filter((l) => l.unitId === unit.id && inPeriod(l.date, period));
   const unitExpenses = expenses.filter((e) => e.unitId === unit.id && inPeriod(e.date, period));

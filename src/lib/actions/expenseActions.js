@@ -1,9 +1,14 @@
+// Expense CRUD, plus the automatic sync to a linked inventory purchase
+// transaction (see src/lib/expenseLinking.js). This is what makes an
+// expense with an inventory item + quantity actually move stock, rather
+// than the link just being metadata that nothing acts on.
 import { fmtNum } from '../helpers.js';
 import { syncedTransactionsForExpense, balanceIfExpensePurchaseRemoved } from '../expenseLinking.js';
 
 export function createExpenseActions({ inventory, transactions, setExpenses, setInventoryTransactions, showToast }) {
-  // The fix from the previous pass: an expense linked to an inventory item
-  // now actually moves stock, instead of the link just sitting there.
+  // Recomputes (or clears) this expense's linked purchase transaction to
+  // match its current inventoryItemId/inventoryQuantity. Called on every
+  // add and edit, so the ledger never drifts out of sync with the expense.
   const syncExpensePurchaseTransaction = (expense) => {
     const result = syncedTransactionsForExpense(expense, inventory, transactions);
     if (result === null) {

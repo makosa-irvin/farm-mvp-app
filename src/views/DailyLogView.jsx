@@ -7,6 +7,11 @@ import { inputClass, inputStyle } from '../lib/styleTokens.js';
 import { UNIT_TYPES } from '../constants.js';
 import { uid, todayISO, typeOf, fmtNum } from '../lib/helpers.js';
 
+// Log daily production against a unit. Feed use is optional and, when a
+// tracked inventory item is picked, draws down real stock via
+// src/lib/feedLinking.js — the "Feed item" dropdown shows the item's
+// actual current balance (via the getBalance prop from useFarmData), not
+// just its starting stock.
 export default function DailyLogView({ units, logs, inventory = [], getBalance, onAdd, onUpdate, onRemove, goTo }) {
   const [unitId, setUnitId] = useState(units[0]?.id || '');
   const [date, setDate] = useState(todayISO());
@@ -26,6 +31,9 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
 
   const feedItems = inventory.filter(i => i.category === 'Feed');
 
+  // Auto-select the first unit and first feed item so the form is usable
+  // immediately, without forcing an explicit pick every time either list
+  // changes (e.g. right after adding the very first unit or feed item).
   useEffect(() => {
     if (!unitId && units[0]) setUnitId(units[0].id);
     if (!feedItemId && feedItems[0]) setFeedItemId(feedItems[0].id);
@@ -46,13 +54,37 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
   const t = unit ? typeOf(unit) : UNIT_TYPES[0];
 
   function editLog(l) {
-    setEditingId(l.id); setUnitId(l.unitId); setDate(l.date); setMortality(String(l.mortality || 0)); setFeedQty(String(l.feedQuantity ?? l.feedKg ?? '')); setFeedItemId(l.feedItemId || feedItems[0]?.id || ''); setNotes(l.notes || '');
-    if (l.grades) { setLarge(String(l.grades.large || 0)); setMedium(String(l.grades.medium || 0)); setSmall(String(l.grades.small || 0)); setBroken(String(l.loss || 0)); } else { setQty(String(l.produced || 0)); setLoss(String(l.loss || 0)); }
+    setEditingId(l.id);
+    setUnitId(l.unitId);
+    setDate(l.date);
+    setMortality(String(l.mortality || 0));
+    setFeedQty(String(l.feedQuantity ?? l.feedKg ?? ''));
+    setFeedItemId(l.feedItemId || feedItems[0]?.id || '');
+    setNotes(l.notes || '');
+    if (l.grades) {
+      setLarge(String(l.grades.large || 0));
+      setMedium(String(l.grades.medium || 0));
+      setSmall(String(l.grades.small || 0));
+      setBroken(String(l.loss || 0));
+    } else {
+      setQty(String(l.produced || 0));
+      setLoss(String(l.loss || 0));
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function reset() {
-    setLarge(''); setMedium(''); setSmall(''); setBroken(''); setQty(''); setLoss(''); setFeedQty(''); setFeedItemId(feedItems[0]?.id || ''); setMortality(''); setNotes(''); setEditingId(null);
+    setLarge('');
+    setMedium('');
+    setSmall('');
+    setBroken('');
+    setQty('');
+    setLoss('');
+    setFeedQty('');
+    setFeedItemId(feedItems[0]?.id || '');
+    setMortality('');
+    setNotes('');
+    setEditingId(null);
   }
 
   function submit(ev) {
@@ -76,6 +108,9 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
       loss: t.hasGrades ? (Number(broken) || 0) : (Number(loss) || 0),
       feedKg: Number(feedQty) || 0,
       feedQuantity: Number(feedQty) || 0,
+      // Only link to a real inventory item if feed was actually logged —
+      // otherwise saving with a leftover feedItemId selection but no
+      // quantity would try to record a zero-quantity consumption.
       feedItemId: Number(feedQty) > 0 ? feedItemId : null,
       mortality: Number(mortality) || 0,
       notes: notes.trim(),
@@ -167,7 +202,18 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Anything worth remembering about today" className={inputClass} style={inputStyle} />
         </div>
 
-        <div className="flex gap-2 flex-wrap"><button type="submit" className="btn-primary rounded-xl px-5 py-2.5 text-sm flex items-center gap-2"><Save size={15}/>{editingId ? 'Save changes' : 'Save log entry'}</button>{editingId && <button type="button" onClick={reset} className="btn-ghost rounded-xl px-4 py-2.5 text-sm flex items-center gap-2"><X size={15}/>Cancel</button>}</div>
+        <div className="flex gap-2 flex-wrap">
+          <button type="submit" className="btn-primary rounded-xl px-5 py-2.5 text-sm flex items-center gap-2">
+            <Save size={15} />
+            {editingId ? 'Save changes' : 'Save log entry'}
+          </button>
+          {editingId && (
+            <button type="button" onClick={reset} className="btn-ghost rounded-xl px-4 py-2.5 text-sm flex items-center gap-2">
+              <X size={15} />
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
 
       {recent.length > 0 && (
@@ -185,9 +231,14 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
                     {l.mortality > 0 ? `${l.mortality} lost` : '—'}
                   </td>
                   <td className="px-5 py-2.5 text-right">
-                    <div className="flex justify-end gap-1"><button onClick={() => editLog(l)} className="p-1 rounded hover:bg-black/5" aria-label="Edit entry"><Pencil size={14}/></button><button onClick={() => onRemove(l.id)} className="p-1 rounded hover:bg-black/5" aria-label="Delete entry">
-                      <Trash2 size={14} style={{ color: 'var(--ink-soft)' }} />
-                    </button></div>
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => editLog(l)} className="p-1 rounded hover:bg-black/5" aria-label="Edit entry">
+                        <Pencil size={14} />
+                      </button>
+                      <button onClick={() => onRemove(l.id)} className="p-1 rounded hover:bg-black/5" aria-label="Delete entry">
+                        <Trash2 size={14} style={{ color: 'var(--ink-soft)' }} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

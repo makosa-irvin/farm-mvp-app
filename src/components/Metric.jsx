@@ -1,3 +1,4 @@
+// A single labeled number/value pair, used in the Analytics per-unit cards.
 export default function Metric({ label, value, accent }) {
   return (
     <div>

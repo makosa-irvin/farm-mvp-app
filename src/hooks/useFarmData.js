@@ -61,6 +61,12 @@ export function useFarmData(showToast) {
     ...logActions,
     ...expenseActions,
     ...inventoryActions,
+    // Two names for the same thing: InventoryView and App.jsx's props to it
+    // use "Move" (moves/addMove/...), while Dashboard and AnalyticsView use
+    // "Transaction" (inventoryTransactions). Both are kept rather than
+    // picking one, since renaming would mean touching every call site for
+    // a cosmetic difference — worth normalizing to one name if this grows
+    // further, but not urgent.
     addInventoryMove: inventoryActions.addInventoryTransaction,
     updateInventoryMove: inventoryActions.updateInventoryTransaction,
     removeInventoryMove: inventoryActions.removeInventoryTransaction,

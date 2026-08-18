@@ -1,3 +1,5 @@
+// Centered placeholder shown when a view has nothing to display yet (no
+// units, no inventory items, etc.), with an optional call-to-action button.
 export default function EmptyState({ icon: Icon, title, body, actionLabel, onAction }) {
   return (
     <div className="text-center py-16 px-6 rounded-2xl" style={{ background: 'var(--surface-alt)', border: '1.5px dashed var(--line)' }}>
