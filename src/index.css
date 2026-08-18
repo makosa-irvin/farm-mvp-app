@@ -52,19 +52,31 @@ button[class*="hover:bg-black/5"] {
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
-  /* Prevent mobile forms from becoming dense two-column desktop forms. */
-  .mobile-stack-form {
+  /* Stack form fields rather than squeezing desktop grids onto a phone. */
+  .farm-app form .grid-cols-2,
+  .farm-app form .grid-cols-3 {
     grid-template-columns: 1fr !important;
   }
 
-  /* Keep tables usable without shrinking text below readable sizes. */
-  .ledger-table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .farm-app input,
+  .farm-app select,
+  .farm-app textarea {
+    min-height: 44px;
+    font-size: 16px;
   }
 
-  .ledger-table {
+  .farm-app form .btn-primary,
+  .farm-app form .btn-ghost {
+    min-height: 44px;
+  }
+
+  .farm-app table.ledger-table {
     min-width: 620px;
+  }
+
+  .farm-app main {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 
