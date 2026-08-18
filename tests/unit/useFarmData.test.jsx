@@ -187,3 +187,66 @@ describe('useFarmData — manual inventory ledger and unit cascade', () => {
     expect(result.current.expenses.find((e) => e.id === 'e2').unitId).toBeNull();
   });
 });
+
+// Regression coverage for a confirmed bug: wastage/loss/downward-adjustment
+// inventory transactions auto-create a matching "non-cash" expense record
+// (see buildInventoryCostExpense in inventoryActions.js) so the cost is
+// visible in Expenses. That synthetic record used to be editable/deletable
+// through the normal expense actions, which only understand the opposite
+// direction of link (an expense that creates a purchase). Deleting one
+// orphaned the real inventory transaction (the cost kept counting,
+// invisibly); editing one fabricated a fake purchase transaction that
+// silently canceled out the real loss in the inventory ledger. Both were
+// proven with this exact scenario before the fix landed.
+describe('synthetic (non-cash) expense records — must not be editable via expense actions', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  function setupFarmWithWastage(toasts) {
+    const confirm = async () => true;
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+    act(() => {
+      result.current.addUnit({ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 });
+      result.current.addInventoryItem({ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 100, reorderLevel: 20, unitCost: 50 });
+    });
+    act(() => {
+      result.current.addInventoryMove({ id: 'txn1', itemId: 'i1', transactionType: 'wastage', direction: 'out', quantity: 10, unit: 'kg', unitCost: 50, date: '2026-08-10', unitId: 'u1', note: '' });
+    });
+    return result;
+  }
+
+  it('removeExpense() refuses a synthetic record and leaves the real inventory transaction untouched', async () => {
+    const toasts = [];
+    const result = setupFarmWithWastage(toasts);
+    const synthetic = result.current.expenses.find((e) => e.inventoryTransactionId === 'txn1');
+    expect(synthetic).toBeTruthy();
+
+    await act(async () => { await result.current.removeExpense(synthetic.id); });
+
+    expect(result.current.expenses.some((e) => e.id === synthetic.id)).toBe(true); // refused, not removed
+    expect(result.current.inventoryTransactions.some((t) => t.id === 'txn1')).toBe(true); // never at risk
+    expect(toasts.some((t) => t.includes('Stock instead'))).toBe(true);
+  });
+
+  it('updateExpense() refuses a synthetic record and never fabricates a phantom purchase transaction', async () => {
+    const toasts = [];
+    const result = setupFarmWithWastage(toasts);
+    const synthetic = result.current.expenses.find((e) => e.inventoryTransactionId === 'txn1');
+
+    act(() => { result.current.updateExpense({ ...synthetic, description: 'edited note' }); });
+
+    expect(result.current.inventoryTransactions.find((t) => t.transactionType === 'purchase')).toBeUndefined();
+    expect(result.current.expenses.find((e) => e.id === synthetic.id).description).not.toBe('edited note');
+  });
+
+  it('a real expense is completely unaffected by the guard', async () => {
+    const toasts = [];
+    const result = setupFarmWithWastage(toasts);
+    act(() => {
+      result.current.addExpense({ id: 'e1', category: 'labor', amount: 200, date: '2026-08-11', unitId: 'u1', description: '', inventoryItemId: null, inventoryQuantity: null });
+    });
+    await act(async () => { await result.current.removeExpense('e1'); });
+    expect(result.current.expenses.some((e) => e.id === 'e1')).toBe(false); // real removal still works
+  });
+});

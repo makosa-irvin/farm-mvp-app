@@ -69,6 +69,7 @@ export function useFarmData(showToast, confirm) {
     confirm,
   });
   const expenseActions = createExpenseActions({
+    expenses,
     inventory,
     transactions,
     setExpenses,
