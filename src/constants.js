@@ -3,12 +3,7 @@ import {
   Egg, Droplets, Wheat, Package,
 } from 'lucide-react';
 
-// The kinds of production a production group (flock, herd, plot) can track.
-// - groupSize/groupLabel: the natural "selling unit" for cost display,
-//   e.g. eggs are sold by the tray, so costPerUnit * 30 = cost per tray.
-// - hasGrades: eggs are logged by size grade (large/medium/small); other
-//   types just log a single quantity. See DailyLogView for where this
-//   branches the form.
+// The kinds of farm groups (flocks, herds, plots) the farmer manages.
 export const UNIT_TYPES = [
   { value: 'eggs', label: 'Layer flock (eggs)', unitLabel: 'eggs', groupSize: 30, groupLabel: 'tray', hasGrades: true, icon: Egg },
   { value: 'milk', label: 'Dairy herd (milk)', unitLabel: 'liters', groupSize: 1, groupLabel: 'liter', hasGrades: false, icon: Droplets },
@@ -39,14 +34,14 @@ export const PAYMENT_METHODS = [
   { value: 'credit', label: 'On credit' },
 ];
 
-// "Farm group" is the user-facing name for the groups being managed —
-// for example, a layer flock, dairy herd, or crop plot. The stored value
-// remains "units" so existing data and business logic are unchanged.
+// "Farm groups" is the user-facing name for the animals, flocks, herds,
+// plots, or other productive groups being managed. The stored value remains
+// "units" so existing data and business logic are not migrated.
 export const TABS = [
   { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { value: 'log', label: 'Daily log', icon: ClipboardList },
   { value: 'expenses', label: 'Expenses', icon: Receipt },
   { value: 'inventory', label: 'Stock', icon: Boxes },
-  { value: 'units', label: 'Farm Group', icon: Tag },
+  { value: 'units', label: 'Groups', icon: Tag },
   { value: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
