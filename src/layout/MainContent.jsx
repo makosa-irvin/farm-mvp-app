@@ -12,7 +12,7 @@ import FarmAlerts from '../components/FarmAlerts.jsx';
 
 export default function MainContent({ tab, farm, setTab }) {
   return (
-    <main className="px-5 pt-6 max-w-3xl mx-auto">
+    <main id="main-content" tabIndex="-1" className="px-5 pt-6 max-w-3xl mx-auto">
       {tab === 'dashboard' && <div className="space-y-5"><FarmAlerts units={farm.units} logs={farm.logs} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} goTo={setTab} /><Dashboard {...farm} goTo={setTab} /></div>}
       {tab === 'log' && <DailyLogView units={farm.units} logs={farm.logs} inventory={farm.inventory} getBalance={farm.getBalance} onAdd={farm.addLog} onUpdate={farm.updateLog} onRemove={farm.removeLog} goTo={setTab} />}
       {tab === 'expenses' && <ExpensesView units={farm.units} inventory={farm.inventory} expenses={farm.expenses} onAdd={farm.addExpense} onUpdate={farm.updateExpense} onRemove={farm.removeExpense} />}
