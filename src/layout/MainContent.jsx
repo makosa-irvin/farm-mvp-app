@@ -6,6 +6,7 @@ import AnalyticsView from '../views/AnalyticsView.jsx';
 import InventoryView from '../views/InventoryView.jsx';
 import SettingsView from '../views/SettingsView.jsx';
 import SuppliersView from '../views/SuppliersView.jsx';
+import ReportsView from '../views/ReportsView.jsx';
 import FarmAlerts from '../components/FarmAlerts.jsx';
 
 export default function MainContent({ tab, farm, setTab }) {
@@ -18,6 +19,7 @@ export default function MainContent({ tab, farm, setTab }) {
       {tab === 'units' && <UnitsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventoryMoves={farm.inventoryMoves} onAdd={farm.addUnit} onUpdate={farm.updateUnit} onRemove={farm.removeUnit} onNavigateToAnalytics={() => setTab('analytics')} />}
       {tab === 'suppliers' && <SuppliersView expenses={farm.expenses} />}
       {tab === 'analytics' && <AnalyticsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} />}
+      {tab === 'reports' && <ReportsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} />}
       {tab === 'settings' && <SettingsView exportData={farm.exportData} importData={farm.importData} />}
     </main>
   );
