@@ -16,11 +16,15 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
-  function showToast(msg) {
-    setToast(msg);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
+  const showToast = (message) => {
+    setToast(message);
+
+    if (toastTimer.current) {
+      clearTimeout(toastTimer.current);
+    }
+
     toastTimer.current = setTimeout(() => setToast(null), 3800);
-  }
+  };
 
   const farm = useFarmData(showToast);
 

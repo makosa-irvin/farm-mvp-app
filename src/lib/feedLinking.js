@@ -1,8 +1,7 @@
-// Cross-domain linking between daily logs and the inventory ledger: logging
-// feed consumption creates a matching `consumption` transaction, with a
-// deterministic id tied to the log entry so it can always be found again
-// on edit or delete. Pure functions — the hook calls setState with the
-// results.
+// Daily-log feed usage is represented in the inventory ledger as a linked
+// consumption transaction. These pure functions calculate the transaction
+// state; the React action layer is responsible for persisting it and showing
+// validation feedback.
 
 import { getBalance, getWeightedAverageCost } from './inventoryLedger.js';
 
@@ -10,8 +9,8 @@ export function feedTransactionId(logId) {
   return `logfeed_${logId}`;
 }
 
-// The transaction a given log entry SHOULD have, or null if it doesn't log
-// any feed consumption.
+// Build the ledger entry represented by a daily log, or null when the log
+// does not record feed consumption.
 export function buildFeedTransaction(log, units, previousLog = null) {
   const qty = Number(log.feedQuantity ?? log.feedKg);
   if (!log.feedItemId || !qty) return null;
@@ -30,9 +29,6 @@ export function buildFeedTransaction(log, units, previousLog = null) {
   };
 }
 
-// Whether saving this log would try to consume more feed than is
-// available. Doesn't touch state or show anything — just answers the
-// question, in the same shape checkOutgoing() in inventoryLedger.js uses.
 export function checkFeedAvailability(log, units, inventory, transactions) {
   const qty = Number(log.feedQuantity ?? log.feedKg);
   if (!log.feedItemId || !qty) return { ok: true };
@@ -46,9 +42,8 @@ export function checkFeedAvailability(log, units, inventory, transactions) {
   return { ok: true };
 }
 
-// Computes the transactions array that should result from saving this log
-// entry. Doesn't call setState itself — the caller does that with the
-// result, which keeps this function pure and testable with plain arrays.
+// Rebuild the linked transaction when a log is added or edited. Removing the
+// old linked entry first prevents an edit from double-counting consumption.
 export function syncedTransactionsForLog(log, units, inventory, transactions, previousLog = null) {
   const withoutCurrent = transactions.filter((t) => !(t.source === 'daily-log' && t.sourceId === log.id));
   const movement = buildFeedTransaction(log, units, previousLog);
@@ -56,7 +51,7 @@ export function syncedTransactionsForLog(log, units, inventory, transactions, pr
   const item = inventory.find((i) => i.id === movement.itemId);
   if (!item) return withoutCurrent;
   const available = getBalance(inventory, withoutCurrent, movement.itemId);
-  if (movement.quantity > available) return transactions; // keep old transaction if this would over-consume
+  if (movement.quantity > available) return transactions;
   const cost = getWeightedAverageCost(inventory, withoutCurrent, movement.itemId);
   return [...withoutCurrent, { ...movement, unit: item.unit, unitCost: cost, type: 'out' }];
 }

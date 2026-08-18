@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './styles/components/buttons.css';
+@import './styles/components/ledger-table.css';
+
 .farm-app {
   --bg: #f3f5ee;
   --surface: #ffffff;
@@ -17,87 +20,20 @@
   --rust-tint: #f3e1db;
   --line: #dee2d3;
 
-  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
   color: var(--ink);
   background: var(--bg);
-  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
 }
 
 .font-display {
   font-family: 'Fraunces', serif;
   font-optical-sizing: auto;
 }
+
 .font-mono {
   font-family: 'IBM Plex Mono', monospace;
   letter-spacing: -0.01em;
-}
-
-.tag-chip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px 8px 22px;
-  border-radius: 999px;
-  border: 1.5px solid var(--line);
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--ink);
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-.tag-chip::before {
-  content: '';
-  position: absolute;
-  left: 9px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--bg);
-  border: 1.5px solid var(--line);
-}
-.tag-chip.active {
-  background: var(--forest);
-  border-color: var(--forest);
-  color: #fff;
-}
-.tag-chip.active::before {
-  background: var(--forest);
-  border-color: rgba(255, 255, 255, 0.65);
-}
-.tag-chip.muted {
-  opacity: 0.55;
-}
-.tag-chip:hover:not(.active) {
-  border-color: var(--forest);
-}
-
-.btn-primary {
-  background: var(--forest);
-  color: #fff;
-  font-weight: 600;
-  transition: background 0.15s ease;
-}
-.btn-primary:hover {
-  background: var(--forest-dark);
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-ghost {
-  background: transparent;
-  border: 1.5px solid var(--line);
-  color: var(--ink);
-  font-weight: 500;
-  transition: border-color 0.15s ease;
-}
-.btn-ghost:hover {
-  border-color: var(--forest);
 }
 
 input,
@@ -105,6 +41,7 @@ select,
 textarea {
   font-family: 'Inter', sans-serif;
 }
+
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
@@ -112,14 +49,11 @@ button:focus-visible {
   outline: 2px solid var(--forest);
   outline-offset: 1px;
 }
+
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--forest) !important;
-}
-
-.ledger-table tr:not(:last-child) td {
-  border-bottom: 1px solid var(--line);
 }
 
 @media (prefers-reduced-motion: reduce) {

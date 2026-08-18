@@ -6,9 +6,8 @@ import { fmtNum } from '../helpers.js';
 import { syncedTransactionsForExpense, balanceIfExpensePurchaseRemoved } from '../expenseLinking.js';
 
 export function createExpenseActions({ inventory, transactions, setExpenses, setInventoryTransactions, showToast }) {
-  // Recomputes (or clears) this expense's linked purchase transaction to
-  // match its current inventoryItemId/inventoryQuantity. Called on every
-  // add and edit, so the ledger never drifts out of sync with the expense.
+  // Expense-linked purchases must be synchronized before an edit is saved.
+  // A failed synchronization leaves both the expense and ledger unchanged.
   const syncExpensePurchaseTransaction = (expense) => {
     const result = syncedTransactionsForExpense(expense, inventory, transactions);
     if (result === null) {
@@ -22,7 +21,7 @@ export function createExpenseActions({ inventory, transactions, setExpenses, set
 
   const addExpense = (expense) => {
     setExpenses((prev) => [...prev, expense]);
-    syncExpensePurchaseTransaction(expense); // can't fail on a fresh add — it only ever adds supply
+    syncExpensePurchaseTransaction(expense);
     showToast(`${expense.amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' })} expense logged.`);
     return true;
   };
