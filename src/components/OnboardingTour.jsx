@@ -38,25 +38,33 @@ export default function OnboardingTour({ farm, onNavigate, onReset }) {
     if (!open || !steps[step].target) return undefined;
     const target = document.querySelector(`[data-tour="${steps[step].target}"]`);
     if (!target) return undefined;
+    const previous = { boxShadow: target.style.boxShadow, position: target.style.position, zIndex: target.style.zIndex };
     target.classList.add('mazao-tour-target');
+    target.style.boxShadow = '0 0 0 3px var(--forest), 0 0 0 7px color-mix(in srgb, var(--forest) 18%, transparent)';
+    target.style.position = 'relative';
+    target.style.zIndex = '110';
     target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
     const onClick = () => {
       if (steps[step].mode !== 'tap') return;
       window.setTimeout(() => {
         const nextStep = step + 1;
-        if (nextStep < steps.length) {
-          setStep(nextStep);
-          onNavigate(steps[nextStep].tab);
-        }
+        if (nextStep < steps.length) { setStep(nextStep); onNavigate(steps[nextStep].tab); }
       }, 120);
     };
     target.addEventListener('click', onClick);
-    return () => { target.classList.remove('mazao-tour-target'); target.removeEventListener('click', onClick); };
+    return () => {
+      target.classList.remove('mazao-tour-target');
+      target.style.boxShadow = previous.boxShadow;
+      target.style.position = previous.position;
+      target.style.zIndex = previous.zIndex;
+      target.removeEventListener('click', onClick);
+    };
   }, [open, step, onNavigate]);
 
   if (!open) return null;
   const current = steps[step];
   const Icon = current.icon;
+  const menuStep = current.target?.startsWith('more-');
 
   function finish(completed = false) {
     onReset();
@@ -81,21 +89,14 @@ export default function OnboardingTour({ farm, onNavigate, onReset }) {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4.7rem+env(safe-area-inset-bottom))] z-[100] px-2 sm:bottom-4 sm:px-4" role="dialog" aria-modal="false" aria-labelledby="mazao-onboarding-title">
+    <div className={`fixed inset-x-0 z-[100] px-2 sm:px-4 ${menuStep ? 'top-20 sm:top-auto sm:bottom-4' : 'bottom-[calc(4.7rem+env(safe-area-inset-bottom))] sm:bottom-4'}`} role="dialog" aria-modal="false" aria-labelledby="mazao-onboarding-title">
       <section className="mx-auto w-full max-w-2xl rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-[0_-8px_35px_rgba(0,0,0,0.14)]" style={{ background: 'var(--surface)', color: 'var(--ink)', border: '1px solid var(--line)' }}>
         <div className="flex items-start gap-2.5">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--forest-tint)', color: 'var(--forest)' }}><Icon size={18} /></div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2"><div className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--forest)' }}>Getting started · {step + 1}/{steps.length}</div><button type="button" onClick={() => finish(false)} className="p-1 rounded-lg shrink-0" aria-label="Close tutorial"><X size={17} /></button></div>
-            <h2 id="mazao-onboarding-title" className="font-display text-base sm:text-xl font-semibold leading-tight mt-0.5">{current.title}</h2>
-            <p className="text-[11px] sm:text-sm leading-4 sm:leading-5 mt-1" style={{ color: 'var(--ink-soft)' }}>{current.body}</p>
-          </div>
+          <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><div className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--forest)' }}>Getting started · {step + 1}/{steps.length}</div><button type="button" onClick={() => finish(false)} className="p-1 rounded-lg shrink-0" aria-label="Close tutorial"><X size={17} /></button></div><h2 id="mazao-onboarding-title" className="font-display text-base sm:text-xl font-semibold leading-tight mt-0.5">{current.title}</h2><p className="text-[11px] sm:text-sm leading-4 sm:leading-5 mt-1" style={{ color: 'var(--ink-soft)' }}>{current.body}</p></div>
         </div>
         {examplesReady && step >= 6 && step <= 10 && <div className="mt-2.5 flex gap-1.5 overflow-x-auto" aria-label="Example data loaded">{['50 layers', '30 trays', 'KSh 5,250 costs', '50 kg stock'].map((item) => <span key={item} className="text-[9px] sm:text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: 'var(--forest-tint)', color: 'var(--forest)' }}>{item}</span>)}</div>}
-        <div className="flex items-center justify-between gap-2 mt-2.5">
-          <button type="button" onClick={() => finish(false)} className="text-[11px] sm:text-sm px-1 py-2" style={{ color: 'var(--ink-soft)' }}>Skip</button>
-          <div className="flex items-center gap-1.5">{step > 0 && <button type="button" onClick={back} className="btn-ghost rounded-xl px-2.5 py-2 text-[11px] sm:text-sm inline-flex items-center gap-1"><ArrowLeft size={14} /> Back</button>}<button type="button" onClick={next} disabled={current.mode === 'tap'} className="btn-primary rounded-xl px-3.5 py-2 text-[11px] sm:text-sm inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-default">{current.mode === 'tap' ? current.targetLabel : current.mode === 'finish' ? current.targetLabel : step === 0 ? 'Start the tour' : 'Next'}{current.mode !== 'finish' && <ArrowRight size={14} />}</button></div>
-        </div>
+        <div className="flex items-center justify-between gap-2 mt-2.5"><button type="button" onClick={() => finish(false)} className="text-[11px] sm:text-sm px-1 py-2" style={{ color: 'var(--ink-soft)' }}>Skip</button><div className="flex items-center gap-1.5">{step > 0 && <button type="button" onClick={back} className="btn-ghost rounded-xl px-2.5 py-2 text-[11px] sm:text-sm inline-flex items-center gap-1"><ArrowLeft size={14} /> Back</button>}<button type="button" onClick={next} disabled={current.mode === 'tap'} className="btn-primary rounded-xl px-3.5 py-2 text-[11px] sm:text-sm inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-default">{current.mode === 'tap' ? current.targetLabel : current.mode === 'finish' ? current.targetLabel : step === 0 ? 'Start the tour' : 'Next'}{current.mode !== 'finish' && <ArrowRight size={14} />}</button></div></div>
       </section>
     </div>
   );
