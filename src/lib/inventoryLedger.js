@@ -46,9 +46,6 @@ export function getWeightedAverageCost(inventory, transactions, itemId) {
   return qty > 0 ? value / qty : Number(item.unitCost) || 0;
 }
 
-// Consumption, wastage, and downward adjustments represent inventory costs.
-// Transfers are internal movements and sales require revenue/COGS treatment,
-// so neither should be classified as operating expenses here.
 export const isInventoryCostDeduction = (transaction) =>
   ['consumption', 'wastage', 'adjustment_out'].includes(transaction?.transactionType) &&
   (transaction?.direction || transaction?.type) === 'out';
@@ -56,10 +53,12 @@ export const isInventoryCostDeduction = (transaction) =>
 export const inventoryTransactionCost = (transaction) =>
   (Number(transaction?.quantity) || 0) * (Number(transaction?.unitCost) || 0);
 
-// Normalize manual input so saved transactions share the same direction,
-// quantity, unit, and unit-cost rules as automatically generated entries.
+// itemSnapshot is used only by the spreadsheet importer. It lets an import
+// create an item and its ledger movements in one pass even though React state
+// updates are asynchronous. Normal/manual transactions still resolve the item
+// from the persisted inventory array.
 export function normalizeTransaction(input, { inventory, expenses, transactions }) {
-  const item = inventory.find((i) => i.id === input.itemId);
+  const item = inventory.find((i) => i.id === input.itemId) || input.itemSnapshot;
   if (!item) return null;
   const transactionType = input.transactionType || (input.type === 'in' ? 'purchase' : 'consumption');
   let direction = directionFor(transactionType);
@@ -78,11 +77,10 @@ export function normalizeTransaction(input, { inventory, expenses, transactions 
 
   const expense = input.expenseId ? expenses.find((e) => e.id === input.expenseId) : null;
   const purchaseCost = transactionType === 'purchase' ? getExpenseUnitCost(expense) : null;
-  const unitCost =
-    purchaseCost ??
-    (Number(
-      input.unitCost ?? (direction === 'out' ? getWeightedAverageCost(inventory, transactions, input.itemId) : item.unitCost)
-    ) || 0);
+  const fallbackCost = direction === 'out'
+    ? getWeightedAverageCost(inventory, transactions, input.itemId)
+    : item.unitCost;
+  const unitCost = Number(purchaseCost ?? input.unitCost ?? fallbackCost) || 0;
 
   return {
     ...input,
