@@ -61,6 +61,16 @@ export function useFarmData(showToast, confirm) {
     }
   };
 
+  // Tutorial records are explicitly marked so onboarding can never remove a
+  // farmer's real records. This is intentionally separate from normal CRUD.
+  const resetTutorialData = () => {
+    setUnits((prev) => prev.filter((unit) => !unit.tutorial));
+    setLogs((prev) => prev.filter((log) => !log.tutorial));
+    setExpenses((prev) => prev.filter((expense) => !expense.tutorial));
+    setInventory((prev) => prev.filter((item) => !item.tutorial));
+    setInventoryTransactions((prev) => prev.filter((transaction) => !transaction.tutorial));
+  };
+
   return {
     units, logs, expenses, inventory,
     inventoryMoves: transactions,
@@ -77,5 +87,6 @@ export function useFarmData(showToast, confirm) {
     transactionTypes: INVENTORY_TRANSACTION_TYPES,
     exportData,
     importData,
+    resetTutorialData,
   };
 }
