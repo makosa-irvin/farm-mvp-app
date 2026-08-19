@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardList, Sprout, Wallet, WifiOff, X } from 'lucide-react';
-import { todayISO, uid } from '../lib/helpers.js';
+import { todayISO } from '../lib/helpers.js';
 
 const STORAGE_KEY = 'mazao-onboarding-completed';
 const TUTORIAL_UNIT_ID = 'tutorial_unit_mazao';
@@ -11,10 +11,21 @@ const TUTORIAL_LOG_ID = 'tutorial_log_mazao';
  * It uses the real app navigation and a clearly marked temporary example
  * record instead of screenshots or a remote tutorial service.
  */
-export default function OnboardingTour({ farm, activeTab, onNavigate, onReset }) {
+export default function OnboardingTour({ farm, onNavigate, onReset }) {
   const [open, setOpen] = useState(() => localStorage.getItem(STORAGE_KEY) !== 'true');
   const [step, setStep] = useState(0);
   const [exampleAdded, setExampleAdded] = useState(() => Boolean(farm.units.some((unit) => unit.tutorial)));
+
+  useEffect(() => {
+    const showTour = () => {
+      setStep(0);
+      setExampleAdded(false);
+      setOpen(true);
+      onNavigate('dashboard');
+    };
+    window.addEventListener('mazao-show-onboarding', showTour);
+    return () => window.removeEventListener('mazao-show-onboarding', showTour);
+  }, [onNavigate]);
 
   useEffect(() => {
     if (farm.units.some((unit) => unit.tutorial)) setExampleAdded(true);
