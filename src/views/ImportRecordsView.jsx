@@ -23,6 +23,7 @@ const HEADER_ALIASES = {
   amount: ['amount', 'total', 'total_amount', 'total amount', 'expense', 'expense_amount', 'expense amount', 'money', 'value'],
   supplier: ['supplier', 'vendor', 'seller', 'bought_from', 'bought from'],
   payment_method: ['payment_method', 'payment method', 'paid_by', 'paid by', 'payment'],
+  movement_type: ['movement_type', 'movement type', 'stock_movement', 'stock movement', 'transaction_type', 'transaction type', 'movement'],
   loss: ['loss', 'lost', 'losses', 'wastage', 'waste'],
   mortality: ['mortality', 'deaths', 'dead', 'birds_lost', 'birds lost'],
   notes: ['notes', 'note', 'remarks', 'comment', 'comments'],
@@ -77,6 +78,7 @@ function inferRecordType(row) {
     if (['expense', 'expenses', 'cost', 'spending'].includes(value)) return 'expense';
     if (['log', 'daily_log', 'dailylog', 'production', 'activity'].includes(value)) return 'log';
   }
+  if (row.movement_type) return 'inventory';
   if (row.loss || row.mortality || row.produced || row.production || row.production_quantity) return 'log';
   if (row.supplier || row.payment_method || row.expense_amount || row.expense) return 'expense';
   if (row.opening_stock || row.unit_cost || row.cost_per_unit) return 'inventory';
@@ -92,6 +94,20 @@ const numberValue = (value) => {
 
 const textValue = (row, keys) => String(firstValue(row, keys)).trim();
 
+function normalizeMovementType(value) {
+  const normalized = String(value || '').trim().toLowerCase().replace(/[- ]+/g, '_');
+  const aliases = {
+    bought: 'purchase', buy: 'purchase', purchased: 'purchase', purchase: 'purchase', in: 'purchase', stock_in: 'purchase',
+    used: 'consumption', use: 'consumption', consumed: 'consumption', consumption: 'consumption', out: 'consumption', stock_out: 'consumption',
+    lost: 'wastage', waste: 'wastage', spoiled: 'wastage', spoilage: 'wastage', wastage: 'wastage',
+    returned: 'return', return: 'return', found: 'adjustment_in', found_extra: 'adjustment_in',
+    missing: 'adjustment_out', correction_out: 'adjustment_out', correction_in: 'adjustment_in',
+    counted: 'stock_count', stock_count: 'stock_count', count: 'stock_count',
+    sold: 'sale', sale: 'sale', transferred: 'transfer', transfer: 'transfer',
+  };
+  return aliases[normalized] || '';
+}
+
 function normalizeImportedRow(row) {
   return {
     ...row,
@@ -106,6 +122,7 @@ function normalizeImportedRow(row) {
     amount: numberValue(firstValue(row, ['amount', 'total_amount', 'total', 'expense', 'expense_amount', 'money', 'value'])),
     supplier: textValue(row, ['supplier', 'vendor', 'seller', 'bought_from']),
     payment_method: textValue(row, ['payment_method', 'paid_by', 'payment']),
+    movement_type: normalizeMovementType(firstValue(row, ['movement_type', 'transaction_type', 'stock_movement', 'movement'])),
     loss: numberValue(firstValue(row, ['loss', 'lost', 'losses', 'wastage', 'waste'])),
     mortality: numberValue(firstValue(row, ['mortality', 'deaths', 'dead', 'birds_lost'])),
     notes: textValue(row, ['notes', 'note', 'remarks', 'comment', 'comments']),
@@ -158,6 +175,7 @@ export default function ImportRecordsView({ farm, onBack }) {
 
   function importCsv() {
     const unitsByName = new Map(farm.units.map((u) => [u.name.trim().toLowerCase(), u]));
+    const inventoryByName = new Map(farm.inventory.map((item) => [item.name.trim().toLowerCase(), item]));
     let imported = 0;
     let skipped = 0;
     for (const row of csvRows) {
@@ -169,8 +187,29 @@ export default function ImportRecordsView({ farm, onBack }) {
         const unit = { id: makeId('unit'), name, type: 'other', initialCount: row.quantity, producePrice: 0, startDate: date, createdAt: Date.now() };
         farm.addUnit(unit); unitsByName.set(name.toLowerCase(), unit); imported += 1;
       } else if (recordType === 'inventory') {
-        if (!row.name) { skipped += 1; continue; }
-        farm.addInventoryItem({ id: makeId('item'), name: row.name, category: row.category, unit: row.unit, openingStock: row.quantity, openingDate: date, reorderLevel: 0, unitCost: row.unit_cost, supplier: row.supplier || null, createdAt: Date.now() });
+        if (!row.name || row.quantity <= 0) { skipped += 1; continue; }
+        let item = inventoryByName.get(row.name.toLowerCase());
+        if (!item) {
+          item = { id: makeId('item'), name: row.name, category: row.category, unit: row.unit, openingStock: row.movement_type ? 0 : row.quantity, openingDate: row.movement_type ? null : date, reorderLevel: 0, unitCost: row.unit_cost, supplier: row.supplier || null, createdAt: Date.now() };
+          const savedItem = farm.addInventoryItem(item);
+          item = savedItem || item;
+          inventoryByName.set(row.name.toLowerCase(), item);
+        }
+        if (row.movement_type) {
+          const saved = farm.addInventoryMove({
+            id: makeId('import_txn'),
+            itemId: item.id,
+            transactionType: row.movement_type,
+            quantity: row.quantity,
+            unitCost: row.unit_cost || item.unitCost || 0,
+            date,
+            note: row.notes || 'Imported stock movement',
+            source: 'import',
+            sourceId: row._row,
+            unitId: row.farm_group ? unitsByName.get(row.farm_group.toLowerCase())?.id || null : null,
+          });
+          if (saved === false) { skipped += 1; continue; }
+        }
         imported += 1;
       } else if (recordType === 'expense') {
         if (!row.name || row.amount <= 0) { skipped += 1; continue; }
@@ -193,11 +232,12 @@ export default function ImportRecordsView({ farm, onBack }) {
   }
 
   function downloadTemplate() {
-    const content = 'record_type,date,farm_group,name,category,unit,quantity,unit_cost,amount,supplier,payment_method,loss,mortality,notes\n' +
-      'farm_group,2026-01-01,,Layer House A,,,,,,,,,,,\n' +
-      'stock,2026-01-01,Layer House A,Layer Mash,Feed,kg,50,75,,,,,,\n' +
-      'expense,2026-01-05,Layer House A,Feed purchase,feed,,50,75,3750,Local agrovet,mpesa,,,,\n' +
-      'log,2026-01-06,Layer House A,Daily production,,,30,,,,,,2,1,Example historical record';
+    const content = 'record_type,date,farm_group,name,category,unit,quantity,unit_cost,amount,supplier,payment_method,movement_type,loss,mortality,notes\n' +
+      'farm_group,2026-01-01,,Layer House A,Eggs,birds,50,,,,,,,\n' +
+      'stock,2026-01-01,Layer House A,Layer Mash,Feed,kg,50,75,,,,purchase,,,\n' +
+      'stock,2026-01-10,Layer House A,Layer Mash,Feed,kg,5,75,,,,consumption,,,Used for feeding\n' +
+      'expense,2026-01-05,Layer House A,Feed purchase,Feed,kg,50,75,3750,Local agrovet,mpesa,,,,\n' +
+      'log,2026-01-06,Layer House A,Daily production,Eggs,trays,30,,,,,,2,1,Example historical record';
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'mazaosmart-records-template.csv'; a.click(); URL.revokeObjectURL(url);
   }
