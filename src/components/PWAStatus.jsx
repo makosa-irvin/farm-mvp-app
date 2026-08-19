@@ -35,19 +35,11 @@ export default function PWAStatus({ lastSavedAt }) {
   const storageWarning = storage?.percent >= 80;
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2 text-xs" aria-label="App status">
-      <span title={`Field Ledger v${APP_VERSION}`}>v{APP_VERSION}</span>
+    <div className="flex flex-wrap items-center justify-end gap-2 text-xs" aria-label="Mazaosmart app status">
+      <span title={`Mazaosmart v${APP_VERSION}`}>v{APP_VERSION}</span>
       <span aria-label="Last saved">{formatSavedAt(lastSavedAt)}</span>
-      {storageWarning && (
-        <span className="inline-flex items-center gap-1 rounded-full px-2 py-1" style={{ background: 'var(--amber-tint)', color: 'var(--amber)' }}>
-          <HardDrive size={12} /> Storage {storage.percent}% full
-        </span>
-      )}
-      {updateAvailable && (
-        <button type="button" onClick={refresh} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium" style={{ background: 'var(--forest-tint)', color: 'var(--forest-dark)' }}>
-          <RefreshCw size={12} /> Update available
-        </button>
-      )}
+      {storageWarning && <span className="inline-flex items-center gap-1 rounded-full px-2 py-1" style={{ background: 'var(--amber-tint)', color: 'var(--amber)' }}><HardDrive size={12} /> Storage {storage.percent}% full</span>}
+      {updateAvailable && <button type="button" onClick={refresh} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium" style={{ background: 'var(--forest-tint)', color: 'var(--forest-dark)' }}><RefreshCw size={12} /> Update available</button>}
     </div>
   );
 }
