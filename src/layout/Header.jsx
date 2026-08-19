@@ -8,7 +8,7 @@ export default function Header({ tabs, activeTab, onSelectTab }) {
   return (
     <>
       <header className={`sticky top-0 z-20 px-5 pt-5 pb-3 ${styles.header}`}>
-        <div className="flex items-baseline justify-between gap-3"><div className="min-w-0"><div className={`font-display text-2xl font-bold leading-none ${styles.title}`}>Field Ledger</div><div className={`text-xs mt-1 truncate ${styles.subtitle}`}>Production &amp; input tracking</div></div><button onClick={() => window.location.reload()} className="btn-ghost hidden sm:flex rounded-xl px-3 py-2 text-sm items-center gap-2 shrink-0" title="Refresh the app. Saved records remain in this browser."><RefreshCw size={15} /> Refresh</button></div>
+        <div className="flex items-baseline justify-between gap-3"><div className="min-w-0"><div className={`font-display text-2xl font-bold leading-none ${styles.title}`}>Mazaosmart</div><div className={`text-xs mt-1 truncate ${styles.subtitle}`}>Smart farm records &amp; decisions</div></div><button onClick={() => window.location.reload()} className="btn-ghost hidden sm:flex rounded-xl px-3 py-2 text-sm items-center gap-2 shrink-0" title="Refresh the app. Saved records remain in this browser."><RefreshCw size={15} /> Refresh</button></div>
         <div className="mt-4 hidden sm:block"><NavTabs tabs={tabs} activeTab={activeTab} onSelect={onSelectTab} /></div>
       </header>
       <nav className={styles.mobileNav} aria-label="Primary navigation">

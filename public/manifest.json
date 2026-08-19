@@ -1,7 +1,7 @@
 {
-  "name": "Field Ledger — Farm Production & Stock Tracking",
-  "short_name": "Field Ledger",
-  "description": "Track what your farm produces, spends, and has in stock — works with no connection.",
+  "name": "Mazaosmart — Smart Farm Records & Decisions",
+  "short_name": "Mazaosmart",
+  "description": "Smart farm records and practical insights for better farm decisions, with offline support.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F3F5EE",
