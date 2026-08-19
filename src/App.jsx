@@ -14,16 +14,16 @@ import OnboardingTour from './components/OnboardingTour.jsx';
 export default function App() {
   const [tab, setTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
-  const [lastSavedAt, setLastSavedAt] = useState(() => localStorage.getItem('field-ledger-last-saved-at'));
+  const [lastSavedAt, setLastSavedAt] = useState(() => localStorage.getItem('mazaosmart-last-saved-at') || localStorage.getItem('field-ledger-last-saved-at'));
   const toastTimer = useRef(null);
   const showToast = (message) => { setToast(message); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 3800); };
   const { confirm, dialogProps } = useConfirmDialog();
   const farm = useFarmData(showToast, confirm);
 
   useEffect(() => {
-    const onSaved = () => setLastSavedAt(localStorage.getItem('field-ledger-last-saved-at'));
-    window.addEventListener('field-ledger-saved', onSaved);
-    return () => window.removeEventListener('field-ledger-saved', onSaved);
+    const onSaved = () => setLastSavedAt(localStorage.getItem('mazaosmart-last-saved-at'));
+    window.addEventListener('mazaosmart-saved', onSaved);
+    return () => window.removeEventListener('mazaosmart-saved', onSaved);
   }, []);
 
   return (
