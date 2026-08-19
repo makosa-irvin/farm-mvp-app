@@ -27,8 +27,39 @@ function buildInventoryCostExpense(record, item) {
 
 export function createInventoryActions({ inventory, transactions, expenses, setInventory, setInventoryTransactions, setExpenses, showToast, confirm }) {
   const addInventoryItem = (item) => {
-    setInventory((prev) => [...prev, item]);
-    showToast(`${item.name} added to inventory.`);
+    // Imported stock arrives with an openingDate. Store that opening quantity
+    // in the ledger as a dated purchase instead of leaving it only on the item.
+    // This makes historical stock visible in the movement history and keeps
+    // the balance calculation sourced from the same ledger used elsewhere.
+    const importedOpeningQuantity = Number(item.openingStock) || 0;
+    const hasImportedOpeningMovement = Boolean(item.openingDate) && importedOpeningQuantity > 0;
+    const savedItem = hasImportedOpeningMovement
+      ? { ...item, openingStock: 0 }
+      : item;
+
+    setInventory((prev) => [...prev, savedItem]);
+
+    if (hasImportedOpeningMovement) {
+      const movementId = `import_opening_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      setInventoryTransactions((prev) => [...prev, {
+        id: movementId,
+        itemId: savedItem.id,
+        transactionType: 'purchase',
+        direction: 'in',
+        type: 'in',
+        quantity: importedOpeningQuantity,
+        unit: savedItem.unit,
+        unitCost: Number(savedItem.unitCost) || 0,
+        date: savedItem.openingDate,
+        note: 'Imported opening stock',
+        source: 'import',
+        sourceId: savedItem.id,
+        createdAt: Date.now(),
+      }]);
+    }
+
+    showToast(`${savedItem.name} added to inventory.`);
+    return savedItem;
   };
 
   const updateInventoryItem = (item) => {
@@ -87,9 +118,6 @@ export function createInventoryActions({ inventory, transactions, expenses, setI
     const finalRecord = { ...record, id: record.id || `txn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`, createdAt: record.createdAt || Date.now() };
     setInventoryTransactions((prev) => [...prev, finalRecord]);
 
-    // Inventory deductions have economic cost but are not new cash payments.
-    // Mirror them as non-cash expenses so reports include stock consumption,
-    // losses, and write-offs without double-counting purchases.
     if (isInventoryCostDeduction(finalRecord) && !finalRecord.expenseId) {
       const item = inventory.find((i) => i.id === finalRecord.itemId);
       setExpenses((prev) => [...prev, buildInventoryCostExpense(finalRecord, item)]);
@@ -136,7 +164,6 @@ export function createInventoryActions({ inventory, transactions, expenses, setI
     const updated = { ...record, id: input.id, createdAt: previous.createdAt || Date.now() };
     setInventoryTransactions((prev) => prev.map((t) => (t.id === input.id ? updated : t)));
 
-    // Keep the derived non-cash expense synchronized with edited deductions.
     const generatedExpenseId = `inv_cost_${input.id}`;
     if (isInventoryCostDeduction(previous) || isInventoryCostDeduction(updated)) {
       const item = inventory.find((i) => i.id === updated.itemId);
