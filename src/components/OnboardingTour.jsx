@@ -102,4 +102,4 @@ export default function OnboardingTour({ farm, onNavigate, onReset }) {
   );
 }
 
-export { STORAGE_KEY };
+export { STORAGE_KEY, steps };
