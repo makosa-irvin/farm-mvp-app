@@ -4,6 +4,8 @@ import { useFarmData } from './hooks/useFarmData.js';
 import { useConfirmDialog } from './hooks/useConfirmDialog.js';
 import Header from './layout/Header.jsx';
 import MainContent from './layout/MainContent.jsx';
+import Toast from './components/Toast.jsx';
+import ConfirmDialog from './components/ConfirmDialog.jsx';
 import OfflineStatus from './components/OfflineStatus.jsx';
 import PWAInstallPrompt from './components/PWAInstallPrompt.jsx';
 import PWAStatus from './components/PWAStatus.jsx';
