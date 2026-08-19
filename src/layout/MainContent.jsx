@@ -8,6 +8,7 @@ import SettingsView from '../views/SettingsView.jsx';
 import SuppliersView from '../views/SuppliersView.jsx';
 import ReportsView from '../views/ReportsView.jsx';
 import SearchView from '../views/SearchView.jsx';
+import ImportRecordsView from '../views/ImportRecordsView.jsx';
 import FarmAlerts from '../components/FarmAlerts.jsx';
 
 export default function MainContent({ tab, farm, setTab }) {
@@ -22,7 +23,8 @@ export default function MainContent({ tab, farm, setTab }) {
       {tab === 'analytics' && <AnalyticsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} />}
       {tab === 'reports' && <ReportsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} />}
       {tab === 'search' && <SearchView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} goTo={setTab} />}
-      {tab === 'settings' && <SettingsView exportData={farm.exportData} importData={farm.importData} />}
+      {tab === 'settings' && <SettingsView exportData={farm.exportData} importData={farm.importData} onNavigate={setTab} />}
+      {tab === 'import-records' && <ImportRecordsView farm={farm} onBack={() => setTab('settings')} />}
     </main>
   );
 }
