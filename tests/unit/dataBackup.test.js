@@ -10,7 +10,7 @@ describe('buildBackup', () => {
       inventory: [{ id: 'i1' }],
       inventoryTransactions: [{ id: 't1' }],
     });
-    expect(payload.kind).toBe('field-ledger-backup');
+    expect(payload.kind).toBe('mazaosmart-backup');
     expect(payload.version).toBe(1);
     expect(payload.data.units).toEqual([{ id: 'u1' }]);
     expect(payload.data.inventoryTransactions).toEqual([{ id: 't1' }]);
@@ -21,7 +21,7 @@ describe('buildBackup', () => {
 
 describe('validateBackup', () => {
   const validPayload = () => ({
-    kind: 'field-ledger-backup',
+    kind: 'mazaosmart-backup',
     version: 1,
     data: { units: [{ id: 'u1' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] },
   });
@@ -50,7 +50,7 @@ describe('validateBackup', () => {
   });
 
   it('rejects a payload with no data object at all', () => {
-    expect(() => validateBackup({ kind: 'field-ledger-backup', version: 1 })).toThrow('does not contain farm data');
+    expect(() => validateBackup({ kind: 'mazaosmart-backup', version: 1 })).toThrow('does not contain farm data');
   });
 
   it('coerces a missing or non-array field to an empty array rather than crashing', () => {
@@ -83,7 +83,7 @@ describe('readBackupFile', () => {
   }
 
   it('parses and validates a real backup file', async () => {
-    const payload = { kind: 'field-ledger-backup', version: 1, data: { units: [{ id: 'u1' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] } };
+    const payload = { kind: 'mazaosmart-backup', version: 1, data: { units: [{ id: 'u1' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] } };
     const result = await readBackupFile(fakeFile(JSON.stringify(payload)));
     expect(result.units).toEqual([{ id: 'u1' }]);
   });
@@ -114,7 +114,7 @@ describe('downloadBackup', () => {
       return el;
     });
 
-    downloadBackup({ kind: 'field-ledger-backup', version: 1, data: {} });
+    downloadBackup({ kind: 'mazaosmart-backup', version: 1, data: {} });
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(clickSpy).toHaveBeenCalledTimes(1);
