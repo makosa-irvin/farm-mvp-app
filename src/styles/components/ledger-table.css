@@ -1,3 +1,69 @@
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ledger-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.ledger-table td {
+  vertical-align: top;
+}
+
 .ledger-table tr:not(:last-child) td {
   border-bottom: 1px solid var(--line);
+}
+
+/* Tables remain useful for wider screens, but become a readable card list on
+   small screens. The first cell acts as the row heading, while secondary
+   columns stay compact instead of forcing the farmer to zoom or pan. */
+@media (max-width: 639px) {
+  .ledger-table {
+    display: block;
+    min-width: 0 !important;
+  }
+
+  .ledger-table thead {
+    display: none;
+  }
+
+  .ledger-table tbody,
+  .ledger-table tr,
+  .ledger-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .ledger-table tr {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ledger-table tr:last-child {
+    border-bottom: 0;
+  }
+
+  .ledger-table td {
+    border: 0 !important;
+    padding: 3px 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 0.875rem;
+  }
+
+  .ledger-table td:first-child {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--ink);
+    padding-bottom: 5px;
+  }
+
+  .ledger-table td:last-child {
+    padding-bottom: 2px;
+  }
 }
