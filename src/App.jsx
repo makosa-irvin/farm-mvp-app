@@ -10,6 +10,7 @@ import MobileQuickActions from './components/MobileQuickActions.jsx';
 import OfflineStatus from './components/OfflineStatus.jsx';
 import PWAInstallPrompt from './components/PWAInstallPrompt.jsx';
 import PWAStatus from './components/PWAStatus.jsx';
+import OnboardingTour from './components/OnboardingTour.jsx';
 
 export default function App() {
   const [tab, setTab] = useState('dashboard');
@@ -36,6 +37,7 @@ export default function App() {
       <Toast message={toast} />
       <ConfirmDialog {...dialogProps} />
       <PWAInstallPrompt />
+      <OnboardingTour farm={farm} activeTab={tab} onNavigate={setTab} onReset={farm.resetTutorialData} />
     </div>
   );
 }
