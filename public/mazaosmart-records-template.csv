@@ -1,0 +1,5 @@
+record_type,date,farm_group,name,category,unit,quantity,unit_cost,amount,supplier,payment_method,loss,mortality,notes
+farm_group,2026-01-01,,Layer House A,Eggs,birds,50,,,,,,,
+stock,2026-01-01,Layer House A,Layer Mash,Feed,kg,50,75,,,,,,
+expense,2026-01-05,Layer House A,Feed purchase,Feed,kg,50,75,3750,Local agrovet,mpesa,,,
+log,2026-01-06,Layer House A,Daily production,Eggs,trays,30,,0,,,,2,1,Example historical record

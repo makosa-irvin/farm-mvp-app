@@ -1,156 +1,49 @@
-import { useState } from 'react';
-import { BarChart3, ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown } from 'lucide-react';
-import TagChip from '../components/TagChip.jsx';
+import { useMemo, useState } from 'react';
+import { BarChart3, Download, Info } from 'lucide-react';
 import EmptyState from '../components/EmptyState.jsx';
 import Metric from '../components/Metric.jsx';
 import TrendChart from '../components/TrendChart.jsx';
-import { PERIODS } from '../constants.js';
-import { typeOf, unitMetrics, unitCostBreakdown, dailyProductionTrend, fmtNum, fmtMoney } from '../lib/helpers.js';
+import { EXPENSE_CATEGORIES } from '../constants.js';
+import { fmtMoney, fmtNum } from '../lib/helpers.js';
+import { availableYears, buildComprehensiveAnalysis, buildExpenseAnalysis, buildFeedAnalysis, buildProductionAnalysis, buildYearOverYear, downloadComprehensiveAnalysis } from '../lib/analytics.js';
 
-// Numbers-per-unit view. Deliberately shows only 2-3 headline figures by
-// default per unit, with the rest (cost breakdown, feed use, laying rate,
-// losses) tucked behind "See more" — a wall of technical stats up front
-// reads as "software I might break," not "a tool that helps me." The
-// production trend chart is the one exception kept always-visible: a
-// glance at a chart doesn't add the same cognitive load a table of
-// numbers does, and "is this going up or down" is often the actual
-// question someone has, more than any single figure.
+const today = new Date().toISOString().slice(0, 10);
+
 export default function AnalyticsView({ units, logs, expenses, inventory = [], inventoryMoves = [] }) {
-  const [period, setPeriod] = useState('month');
-
-  if (units.length === 0) {
-    return (
-      <EmptyState
-        icon={BarChart3}
-        title="Nothing to look at yet"
-        body="Add a unit and log a few days of work to see what things are costing you here."
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      <div className="flex gap-2 flex-wrap">
-        {PERIODS.map((p) => (
-          <TagChip key={p.value} label={p.label} active={period === p.value} onClick={() => setPeriod(p.value)} />
-        ))}
+  const data = useMemo(() => ({ units, logs, expenses, inventory, inventoryMoves }), [units, logs, expenses, inventory, inventoryMoves]);
+  const years = useMemo(() => availableYears(data), [data]);
+  const defaultYear = years[0] || new Date().getFullYear();
+  const [unitId, setUnitId] = useState('all'); const [itemId, setItemId] = useState('all'); const [expenseType, setExpenseType] = useState('all');
+  const [startDate, setStartDate] = useState(`${defaultYear}-01-01`); const [endDate, setEndDate] = useState(defaultYear === new Date().getFullYear() ? today : `${defaultYear}-12-31`); const [analysis, setAnalysis] = useState('overview');
+  const filters = { unitId, itemId, expenseType, startDate, endDate };
+  const feed = useMemo(() => buildFeedAnalysis(data, filters), [data, unitId, itemId, startDate, endDate]);
+  const expense = useMemo(() => buildExpenseAnalysis(data, filters), [data, unitId, expenseType, startDate, endDate]);
+  const production = useMemo(() => buildProductionAnalysis(data, filters), [data, unitId, startDate, endDate]);
+  const yoy = useMemo(() => buildYearOverYear(data, filters), [data, unitId, startDate, endDate]);
+  const filtered = useMemo(() => buildComprehensiveAnalysis(data, filters), [data, unitId, itemId, expenseType, startDate, endDate]);
+  if (!units.length) return <EmptyState icon={BarChart3} title="Nothing to look at yet" body="Add a farm group and records, or import your historical records, to build analysis from real farm data." />;
+  const selectedUnit = units.find(u => u.id === unitId); const feedTrend = feed.monthly.map(r => ({ date: `${r.month}-01`, value: r.value })); const productionTrend = production.byMonth.map(r => ({ date: `${r.month}-01`, value: r.value }));
+  return <div className="space-y-5">
+    <header><div className="text-xs font-semibold uppercase tracking-[0.16em]" style={{color:'var(--forest)'}}>Analytics</div><h1 className="font-display text-2xl font-semibold mt-1">Analysis Builder</h1><p className="text-sm mt-1" style={{color:'var(--ink-soft)'}}>Filter real farm history, then switch between feed, expense, production and overall analysis.</p></header>
+    <section className="rounded-2xl p-4 sm:p-5 space-y-4" style={{background:'var(--surface)',border:'1px solid var(--line)'}}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Filter label="Farm group"><select value={unitId} onChange={e=>setUnitId(e.target.value)}><option value="all">All farm groups</option>{units.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></Filter>
+        <Filter label="Feed / stock item"><select value={itemId} onChange={e=>setItemId(e.target.value)}><option value="all">All items</option>{inventory.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}</select></Filter>
+        <Filter label="Expense type"><select value={expenseType} onChange={e=>setExpenseType(e.target.value)}><option value="all">All expense types</option>{EXPENSE_CATEGORIES.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}<option value="other">Other</option></select></Filter>
+        <Filter label="Year"><select value={startDate.slice(0,4)} onChange={e=>{const y=e.target.value; if(y==='custom')return; setStartDate(`${y}-01-01`); setEndDate(y===String(new Date().getFullYear())?today:`${y}-12-31`);}}><option value="custom">Custom dates</option>{years.map(y=><option key={y} value={y}>{y}</option>)}</select></Filter>
       </div>
-
-      <div className="space-y-3.5">
-        {units.map((u) => (
-          <UnitAnalyticsCard key={u.id} unit={u} logs={logs} expenses={expenses} inventory={inventory} inventoryMoves={inventoryMoves} period={period} />
-        ))}
-      </div>
-
-      <div className="flex items-start gap-2 text-xs px-1" style={{ color: 'var(--ink-soft)' }}>
-        <Info size={13} className="mt-0.5 shrink-0" />
-        <span>These numbers are close estimates based on what you've logged — they get more accurate the more days you record.</span>
-      </div>
-    </div>
-  );
+      <div className="grid grid-cols-2 gap-3 max-w-xl"><Filter label="From"><input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}/></Filter><Filter label="To"><input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}/></Filter></div>
+      <div className="flex flex-wrap gap-2 pt-1">{['overview','feed','expenses','production'].map(key=><button key={key} type="button" onClick={()=>setAnalysis(key)} className={`tag-chip ${analysis===key?'active':''}`}>{key[0].toUpperCase()+key.slice(1)}</button>)}<button type="button" className="btn-primary rounded-xl px-3 py-2 text-sm inline-flex items-center gap-2 ml-auto" onClick={()=>downloadComprehensiveAnalysis(data,filters)}><Download size={15}/>Download this analysis</button></div>
+    </section>
+    <section className="grid grid-cols-2 sm:grid-cols-4 gap-3"><Summary label="Production" value={fmtNum(filtered.summary.production)}/><Summary label="Expenses" value={fmtMoney(filtered.summary.expenses)}/><Summary label="Feed consumed" value={`${fmtNum(feed.consumption,1)} kg`}/><Summary label="Feed cost" value={fmtMoney(feed.feedCost)}/></section>
+    {analysis==='overview'&&<Overview production={production} expense={expense} yoy={yoy}/>} {analysis==='feed'&&<FeedAnalysis feed={feed} unit={selectedUnit} trend={feedTrend}/>} {analysis==='expenses'&&<ExpenseAnalysis expense={expense}/>} {analysis==='production'&&<ProductionAnalysis production={production} trend={productionTrend}/>} 
+    <div className="rounded-2xl p-4 text-xs flex gap-2" style={{background:'var(--surface)',border:'1px solid var(--line)',color:'var(--ink-soft)'}}><Info size={14} className="shrink-0"/><span>{selectedUnit?`${selectedUnit.name} is selected.`:'All farm groups are selected.'} Imported historical records remain tied to their original dates.</span></div>
+  </div>;
 }
-
-function UnitAnalyticsCard({ unit, logs, expenses, inventory, inventoryMoves, period }) {
-  const [expanded, setExpanded] = useState(false);
-  const t = typeOf(unit);
-  const Icon = t.icon;
-  const m = unitMetrics(unit, logs, expenses, period, inventoryMoves);
-  const unitSingular = t.unitLabel.replace(/s$/, '');
-  const costRows = unitCostBreakdown(unit, logs, expenses, period, inventoryMoves, inventory);
-  const trend = dailyProductionTrend(unit, logs, 14);
-  const hasPrice = Number(unit.producePrice) > 0;
-
-  return (
-    <div className="rounded-2xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-      <div className="flex items-center gap-2 mb-4">
-        <Icon size={16} style={{ color: 'var(--forest)' }} />
-        <div className="font-display text-lg font-semibold">{unit.name}</div>
-        <div className="text-xs ml-auto font-mono" style={{ color: 'var(--ink-soft)' }}>{m.logCount} {m.logCount === 1 ? 'entry' : 'entries'}</div>
-      </div>
-
-      {/* Headline numbers: the 2-3 things worth glancing at, always visible. */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <Metric label={`Cost per ${unitSingular}`} value={m.costPerUnit !== null ? fmtMoney(m.costPerUnit, 2) : '—'} />
-        <Metric label="Spent this period" value={fmtMoney(m.directCost)} />
-        <Metric label="Produced" value={`${fmtNum(m.produced)} ${t.unitLabel}`} />
-      </div>
-
-      {/* Revenue -> profit: the "am I actually making money" line. Only
-          shown once a selling price is set on the unit — otherwise
-          revenue is always zero and the row would just be noise. */}
-      {hasPrice && (
-        <div className="flex items-center gap-2.5 mt-4 pt-4 text-sm" style={{ borderTop: '1px solid var(--line)' }}>
-          <span style={{ color: 'var(--ink-soft)' }}>Revenue {fmtMoney(m.revenue)}</span>
-          <span style={{ color: 'var(--ink-soft)' }}>→</span>
-          <span
-            className="inline-flex items-center gap-1 font-semibold"
-            style={{ color: m.profit >= 0 ? 'var(--forest)' : 'var(--rust)' }}
-          >
-            {m.profit >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-            Profit {fmtMoney(m.profit)}
-          </span>
-        </div>
-      )}
-
-      {/* Production trend: last 14 days, always visible. */}
-      <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
-        <div className="text-xs mb-1.5" style={{ color: 'var(--ink-soft)' }}>Production, last 14 days</div>
-        <TrendChart data={trend} />
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1 text-xs font-medium mt-4"
-        style={{ color: 'var(--forest)' }}
-      >
-        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        {expanded ? 'Show less' : 'See more details'}
-      </button>
-
-      {expanded && (
-        <div className="mt-4 pt-4 space-y-4" style={{ borderTop: '1px solid var(--line)' }}>
-          {costRows.length > 0 && (
-            <div>
-              <div className="text-xs mb-2" style={{ color: 'var(--ink-soft)' }}>Where the money went</div>
-              <div className="space-y-1.5">
-                {costRows.map((row) => (
-                  <CostBar key={row.label} label={row.label} amount={row.amount} max={costRows[0].amount} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <Metric label="Feed used" value={m.feedKg > 0 ? `${fmtNum(m.feedKg, 1)} kg` : '—'} />
-            <Metric label={`Feed per ${unitSingular}`} value={m.fcr !== null ? `${m.fcr.toFixed(2)} kg` : '—'} />
-            {t.hasGrades && <Metric label="Laying rate" value={m.productionRate !== null ? `${m.productionRate.toFixed(1)}%` : '—'} />}
-            <Metric
-              label="Losses"
-              value={m.mortalityRate !== null ? `${m.mortalityRate.toFixed(1)}%` : '—'}
-              accent={m.mortalityRate > 5 ? 'var(--rust)' : undefined}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// One row of the cost breakdown: a category label, the amount, and a bar
-// sized relative to the largest category — so "most of it's feed" is
-// visible at a glance, not something you have to compare numbers to see.
-function CostBar({ label, amount, max }) {
-  const pct = max > 0 ? Math.max(4, (amount / max) * 100) : 0;
-  return (
-    <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span style={{ color: 'var(--ink)' }}>{label}</span>
-        <span className="font-mono" style={{ color: 'var(--ink-soft)' }}>{fmtMoney(amount)}</span>
-      </div>
-      <div className="rounded-full overflow-hidden" style={{ background: 'var(--surface-alt)', height: 6 }}>
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--forest)' }} />
-      </div>
-    </div>
-  );
-}
+function Filter({label,children}){return <label className="block text-sm"><span className="text-xs font-medium" style={{color:'var(--ink-soft)'}}>{label}</span><div className="mt-1">{children}</div></label>}
+function Summary({label,value}){return <div className="rounded-2xl p-4" style={{background:'var(--surface)',border:'1px solid var(--line)'}}><div className="text-xs" style={{color:'var(--ink-soft)'}}>{label}</div><div className="font-mono text-lg font-semibold mt-1 break-words">{value}</div></div>}
+function Panel({title,children}){return <section className="rounded-2xl p-5" style={{background:'var(--surface)',border:'1px solid var(--line)'}}><h2 className="font-semibold mb-4">{title}</h2>{children}</section>}
+function Overview({production,expense,yoy}){return <div className="space-y-4"><Panel title="Production trend"><TrendChart data={production.byMonth.map(r=>({date:`${r.month}-01`,value:r.value}))}/></Panel><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><Panel title="Expense mix"><div className="space-y-2">{expense.byType.map(r=><div key={r.type} className="flex justify-between text-sm"><span>{r.type}</span><span className="font-mono">{fmtMoney(r.amount)}</span></div>)}</div></Panel><Panel title="Year-over-year"><Metric label="Production change" value={yoy?.change.production!=null?`${yoy.change.production.toFixed(1)}%`:'—'} accent={yoy?.change.production>=0?'var(--forest)':'var(--rust)'}/><Metric label="Expense change" value={yoy?.change.expenses!=null?`${yoy.change.expenses.toFixed(1)}%`:'—'} accent={yoy?.change.expenses<=0?'var(--forest)':'var(--rust)'}/></Panel></div></div>}
+function FeedAnalysis({feed,unit,trend}){return <div className="space-y-4"><Panel title={`${unit?.name||'Farm'} — Feed analysis`}><div className="grid grid-cols-2 sm:grid-cols-4 gap-4"><Metric label="Consumed" value={`${fmtNum(feed.consumption,1)} kg`}/><Metric label="Purchases" value={`${fmtNum(feed.purchases,1)} kg`}/><Metric label="Wastage" value={`${fmtNum(feed.wastage,1)} kg`}/><Metric label="Feed cost" value={fmtMoney(feed.feedCost)}/><Metric label="Avg monthly consumption" value={`${fmtNum(feed.avgMonthlyConsumption,1)} kg`}/><Metric label="Consumption / animal" value={`${fmtNum(feed.consumptionPerAnimal,1)} kg`}/><Metric label="Cost / animal" value={fmtMoney(feed.costPerAnimal,2)}/><Metric label="Feed cost / production" value={fmtMoney(feed.feedCostPerProduction,2)}/></div></Panel><Panel title="Monthly feed consumption"><TrendChart data={trend}/></Panel><Panel title="Feed items"><div className="space-y-2">{feed.rows.map(r=><div key={r.id} className="grid grid-cols-5 gap-2 text-sm"><span className="col-span-2 font-medium">{r.name}</span><span>{fmtNum(r.consumed,1)} {r.unit}</span><span>{fmtNum(r.wastage,1)} waste</span><span className="font-mono text-right">{fmtMoney(r.cost)}</span></div>)}</div></Panel></div>}
+function ExpenseAnalysis({expense}){return <div className="space-y-4"><Panel title="Expense types"><div className="space-y-2">{expense.byType.map(r=><div key={r.type} className="flex justify-between"><span>{r.type}</span><span className="font-mono">{fmtMoney(r.amount)}</span></div>)}</div></Panel><Panel title="Monthly expenses"><TrendChart data={expense.byMonth.map(r=>({date:`${r.month}-01`,value:r.value}))}/></Panel></div>}
+function ProductionAnalysis({production,trend}){return <div className="space-y-4"><Panel title="Production metrics"><div className="grid grid-cols-2 sm:grid-cols-3 gap-4"><Metric label="Produced" value={fmtNum(production.total)}/><Metric label="Losses" value={fmtNum(production.loss)}/><Metric label="Mortality" value={fmtNum(production.mortality)}/></div></Panel><Panel title="Monthly production"><TrendChart data={trend}/></Panel></div>}
