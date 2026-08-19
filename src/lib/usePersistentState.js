@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 
-// Simple localStorage-backed state. This is the only persistence layer in
-// the app — there is no backend and no server-side database. All data
-// (units, logs, expenses, inventory, the transaction ledger) lives in the
-// visitor's browser only, per device, per browser: nothing syncs across
-// devices or users, and clearing site data deletes everything with no way
-// to recover it. That's a deliberate tradeoff for a zero-infrastructure
-// build, not an oversight — see README.md for the full scope discussion.
+const LAST_SAVED_KEY = 'field-ledger-last-saved-at';
+
+// Local-first persistence boundary. The timestamp is shared by all persisted
+// domains so the UI can show when the latest browser write completed.
 export function usePersistentState(key, initialValue) {
   const [state, setState] = useState(() => {
     try {
@@ -20,11 +17,15 @@ export function usePersistentState(key, initialValue) {
   useEffect(() => {
     try {
       window.localStorage.setItem(key, JSON.stringify(state));
+      window.localStorage.setItem(LAST_SAVED_KEY, String(Date.now()));
+      window.dispatchEvent(new Event('field-ledger-saved'));
     } catch {
-      // Storage can fail (private browsing, quota) — fail silently rather
-      // than crash the app; the in-memory state still works for the session.
+      // Storage can fail (private browsing or quota); keep the current
+      // session usable rather than crashing the application.
     }
   }, [key, state]);
 
   return [state, setState];
 }
+
+export { LAST_SAVED_KEY };

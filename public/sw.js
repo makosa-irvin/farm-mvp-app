@@ -1,26 +1,16 @@
-// Runtime-caching service worker for the app shell (HTML/JS/CSS/fonts/
-// icons). Deliberately simple: no build-time precache manifest, no
-// Workbox — it just caches whatever same-origin GET requests succeed, and
-// serves from that cache when the network fails.
-//
-// Unlike a backend-connected app, there's no separate API origin to leave
-// alone here — this app has no backend at all, everything lives in
-// localStorage — so every same-origin GET request (including the Google
-// Fonts CSS/font files, which are a different origin but still fair game
-// to cache) is worth caching for offline use.
+const CACHE_NAME = 'field-ledger-shell-v2';
 
-const CACHE_NAME = 'field-ledger-shell-v1';
-
-self.addEventListener('install', () => {
-  self.skipWaiting();
-});
+// The service worker caches the app shell at runtime because the project has
+// no backend. Versioning the cache lets a new deployment retire old assets.
+self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
+    caches.keys()
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll())
+      .then((clients) => clients.forEach((client) => client.postMessage({ type: 'FIELD_LEDGER_UPDATE_READY' })))
   );
 });
 
@@ -31,22 +21,16 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Only cache successful, cacheable responses — opaque cross-origin
-        // responses (like Google Fonts without CORS) still get stored, but
-        // skip actual errors.
         if (response && (response.ok || response.type === 'opaque')) {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
         }
         return response;
       })
       .catch(async () => {
         const cached = await caches.match(request);
         if (cached) return cached;
-        if (request.mode === 'navigate') {
-          const shell = await caches.match('/index.html');
-          if (shell) return shell;
-        }
+        if (request.mode === 'navigate') return caches.match('/index.html');
         return Response.error();
       })
   );

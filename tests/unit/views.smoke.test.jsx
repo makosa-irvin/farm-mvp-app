@@ -288,3 +288,20 @@ describe('Dashboard — "Farm costs" is an accrual figure, not the purchase pric
     expect(moneySpentValues).toContain('KSh 3,500');
   });
 });
+
+describe('Dashboard — no longer has its own duplicate attention section', () => {
+  // Regression test: Dashboard used to render its own "Needs your
+  // attention" box (low stock + wastage losses) that overlapped almost
+  // entirely with the newer, more comprehensive FarmAlerts.jsx component
+  // (which MainContent.jsx renders directly above Dashboard). Confirmed
+  // via git diff that Dashboard.jsx was never touched when FarmAlerts was
+  // added, so a farmer saw two separately-styled boxes repeating the same
+  // low-stock/loss information. Dashboard's own copy was removed; this
+  // guards against it quietly coming back.
+  it('never renders "Needs your attention" even when stock is genuinely low', () => {
+    const units = [{ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 }];
+    const inventory = [{ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 5, reorderLevel: 20, unitCost: 50 }];
+    render(<Dashboard units={units} logs={[]} expenses={[]} inventory={inventory} inventoryMoves={[]} goTo={() => {}} />);
+    expect(screen.queryByText('Needs your attention')).not.toBeInTheDocument();
+  });
+});
