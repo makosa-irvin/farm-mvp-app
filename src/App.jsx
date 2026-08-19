@@ -4,9 +4,6 @@ import { useFarmData } from './hooks/useFarmData.js';
 import { useConfirmDialog } from './hooks/useConfirmDialog.js';
 import Header from './layout/Header.jsx';
 import MainContent from './layout/MainContent.jsx';
-import Toast from './components/Toast.jsx';
-import ConfirmDialog from './components/ConfirmDialog.jsx';
-import MobileQuickActions from './components/MobileQuickActions.jsx';
 import OfflineStatus from './components/OfflineStatus.jsx';
 import PWAInstallPrompt from './components/PWAInstallPrompt.jsx';
 import PWAStatus from './components/PWAStatus.jsx';
@@ -33,7 +30,6 @@ export default function App() {
       <Header tabs={TABS} activeTab={tab} onSelectTab={setTab} />
       <div className="mx-auto max-w-6xl px-4 pt-3 sm:px-6 flex flex-wrap justify-end gap-2"><OfflineStatus /><PWAStatus lastSavedAt={lastSavedAt} /></div>
       <MainContent tab={tab} farm={farm} setTab={setTab} />
-      <MobileQuickActions onNavigate={setTab} />
       <Toast message={toast} />
       <ConfirmDialog {...dialogProps} />
       <PWAInstallPrompt />
