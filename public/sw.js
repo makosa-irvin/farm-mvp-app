@@ -1,4 +1,4 @@
-const CACHE_NAME = 'field-ledger-shell-v2';
+const CACHE_NAME = 'mazaosmart-shell-v3';
 
 // The service worker caches the app shell at runtime because the project has
 // no backend. Versioning the cache lets a new deployment retire old assets.

@@ -3,7 +3,7 @@ import { Download, X } from 'lucide-react';
 
 export default function PWAInstallPrompt() {
   const [promptEvent, setPromptEvent] = useState(null);
-  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem('field-ledger-install-dismissed') === '1');
+  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem('mazaosmart-install-dismissed') === '1');
 
   useEffect(() => {
     const onBeforeInstall = (event) => { event.preventDefault(); setPromptEvent(event); };
@@ -20,7 +20,7 @@ export default function PWAInstallPrompt() {
   }
 
   function dismiss() {
-    sessionStorage.setItem('field-ledger-install-dismissed', '1');
+    sessionStorage.setItem('mazaosmart-install-dismissed', '1');
     setDismissed(true);
   }
 

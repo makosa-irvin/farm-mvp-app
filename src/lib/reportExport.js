@@ -38,7 +38,7 @@ export function exportFarmReports({ units, logs, expenses, inventory, inventoryM
   const stamp = new Date().toISOString().slice(0, 10);
 
   downloadCsv(
-    `field-ledger-production-${stamp}.csv`,
+    `mazaosmart-production-${stamp}.csv`,
     logs.map((log) => ({
       date: log.date,
       group: units.find((u) => u.id === log.unitId)?.name || '',
@@ -50,7 +50,7 @@ export function exportFarmReports({ units, logs, expenses, inventory, inventoryM
   );
 
   downloadCsv(
-    `field-ledger-expenses-${stamp}.csv`,
+    `mazaosmart-expenses-${stamp}.csv`,
     expenses.map((expense) => ({
       date: expense.date,
       category: expense.category || expense.expenseType || '',
@@ -70,7 +70,7 @@ export function exportFarmReports({ units, logs, expenses, inventory, inventoryM
   );
 
   downloadCsv(
-    `field-ledger-stock-${stamp}.csv`,
+    `mazaosmart-stock-${stamp}.csv`,
     inventory.map((item) => ({
       item: item.name,
       category: item.category,

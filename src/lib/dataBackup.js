@@ -1,5 +1,11 @@
 const BACKUP_VERSION = 1;
-const BACKUP_KIND = 'field-ledger-backup';
+const BACKUP_KIND = 'mazaosmart-backup';
+// Backups downloaded before the Mazaosmart rebrand still carry this
+// marker. Accepting it on restore (write-side always uses the current
+// BACKUP_KIND) means a farmer who backed up before the rebrand shipped
+// can still restore that file afterward — the whole point of a backup
+// is to be there when it's needed, which could be well after it was made.
+const LEGACY_BACKUP_KIND = 'field-ledger-backup';
 
 export const PERSISTED_KEYS = [
   'farm-units',
@@ -23,7 +29,7 @@ export function downloadBackup(payload) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `field-ledger-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  anchor.download = `mazaosmart-backup-${new Date().toISOString().slice(0, 10)}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -33,7 +39,7 @@ function asArray(value) {
 }
 
 export function validateBackup(payload) {
-  if (!payload || payload.kind !== BACKUP_KIND) {
+  if (!payload || (payload.kind !== BACKUP_KIND && payload.kind !== LEGACY_BACKUP_KIND)) {
     throw new Error('This file is not a Mazaosmart backup.');
   }
   if (payload.version !== BACKUP_VERSION) {

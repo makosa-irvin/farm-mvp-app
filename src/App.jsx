@@ -14,16 +14,20 @@ import OnboardingTour from './components/OnboardingTour.jsx';
 export default function App() {
   const [tab, setTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
-  const [lastSavedAt, setLastSavedAt] = useState(() => localStorage.getItem('field-ledger-last-saved-at'));
+  // Falls back to the pre-rebrand key on the very first read only, so an
+  // existing user doesn't see a false "Not saved yet" the moment this
+  // ships — every write afterward goes to the new key exclusively (see
+  // usePersistentState.js), so this fallback only ever matters once.
+  const [lastSavedAt, setLastSavedAt] = useState(() => localStorage.getItem('mazaosmart-last-saved-at') || localStorage.getItem('field-ledger-last-saved-at'));
   const toastTimer = useRef(null);
   const showToast = (message) => { setToast(message); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 3800); };
   const { confirm, dialogProps } = useConfirmDialog();
   const farm = useFarmData(showToast, confirm);
 
   useEffect(() => {
-    const onSaved = () => setLastSavedAt(localStorage.getItem('field-ledger-last-saved-at'));
-    window.addEventListener('field-ledger-saved', onSaved);
-    return () => window.removeEventListener('field-ledger-saved', onSaved);
+    const onSaved = () => setLastSavedAt(localStorage.getItem('mazaosmart-last-saved-at'));
+    window.addEventListener('mazaosmart-saved', onSaved);
+    return () => window.removeEventListener('mazaosmart-saved', onSaved);
   }, []);
 
   return (

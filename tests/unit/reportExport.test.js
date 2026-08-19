@@ -119,9 +119,9 @@ describe('exportFarmReports', () => {  // exportFarmReports calls downloadCsv th
     });
 
     const filenames = Object.keys(written);
-    expect(filenames.some((f) => f.startsWith('field-ledger-production-'))).toBe(true);
-    expect(filenames.some((f) => f.startsWith('field-ledger-expenses-'))).toBe(true);
-    expect(filenames.some((f) => f.startsWith('field-ledger-stock-'))).toBe(true);
+    expect(filenames.some((f) => f.startsWith('mazaosmart-production-'))).toBe(true);
+    expect(filenames.some((f) => f.startsWith('mazaosmart-expenses-'))).toBe(true);
+    expect(filenames.some((f) => f.startsWith('mazaosmart-stock-'))).toBe(true);
   });
 
   it('the expenses report marks a real cash expense as "Cash payment"', () => {

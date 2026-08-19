@@ -68,11 +68,11 @@ describe('PWAInstallPrompt', () => {
     fireEvent.click(screen.getByLabelText('Dismiss install prompt'));
 
     expect(screen.queryByLabelText('Install Mazaosmart')).not.toBeInTheDocument();
-    expect(sessionStorage.getItem('field-ledger-install-dismissed')).toBe('1');
+    expect(sessionStorage.getItem('mazaosmart-install-dismissed')).toBe('1');
   });
 
   it('does not show the prompt on a fresh mount if it was already dismissed this session', async () => {
-    sessionStorage.setItem('field-ledger-install-dismissed', '1');
+    sessionStorage.setItem('mazaosmart-install-dismissed', '1');
     render(<PWAInstallPrompt />);
     await act(async () => {
       fireBeforeInstallPrompt();
