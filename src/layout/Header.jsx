@@ -5,6 +5,11 @@ import styles from './Header.module.css';
 export default function Header({ tabs, activeTab, onSelectTab }) {
   const mobilePrimary = tabs.filter((t) => ['dashboard', 'log', 'inventory', 'expenses'].includes(t.value));
   const mobileMore = tabs.filter((t) => ['units', 'suppliers', 'analytics', 'reports', 'search', 'settings'].includes(t.value));
+  function selectMoreItem(event, value) {
+    const details = event.currentTarget.closest('details');
+    if (details) details.open = false;
+    onSelectTab(value);
+  }
   return (
     <>
       <header className={`sticky top-0 z-20 px-5 pt-5 pb-3 ${styles.header}`}>
@@ -12,8 +17,8 @@ export default function Header({ tabs, activeTab, onSelectTab }) {
         <div className="mt-4 hidden sm:block"><NavTabs tabs={tabs} activeTab={activeTab} onSelect={onSelectTab} /></div>
       </header>
       <nav className={styles.mobileNav} aria-label="Primary navigation">
-        {mobilePrimary.map((t) => { const Icon = t.icon; const active = activeTab === t.value; return <button key={t.value} type="button" onClick={() => onSelectTab(t.value)} className={`${styles.mobileNavItem} ${active ? styles.mobileNavItemActive : ''}`} aria-current={active ? 'page' : undefined}><Icon size={20} strokeWidth={2.25} /><span>{t.value === 'dashboard' ? 'Home' : t.value === 'log' ? 'Log' : t.value === 'inventory' ? 'Stock' : 'Expenses'}</span></button>; })}
-        <details className={styles.moreMenu}><summary className={`${styles.mobileNavItem} ${mobileMore.some((t) => t.value === activeTab) ? styles.mobileNavItemActive : ''}`}><MoreHorizontal size={20} strokeWidth={2.25} /><span>More</span></summary><div className={styles.morePopover}>{mobileMore.map((t) => { const Icon = t.icon; return <button key={t.value} type="button" onClick={() => onSelectTab(t.value)} className={styles.moreItem}><Icon size={18} />{t.label}</button>; })}<button type="button" onClick={() => window.location.reload()} className={styles.moreItem}><RefreshCw size={18} />Refresh</button></div></details>
+        {mobilePrimary.map((t) => { const Icon = t.icon; const active = activeTab === t.value; return <button key={t.value} type="button" data-tour={`nav-${t.value}`} onClick={() => onSelectTab(t.value)} className={`${styles.mobileNavItem} ${active ? styles.mobileNavItemActive : ''}`} aria-current={active ? 'page' : undefined}><Icon size={20} strokeWidth={2.25} /><span>{t.value === 'dashboard' ? 'Home' : t.value === 'log' ? 'Log' : t.value === 'inventory' ? 'Stock' : 'Expenses'}</span></button>; })}
+        <details className={styles.moreMenu}><summary data-tour="nav-more" className={`${styles.mobileNavItem} ${mobileMore.some((t) => t.value === activeTab) ? styles.mobileNavItemActive : ''}`}><MoreHorizontal size={20} strokeWidth={2.25} /><span>More</span></summary><div className={styles.morePopover}>{mobileMore.map((t) => { const Icon = t.icon; return <button key={t.value} data-tour={`more-${t.value}`} type="button" onClick={(event) => selectMoreItem(event, t.value)} className={styles.moreItem}><Icon size={18} />{t.label}</button>; })}<button type="button" onClick={(event) => { event.currentTarget.closest('details').open = false; window.location.reload(); }} className={styles.moreItem}><RefreshCw size={18} />Refresh</button></div></details>
       </nav>
     </>
   );
