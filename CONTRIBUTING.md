@@ -1,6 +1,6 @@
-# Contributing to Field Ledger
+# Contributing to Mazaosmart
 
-Thank you for contributing to Field Ledger. This project is intentionally small and offline-first, so changes should favor clarity, predictable state transitions, and a low cognitive load for both users and maintainers.
+Thank you for contributing to Mazaosmart. This project is intentionally small and offline-first, so changes should favor clarity, predictable state transitions, and a low cognitive load for both users and maintainers.
 
 ## Before you start
 

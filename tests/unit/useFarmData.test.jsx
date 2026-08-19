@@ -335,7 +335,7 @@ describe('useFarmData — backup export/import round-trip', () => {
 
     expect(success).toBe(false);
     expect(result.current.units).toHaveLength(1);
-    expect(toasts.some((t) => t.includes('not a Field Ledger backup'))).toBe(true);
+    expect(toasts.some((t) => t.includes('not a Mazaosmart backup'))).toBe(true);
   });
 
   it('a full export -> import round-trip preserves every record exactly', async () => {

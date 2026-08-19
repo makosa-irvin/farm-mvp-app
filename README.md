@@ -1,6 +1,6 @@
-# Field Ledger
+# Mazaosmart
 
-Field Ledger is a mobile-first, offline-capable farm operations tracker for smallholder and small-commercial farms. It records production, expenses, losses, and inventory, then derives practical cost, revenue, stock, and surplus information from those records.
+Mazaosmart is a mobile-first, offline-capable farm operations tracker for smallholder and small-commercial farms. It records production, expenses, losses, and inventory, then derives practical cost, revenue, stock, and surplus information from those records.
 
 The primary design target is a Kenyan farmer who may have limited technical experience and unreliable internet access. The application therefore prioritizes plain language, fast data entry, small-screen usability, and offline operation.
 
