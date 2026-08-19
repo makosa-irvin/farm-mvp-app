@@ -5,9 +5,15 @@ import { createExpenseActions } from '../lib/actions/expenseActions.js';
 import { createInventoryActions } from '../lib/actions/inventoryActions.js';
 import { createLogActions } from '../lib/actions/logActions.js';
 import { buildBackup, downloadBackup, validateBackup } from '../lib/dataBackup.js';
+import { todayISO } from '../lib/helpers.js';
 
 const LEGACY_KEY = 'farm-inventory-movements';
 const LEDGER_KEY = 'farm-inventory-ledger';
+const TUTORIAL_UNIT_ID = 'tutorial_unit_mazao';
+const TUTORIAL_INVENTORY_ID = 'tutorial_inventory_mazao';
+const TUTORIAL_EXPENSE_ID = 'tutorial_expense_mazao';
+const TUTORIAL_EXPENSE_2_ID = 'tutorial_expense_2_mazao';
+const TUTORIAL_LOG_ID = 'tutorial_log_mazao';
 
 function readLegacyTransactions() {
   try {
@@ -61,6 +67,80 @@ export function useFarmData(showToast, confirm) {
     }
   };
 
+  // Create a complete, realistic sample farm in one state update per dataset.
+  // Keeping these records explicitly marked makes the cleanup operation safe
+  // even if the farmer already has real records on the device.
+  const seedTutorialData = () => {
+    const now = Date.now();
+    const date = todayISO();
+    setUnits((prev) => prev.some((unit) => unit.tutorial) ? prev : [...prev, {
+      id: TUTORIAL_UNIT_ID,
+      name: 'Layer House A (Example)',
+      type: 'eggs',
+      initialCount: 50,
+      producePrice: 450,
+      startDate: date,
+      createdAt: now,
+      tutorial: true,
+    }]);
+    setInventory((prev) => prev.some((item) => item.tutorial) ? prev : [...prev, {
+      id: TUTORIAL_INVENTORY_ID,
+      name: 'Layer Mash (Example)',
+      category: 'Feed',
+      unit: 'kg',
+      openingStock: 50,
+      reorderLevel: 10,
+      unitCost: 75,
+      createdAt: now,
+      tutorial: true,
+    }]);
+    setExpenses((prev) => prev.some((expense) => expense.tutorial) ? prev : [...prev,
+      {
+        id: TUTORIAL_EXPENSE_ID,
+        category: 'feed',
+        amount: 3750,
+        date,
+        unitId: TUTORIAL_UNIT_ID,
+        description: '50 kg layer mash (example)',
+        supplier: 'Local agrovet (example)',
+        paymentMethod: 'mpesa',
+        inventoryItemId: null,
+        inventoryQuantity: null,
+        createdAt: now,
+        tutorial: true,
+      },
+      {
+        id: TUTORIAL_EXPENSE_2_ID,
+        category: 'labor',
+        amount: 1500,
+        date,
+        unitId: TUTORIAL_UNIT_ID,
+        description: 'Casual labour (example)',
+        supplier: null,
+        paymentMethod: 'cash',
+        inventoryItemId: null,
+        inventoryQuantity: null,
+        createdAt: now + 1,
+        tutorial: true,
+      },
+    ]);
+    setLogs((prev) => prev.some((log) => log.tutorial) ? prev : [...prev, {
+      id: TUTORIAL_LOG_ID,
+      unitId: TUTORIAL_UNIT_ID,
+      date,
+      produced: 30,
+      grades: null,
+      loss: 2,
+      feedKg: 0,
+      feedQuantity: 0,
+      feedItemId: null,
+      mortality: 1,
+      notes: 'Example daily record — 30 trays collected, 2 lost, 1 bird lost.',
+      createdAt: now,
+      tutorial: true,
+    }]);
+  };
+
   // Tutorial records are explicitly marked so onboarding can never remove a
   // farmer's real records. This is intentionally separate from normal CRUD.
   const resetTutorialData = () => {
@@ -87,6 +167,7 @@ export function useFarmData(showToast, confirm) {
     transactionTypes: INVENTORY_TRANSACTION_TYPES,
     exportData,
     importData,
+    seedTutorialData,
     resetTutorialData,
   };
 }
