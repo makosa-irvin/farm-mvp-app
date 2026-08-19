@@ -44,7 +44,7 @@ const CHECKS = [
   {
     name: 'safe-area inset padding exists',
     pattern: /env\(safe-area-inset-bottom\)/,
-    ifMissing: 'The bottom nav and floating quick-actions button could sit under a phone\'s home-indicator area on notched devices.',
+    ifMissing: 'The bottom nav could sit under a phone\'s home-indicator area on notched devices.',
   },
   {
     name: 'form inputs are 16px on mobile (iOS zoom prevention)',
@@ -55,11 +55,6 @@ const CHECKS = [
     name: 'mobile touch targets meet the 44px minimum',
     pattern: /min-height:44px/,
     ifMissing: 'Buttons and inputs may render below the 44px minimum touch-target recommendation on mobile.',
-  },
-  {
-    name: 'the quick-actions floating button is styled',
-    pattern: /\.mobile-quick-actions/,
-    ifMissing: 'MobileQuickActions.jsx would render but with no positioning or sizing at all.',
   },
   {
     name: 'core buttons are styled (regression check for the @import-ordering bug)',
