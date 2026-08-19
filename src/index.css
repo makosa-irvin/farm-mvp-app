@@ -21,11 +21,21 @@
   --rust-tint: #f3e1db;
   --line: #dee2d3;
 
+  /* Accessible default: comfortable on small phone screens and for users
+     who need a little more reading room. Users can override this with
+     data-font-size on .farm-app. */
+  --font-scale: 1.08;
   min-height: 100vh;
   color: var(--ink);
   background: var(--bg);
   font-family: 'Inter', sans-serif;
+  font-size: calc(16px * var(--font-scale));
+  line-height: 1.55;
 }
+
+.farm-app[data-font-size='compact'] { --font-scale: 1; }
+.farm-app[data-font-size='large'] { --font-scale: 1.16; }
+.farm-app[data-font-size='x-large'] { --font-scale: 1.26; }
 
 .font-display { font-family: 'Fraunces', serif; font-optical-sizing: auto; }
 .font-mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.01em; }
@@ -62,13 +72,13 @@ button[class*="hover:bg-black/5"] {
   .farm-app input,
   .farm-app select,
   .farm-app textarea {
-    min-height: 44px;
-    font-size: 16px;
+    min-height: 46px;
+    font-size: max(16px, calc(16px * var(--font-scale)));
   }
 
   .farm-app form .btn-primary,
   .farm-app form .btn-ghost {
-    min-height: 44px;
+    min-height: 46px;
   }
 
   .farm-app table.ledger-table {
