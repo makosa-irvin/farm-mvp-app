@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const LAST_SAVED_KEY = 'mazaosmart-last-saved-at';
+const SAVED_EVENT = 'mazaosmart-saved';
 
 export function usePersistentState(key, initialValue) {
   const [state, setState] = useState(() => {
@@ -8,9 +9,12 @@ export function usePersistentState(key, initialValue) {
     catch { return initialValue; }
   });
   useEffect(() => {
-    try { window.localStorage.setItem(key, JSON.stringify(state)); window.localStorage.setItem(LAST_SAVED_KEY, String(Date.now())); window.dispatchEvent(new Event('mazaosmart-saved')); }
-    catch { /* Storage can fail; keep the current session usable. */ }
+    try {
+      window.localStorage.setItem(key, JSON.stringify(state));
+      window.localStorage.setItem(LAST_SAVED_KEY, String(Date.now()));
+      window.dispatchEvent(new Event(SAVED_EVENT));
+    } catch { /* Storage can fail; keep the current session usable. */ }
   }, [key, state]);
   return [state, setState];
 }
-export { LAST_SAVED_KEY };
+export { LAST_SAVED_KEY, SAVED_EVENT };
