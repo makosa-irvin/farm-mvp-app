@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { usePersistentState } from '../lib/usePersistentState.js';
 import { INVENTORY_TRANSACTION_TYPES, getExpenseUnitCost, getBalance as getBalanceRaw, getWeightedAverageCost as getWeightedAverageCostRaw } from '../lib/inventoryLedger.js';
 import { createUnitActions } from '../lib/actions/unitActions.js';
@@ -150,6 +151,68 @@ export function useFarmData(showToast, confirm) {
     setInventory((prev) => prev.filter((item) => !item.tutorial));
     setInventoryTransactions((prev) => prev.filter((transaction) => !transaction.tutorial));
   };
+
+  const hasTutorialData = () =>
+    units.some((unit) => unit.tutorial) ||
+    logs.some((log) => log.tutorial) ||
+    expenses.some((expense) => expense.tutorial) ||
+    inventory.some((item) => item.tutorial) ||
+    transactions.some((transaction) => transaction.tutorial);
+
+  // Safety net for an abandoned tour: the only other path to cleanup is
+  // OnboardingTour.jsx explicitly calling resetTutorialData() when the
+  // farmer finishes or skips. If they close the tab, lose the app, or the
+  // mobile OS kills a backgrounded tab to reclaim memory mid-tour — all
+  // very plausible for how this app is actually used — that path never
+  // runs, and the example data would otherwise sit in their real records
+  // indefinitely with nothing to remove it.
+  //
+  // This effect is intentionally mount-only (empty dependency array), so
+  // it runs exactly once per real page load, before this session could
+  // have seeded any tutorial data of its own. Any tutorial-flagged record
+  // found at that exact moment can therefore only be leftover from a
+  // previous session that never reached finish() or Skip — a currently
+  // in-progress tour within the same session is never affected, since
+  // this effect has already run and won't run again until the next
+  // reload. This is the fix that actually guarantees correctness,
+  // regardless of *how* the previous session ended; see the
+  // beforeunload effect below for a secondary, best-effort layer that
+  // only helps for a clean tab close specifically.
+  useEffect(() => {
+    if (hasTutorialData()) resetTutorialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Best-effort secondary layer: catches a clean tab close/navigation
+  // immediately, rather than waiting for the mount-time check above to
+  // run on the *next* visit. Browsers don't guarantee beforeunload fires
+  // for a crash or an OS backgrounding a tab to reclaim memory — which is
+  // exactly why the mount-time effect above exists as the one that
+  // actually guarantees correctness. This is a nice-to-have on top of
+  // that guarantee, not a replacement for it.
+  //
+  // Reads directly from localStorage rather than closing over React
+  // state, so the listener can register once (mount-only) instead of
+  // re-subscribing on every farm-data change, and always sees the
+  // current data — usePersistentState commits every change to
+  // localStorage synchronously, so a fresh read here is never stale.
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      try {
+        const stillHasTutorialData = ['farm-units', 'farm-logs', 'farm-expenses', 'farm-inventory', LEDGER_KEY].some((key) => {
+          const stored = JSON.parse(localStorage.getItem(key) || '[]');
+          return Array.isArray(stored) && stored.some((record) => record?.tutorial);
+        });
+        if (stillHasTutorialData) resetTutorialData();
+      } catch {
+        // Best-effort only — the mount-time effect above is what actually
+        // guarantees cleanup happens, so a failure here isn't fatal.
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     units, logs, expenses, inventory,

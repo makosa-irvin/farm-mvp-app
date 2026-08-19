@@ -373,3 +373,106 @@ describe('useFarmData — backup export/import round-trip', () => {
     expect(result.current.expenses).toEqual(originalExpenses);
   });
 });
+
+describe('useFarmData — abandoned onboarding tour leaves no permanent tutorial data', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  // Regression coverage for a confirmed gap: the only path that cleaned up
+  // tutorial data used to be OnboardingTour.jsx explicitly calling
+  // resetTutorialData() when a farmer finished or skipped the tour. If
+  // they closed the tab, lost the app, or a mobile OS backgrounded and
+  // killed the tab mid-tour, that path never ran, and example data
+  // (seeded directly into real localStorage the moment the tour starts)
+  // would sit in their real records indefinitely.
+  it('mount-time cleanup removes tutorial data left over from a previous, abandoned session', () => {
+    const toasts = [];
+    const confirm = async () => true;
+
+    // Simulate a previous session that started the tour (seeding real
+    // localStorage) and was then abandoned mid-way — closing the tab
+    // without ever reaching finish() or Skip.
+    const { result: firstSession, unmount } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+    act(() => {
+      firstSession.current.seedTutorialData();
+    });
+    expect(firstSession.current.units.some((u) => u.tutorial)).toBe(true);
+    unmount(); // the tab "closes" — no resetTutorialData() call happens
+
+    // The farmer reopens the app later — a fresh mount, exactly like
+    // loading the page again.
+    const { result: secondSession } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    expect(secondSession.current.units.some((u) => u.tutorial)).toBe(false);
+    expect(secondSession.current.logs.some((l) => l.tutorial)).toBe(false);
+    expect(secondSession.current.expenses.some((e) => e.tutorial)).toBe(false);
+    expect(secondSession.current.inventory.some((i) => i.tutorial)).toBe(false);
+    expect(secondSession.current.inventoryTransactions.some((t) => t.tutorial)).toBe(false);
+  });
+
+  it('does not disturb real farm data while cleaning up leftover tutorial data', () => {
+    const toasts = [];
+    const confirm = async () => true;
+    const { result: firstSession, unmount } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      firstSession.current.addUnit({ id: 'real-unit', name: 'My Real Farm Group', type: 'eggs', initialCount: 50, startDate: '2026-08-01' });
+      firstSession.current.seedTutorialData();
+    });
+    unmount();
+
+    const { result: secondSession } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    expect(secondSession.current.units).toEqual([
+      { id: 'real-unit', name: 'My Real Farm Group', type: 'eggs', initialCount: 50, startDate: '2026-08-01' },
+    ]);
+  });
+
+  it('a session that never starts the tour is unaffected — no tutorial data means nothing to clean up', () => {
+    const toasts = [];
+    const confirm = async () => true;
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+    act(() => {
+      result.current.addUnit({ id: 'u1', name: 'Real Group', type: 'eggs', initialCount: 10, startDate: '2026-08-01' });
+    });
+    expect(result.current.units).toHaveLength(1);
+    expect(result.current.units[0].tutorial).toBeUndefined();
+  });
+
+  it('the beforeunload handler cleans up tutorial data still present in localStorage at unload time', () => {
+    const toasts = [];
+    const confirm = async () => true;
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      result.current.seedTutorialData();
+    });
+    expect(JSON.parse(localStorage.getItem('farm-units')).some((u) => u.tutorial)).toBe(true);
+
+    // Simulate the tab closing without the tour's own finish()/Skip path
+    // ever running.
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+
+    expect(JSON.parse(localStorage.getItem('farm-units')).some((u) => u.tutorial)).toBe(false);
+  });
+
+  it('a properly completed tour (resetTutorialData already called) leaves nothing for either safety net to do', () => {
+    const toasts = [];
+    const confirm = async () => true;
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      result.current.seedTutorialData();
+      result.current.resetTutorialData(); // the tour's own finish()/Skip path
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+
+    expect(result.current.units).toHaveLength(0);
+  });
+});
