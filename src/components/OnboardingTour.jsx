@@ -3,42 +3,58 @@ import { ArrowLeft, ArrowRight, BarChart3, Boxes, ClipboardList, Home, Settings,
 
 const STORAGE_KEY = 'mazao-onboarding-completed';
 
-/**
- * Compact, learn-by-doing onboarding for first-time farmers.
- * The application remains fully visible and usable behind a small bottom
- * sheet; no dark overlay or screenshot-like tour is used on mobile.
- */
+const steps = [
+  { title: 'Welcome — let’s learn by doing', body: 'We’ll use a small example farm so you can see what Mazaosmart does. The example is temporary and will be removed when you finish.', icon: Sprout, tab: 'dashboard', target: null, mode: 'next' },
+  { title: 'Start with a farm group', body: 'Tap More in the bottom menu. Then choose Farm groups. Farm groups are things you manage, like a layer house, dairy cows or a tomato plot.', icon: Home, tab: 'dashboard', target: 'nav-more', mode: 'tap', targetLabel: 'Tap More' },
+  { title: 'Choose Farm groups', body: 'Now tap Farm groups in the menu that opened. We will show you an example group so you can see where your farm groups are managed.', icon: Home, tab: 'units', target: 'more-units', mode: 'tap', targetLabel: 'Tap Farm groups' },
+  { title: 'Add your stock', body: 'Tap Stock in the bottom menu. Stock is what you have on the farm — for example feed, seed, fertilizer or medicine.', icon: Boxes, tab: 'inventory', target: 'nav-inventory', mode: 'tap', targetLabel: 'Tap Stock' },
+  { title: 'Record money you spend', body: 'Tap Expenses. Enter what you paid and what it was for. You can also link the expense to a farm group or stock item.', icon: Wallet, tab: 'expenses', target: 'nav-expenses', mode: 'tap', targetLabel: 'Tap Expenses' },
+  { title: 'Record what happened today', body: 'Tap Log. This is your daily farm notebook — record what you produced, lost or used today.', icon: ClipboardList, tab: 'log', target: 'nav-log', mode: 'tap', targetLabel: 'Tap Log' },
+  { title: 'See your farm at a glance', body: 'You are already on Home. Look at the example cards below to see how the records you entered become a simple farm overview.', icon: Home, tab: 'dashboard', target: 'nav-dashboard', mode: 'next', targetLabel: 'Next' },
+  { title: 'Understand your trends', body: 'Tap More, then Analytics. This turns your records into simple trends and comparisons so you can see how the farm is doing.', icon: BarChart3, tab: 'analytics', target: 'nav-more', mode: 'tap', targetLabel: 'Tap More' },
+  { title: 'Open Analytics', body: 'Choose Analytics from the menu. The example data is already populated so you can see what this page is for.', icon: BarChart3, tab: 'analytics', target: 'more-analytics', mode: 'tap', targetLabel: 'Tap Analytics' },
+  { title: 'View your reports', body: 'Now tap More again, then Reports. Reports bring the important farm numbers together in one place.', icon: ClipboardList, tab: 'reports', target: 'nav-more', mode: 'tap', targetLabel: 'Tap More' },
+  { title: 'Open Reports', body: 'Choose Reports from the menu. The example gives the report something useful to show.', icon: ClipboardList, tab: 'reports', target: 'more-reports', mode: 'tap', targetLabel: 'Tap Reports' },
+  { title: 'Settings & backup', body: 'Finally, tap More and open Settings. This is where you can back up and restore your farm records.', icon: Settings, tab: 'settings', target: 'nav-more', mode: 'tap', targetLabel: 'Tap More' },
+  { title: 'Open Settings', body: 'Choose Settings. Make a backup regularly so your farm records are safe.', icon: Settings, tab: 'settings', target: 'more-settings', mode: 'tap', targetLabel: 'Tap Settings' },
+  { title: 'You’re ready', body: 'The example farm will now be removed. Your real records will not be touched. Start with your first farm group and record what happens each day.', icon: Sprout, tab: 'dashboard', target: null, mode: 'finish', targetLabel: 'Start using Mazaosmart' },
+];
+
+/** Mobile-first learn-by-doing onboarding. The bottom sheet sits above the
+ * persistent mobile navigation, while the current navigation target receives
+ * a visible focus treatment instead of dimming the application. */
 export default function OnboardingTour({ farm, onNavigate, onReset }) {
   const [open, setOpen] = useState(() => localStorage.getItem(STORAGE_KEY) !== 'true');
   const [step, setStep] = useState(0);
   const [examplesReady, setExamplesReady] = useState(false);
 
   useEffect(() => {
-    const showTour = () => {
-      setStep(0);
-      setExamplesReady(true);
-      setOpen(true);
-      onNavigate('dashboard');
-    };
+    const showTour = () => { setStep(0); setExamplesReady(false); setOpen(true); onNavigate('dashboard'); };
     window.addEventListener('mazao-show-onboarding', showTour);
     return () => window.removeEventListener('mazao-show-onboarding', showTour);
   }, [onNavigate]);
 
+  useEffect(() => {
+    if (!open || !steps[step].target) return undefined;
+    const target = document.querySelector(`[data-tour="${steps[step].target}"]`);
+    if (!target) return undefined;
+    target.classList.add('mazao-tour-target');
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    const onClick = () => {
+      if (steps[step].mode !== 'tap') return;
+      window.setTimeout(() => {
+        const nextStep = step + 1;
+        if (nextStep < steps.length) {
+          setStep(nextStep);
+          onNavigate(steps[nextStep].tab);
+        }
+      }, 120);
+    };
+    target.addEventListener('click', onClick);
+    return () => { target.classList.remove('mazao-tour-target'); target.removeEventListener('click', onClick); };
+  }, [open, step, onNavigate]);
+
   if (!open) return null;
-
-  const steps = [
-    { title: 'Welcome — let’s learn by doing', body: 'We’ll set up a small example farm and walk through what to tap. The example is temporary and will be removed when you finish.', icon: Sprout, tab: 'dashboard' },
-    { title: '1. Add a farm group', body: 'Tap More → Farm groups. Add something you manage, such as “Layer House A”, “My Dairy Cows”, or “Tomato Plot”. This is where your records start.', icon: Home, tab: 'units', action: 'Open Farm groups' },
-    { title: '2. Add your stock', body: 'Tap More → Stock. Add things you keep on the farm, such as feed, seed, fertilizer or medicine. Enter what you have now.', icon: Boxes, tab: 'inventory', action: 'Open Stock' },
-    { title: '3. Record money you spend', body: 'Tap Expenses. Enter what you paid, what it was for, and optionally which farm group it belongs to. You do not need accounting knowledge.', icon: Wallet, tab: 'expenses', action: 'Open Expenses' },
-    { title: '4. Record what happened today', body: 'Tap Log. Choose your farm group and record what you produced, lost, or used. This is your daily farm notebook.', icon: ClipboardList, tab: 'log', action: 'Open Daily Log' },
-    { title: '5. See your farm at a glance', body: 'Now look at Home. The example records make the dashboard useful: production, costs, stock and farm alerts have something to show.', icon: Home, tab: 'dashboard', action: 'Show me the dashboard' },
-    { title: '6. Understand the bigger picture', body: 'Analytics turns your records into simple trends and comparisons. Reports give you a useful summary you can review or share.', icon: BarChart3, tab: 'analytics', action: 'Show Analytics' },
-    { title: '7. Reports', body: 'Reports bring the important numbers together. Think of this as your farm’s printable summary — not an accounting exam.', icon: ClipboardList, tab: 'reports', action: 'Show Reports' },
-    { title: '8. Settings & backup', body: 'Settings is where you can back up your records, restore them, and manage important app options. Make a backup regularly.', icon: Settings, tab: 'settings', action: 'Open Settings' },
-    { title: 'You’re ready', body: 'The example farm will now be removed. Your real records will not be touched. Start with your first farm group, then record what happens each day.', icon: Sprout, tab: 'dashboard', action: 'Start using Mazaosmart' },
-  ];
-
   const current = steps[step];
   const Icon = current.icon;
 
@@ -50,18 +66,8 @@ export default function OnboardingTour({ farm, onNavigate, onReset }) {
   }
 
   function next() {
-    if (step === 0 && !examplesReady) setExamplesReady(true);
-    if (step === 0) {
-      farm.seedTutorialData();
-      setExamplesReady(true);
-      setStep(1);
-      onNavigate('units');
-      return;
-    }
-    if (step === steps.length - 1) {
-      finish(true);
-      return;
-    }
+    if (step === 0) { farm.seedTutorialData(); setExamplesReady(true); }
+    if (step === steps.length - 1) { finish(true); return; }
     const nextStep = step + 1;
     setStep(nextStep);
     onNavigate(steps[nextStep].tab);
@@ -75,41 +81,20 @@ export default function OnboardingTour({ farm, onNavigate, onReset }) {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[100] px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:px-4" role="dialog" aria-modal="false" aria-labelledby="mazao-onboarding-title">
-      <section className="mx-auto w-full max-w-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[0_-8px_35px_rgba(0,0,0,0.14)]" style={{ background: 'var(--surface)', color: 'var(--ink)', border: '1px solid var(--line)' }}>
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--forest-tint)', color: 'var(--forest)' }}><Icon size={19} /></div>
+    <div className="fixed inset-x-0 bottom-[calc(4.7rem+env(safe-area-inset-bottom))] z-[100] px-2 sm:bottom-4 sm:px-4" role="dialog" aria-modal="false" aria-labelledby="mazao-onboarding-title">
+      <section className="mx-auto w-full max-w-2xl rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-[0_-8px_35px_rgba(0,0,0,0.14)]" style={{ background: 'var(--surface)', color: 'var(--ink)', border: '1px solid var(--line)' }}>
+        <div className="flex items-start gap-2.5">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--forest-tint)', color: 'var(--forest)' }}><Icon size={18} /></div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <div className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--forest)' }}>Getting started · {step + 1}/{steps.length}</div>
-              <button type="button" onClick={() => finish(false)} className="p-1.5 rounded-lg shrink-0" aria-label="Close tutorial"><X size={17} /></button>
-            </div>
-            <h2 id="mazao-onboarding-title" className="font-display text-lg sm:text-xl font-semibold leading-tight mt-0.5">{current.title}</h2>
-            <p className="text-xs sm:text-sm leading-5 mt-1" style={{ color: 'var(--ink-soft)' }}>{current.body}</p>
+            <div className="flex items-center justify-between gap-2"><div className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--forest)' }}>Getting started · {step + 1}/{steps.length}</div><button type="button" onClick={() => finish(false)} className="p-1 rounded-lg shrink-0" aria-label="Close tutorial"><X size={17} /></button></div>
+            <h2 id="mazao-onboarding-title" className="font-display text-base sm:text-xl font-semibold leading-tight mt-0.5">{current.title}</h2>
+            <p className="text-[11px] sm:text-sm leading-4 sm:leading-5 mt-1" style={{ color: 'var(--ink-soft)' }}>{current.body}</p>
           </div>
         </div>
-
-        {step === 0 && (
-          <div className="mt-3 rounded-xl px-3 py-2.5 text-xs" style={{ background: 'var(--surface-alt)', border: '1px solid var(--line)' }}>
-            <strong>Tip:</strong> You will see the real app behind this card. Follow the highlighted instruction, then come back here and tap Next.
-          </div>
-        )}
-
-        {step >= 5 && step <= 7 && (
-          <div className="mt-3 flex gap-1.5" aria-label="Example data loaded">
-            {['50 layers', '30 trays', 'KSh 5,250 costs', '50 kg stock'].map((item) => <span key={item} className="text-[10px] sm:text-xs px-2 py-1 rounded-full" style={{ background: 'var(--forest-tint)', color: 'var(--forest)' }}>{item}</span>)}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between gap-2 mt-3">
-          <button type="button" onClick={() => finish(false)} className="text-xs sm:text-sm px-1.5 py-2" style={{ color: 'var(--ink-soft)' }}>Skip tour</button>
-          <div className="flex items-center gap-1.5">
-            {step > 0 && <button type="button" onClick={back} className="btn-ghost rounded-xl px-3 py-2 text-xs sm:text-sm inline-flex items-center gap-1"><ArrowLeft size={14} /> Back</button>}
-            <button type="button" onClick={next} className="btn-primary rounded-xl px-3.5 py-2 text-xs sm:text-sm inline-flex items-center gap-1.5">
-              {step === 0 ? 'Start the tour' : current.action || 'Next'}
-              {step !== steps.length - 1 && <ArrowRight size={14} />}
-            </button>
-          </div>
+        {examplesReady && step >= 6 && step <= 10 && <div className="mt-2.5 flex gap-1.5 overflow-x-auto" aria-label="Example data loaded">{['50 layers', '30 trays', 'KSh 5,250 costs', '50 kg stock'].map((item) => <span key={item} className="text-[9px] sm:text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: 'var(--forest-tint)', color: 'var(--forest)' }}>{item}</span>)}</div>}
+        <div className="flex items-center justify-between gap-2 mt-2.5">
+          <button type="button" onClick={() => finish(false)} className="text-[11px] sm:text-sm px-1 py-2" style={{ color: 'var(--ink-soft)' }}>Skip</button>
+          <div className="flex items-center gap-1.5">{step > 0 && <button type="button" onClick={back} className="btn-ghost rounded-xl px-2.5 py-2 text-[11px] sm:text-sm inline-flex items-center gap-1"><ArrowLeft size={14} /> Back</button>}<button type="button" onClick={next} disabled={current.mode === 'tap'} className="btn-primary rounded-xl px-3.5 py-2 text-[11px] sm:text-sm inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-default">{current.mode === 'tap' ? current.targetLabel : current.mode === 'finish' ? current.targetLabel : step === 0 ? 'Start the tour' : 'Next'}{current.mode !== 'finish' && <ArrowRight size={14} />}</button></div>
         </div>
       </section>
     </div>
