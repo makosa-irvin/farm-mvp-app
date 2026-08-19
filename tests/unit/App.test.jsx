@@ -9,7 +9,7 @@ describe('App — Header/NavTabs/MainContent composition', () => {
 
   it('renders the header and starts on the Dashboard tab', () => {
     render(<App />);
-    expect(screen.getByText('Field Ledger')).toBeInTheDocument();
+    expect(screen.getByText('Mazaosmart')).toBeInTheDocument();
     expect(screen.getByText('No farm groups yet')).toBeInTheDocument(); // Dashboard empty state
   });
 

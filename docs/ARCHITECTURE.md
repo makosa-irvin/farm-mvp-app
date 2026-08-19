@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Field Ledger is a client-side React application designed around three constraints:
+Mazaosmart is a client-side React application designed around three constraints:
 
 1. Farm records must remain usable without internet access.
 2. Inventory, expense, and production records must stay internally consistent.

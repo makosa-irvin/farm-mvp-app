@@ -1,6 +1,6 @@
 # Coding Standards
 
-These conventions keep Field Ledger predictable to maintain and safe to change. They are intentionally practical: prefer simple code, explicit domain rules, and tests that protect user data.
+These conventions keep Mazaosmart predictable to maintain and safe to change. They are intentionally practical: prefer simple code, explicit domain rules, and tests that protect user data.
 
 ## 1. General principles
 

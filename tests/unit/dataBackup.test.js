@@ -33,16 +33,16 @@ describe('validateBackup', () => {
   });
 
   it('rejects a file with the wrong kind marker', () => {
-    expect(() => validateBackup({ ...validPayload(), kind: 'something-else' })).toThrow('not a Field Ledger backup');
+    expect(() => validateBackup({ ...validPayload(), kind: 'something-else' })).toThrow('not a Mazaosmart backup');
   });
 
   it('rejects a completely unrelated JSON file (no kind at all)', () => {
-    expect(() => validateBackup({ hello: 'world' })).toThrow('not a Field Ledger backup');
+    expect(() => validateBackup({ hello: 'world' })).toThrow('not a Mazaosmart backup');
   });
 
   it('rejects null/undefined payloads without crashing', () => {
-    expect(() => validateBackup(null)).toThrow('not a Field Ledger backup');
-    expect(() => validateBackup(undefined)).toThrow('not a Field Ledger backup');
+    expect(() => validateBackup(null)).toThrow('not a Mazaosmart backup');
+    expect(() => validateBackup(undefined)).toThrow('not a Mazaosmart backup');
   });
 
   it('rejects an unsupported version, naming the version in the error', () => {
@@ -92,8 +92,8 @@ describe('readBackupFile', () => {
     await expect(readBackupFile(fakeFile('{ not: valid json'))).rejects.toThrow('not valid JSON');
   });
 
-  it('rejects a valid JSON file that is not a Field Ledger backup', async () => {
-    await expect(readBackupFile(fakeFile(JSON.stringify({ some: 'other file' })))).rejects.toThrow('not a Field Ledger backup');
+  it('rejects a valid JSON file that is not a Mazaosmart backup', async () => {
+    await expect(readBackupFile(fakeFile(JSON.stringify({ some: 'other file' })))).rejects.toThrow('not a Mazaosmart backup');
   });
 });
 

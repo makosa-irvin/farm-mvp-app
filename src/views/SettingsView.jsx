@@ -75,7 +75,7 @@ export default function SettingsView({ exportData, importData }) {
           <div>
             <h2 className="font-semibold">Privacy boundary</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>
-              Field Ledger has no backend account or automatic cloud sync. Exported files are controlled by you and should be stored somewhere safe.
+              Mazaosmart has no backend account or automatic cloud sync. Exported files are controlled by you and should be stored somewhere safe.
             </p>
           </div>
         </div>

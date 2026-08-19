@@ -1,8 +1,8 @@
-# Field Ledger — Design Plan
+# Mazaosmart — Design Plan
 
 ## 1. Product intent
 
-Field Ledger is a mobile-first farm operations tracker for smallholder and small-commercial farms. The product is designed around a practical user who may have limited accounting experience, limited technical experience, and unreliable internet access.
+Mazaosmart is a mobile-first farm operations tracker for smallholder and small-commercial farms. The product is designed around a practical user who may have limited accounting experience, limited technical experience, and unreliable internet access.
 
 The product should make common farm records quick to capture and should turn those records into useful operational information without requiring the user to understand accounting terminology.
 

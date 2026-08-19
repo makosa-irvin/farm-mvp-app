@@ -34,7 +34,7 @@ function asArray(value) {
 
 export function validateBackup(payload) {
   if (!payload || payload.kind !== BACKUP_KIND) {
-    throw new Error('This file is not a Field Ledger backup.');
+    throw new Error('This file is not a Mazaosmart backup.');
   }
   if (payload.version !== BACKUP_VERSION) {
     throw new Error(`Unsupported backup version: ${payload.version ?? 'unknown'}.`);

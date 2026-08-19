@@ -24,7 +24,7 @@ describe('PWAInstallPrompt', () => {
 
   it('renders nothing before any beforeinstallprompt event fires', () => {
     render(<PWAInstallPrompt />);
-    expect(screen.queryByLabelText('Install Field Ledger')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Install Mazaosmart')).not.toBeInTheDocument();
   });
 
   it('shows the prompt once the browser fires beforeinstallprompt', async () => {
@@ -32,7 +32,7 @@ describe('PWAInstallPrompt', () => {
     await act(async () => {
       fireBeforeInstallPrompt();
     });
-    expect(screen.getByLabelText('Install Field Ledger')).toBeInTheDocument();
+    expect(screen.getByLabelText('Install Mazaosmart')).toBeInTheDocument();
   });
 
   it('calls preventDefault on the browser event, so the browser\'s own native prompt does not also appear', async () => {
@@ -56,7 +56,7 @@ describe('PWAInstallPrompt', () => {
     });
 
     expect(event.prompt).toHaveBeenCalledTimes(1);
-    expect(screen.queryByLabelText('Install Field Ledger')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Install Mazaosmart')).not.toBeInTheDocument();
   });
 
   it('clicking dismiss hides the banner and remembers the dismissal in sessionStorage', async () => {
@@ -67,7 +67,7 @@ describe('PWAInstallPrompt', () => {
 
     fireEvent.click(screen.getByLabelText('Dismiss install prompt'));
 
-    expect(screen.queryByLabelText('Install Field Ledger')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Install Mazaosmart')).not.toBeInTheDocument();
     expect(sessionStorage.getItem('field-ledger-install-dismissed')).toBe('1');
   });
 
@@ -77,6 +77,6 @@ describe('PWAInstallPrompt', () => {
     await act(async () => {
       fireBeforeInstallPrompt();
     });
-    expect(screen.queryByLabelText('Install Field Ledger')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Install Mazaosmart')).not.toBeInTheDocument();
   });
 });

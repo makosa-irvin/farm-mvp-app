@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('app loads and every tab is reachable', async ({ page }) => {
-  await expect(page.getByText('Field Ledger')).toBeVisible();
+  await expect(page.getByText('Mazaosmart')).toBeVisible();
 
   for (const tabName of ['Daily log', 'Expenses', 'Stock', 'Groups', 'Analytics', 'Dashboard']) {
     await page.getByRole('button', { name: tabName, exact: true }).click();
