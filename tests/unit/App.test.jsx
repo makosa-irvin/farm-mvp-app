@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import App from '../../src/App.jsx';
 import Header from '../../src/layout/Header.jsx';
 import { TABS } from '../../src/constants.js';
@@ -72,5 +72,39 @@ describe('App — mobile navigation wiring', () => {
     fireEvent.click(settingsButtons[settingsButtons.length - 1]);
 
     expect(onSelectTab).toHaveBeenCalledWith('settings');
+  });
+});
+
+describe('App — font-size preference reaches the document root, not just an inner div', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-font-size');
+  });
+
+  // Regression test for a confirmed bug: rem units, which every Tailwind
+  // text-size utility compiles to (used throughout essentially every
+  // view in this app), are always relative to the root <html> element's
+  // font-size — never to a descendant div. Applying data-font-size only
+  // to the .farm-app div left almost all of the app's text completely
+  // unaffected by this setting, despite Settings explicitly promising
+  // "Easier to read" / "Highest visibility" for the Large/Extra large
+  // options.
+  it('applies data-font-size to <html> on initial load, matching the saved preference', () => {
+    localStorage.setItem('mazaosmart-font-size', 'large');
+    render(<App />);
+    expect(document.documentElement.getAttribute('data-font-size')).toBe('large');
+  });
+
+  it('defaults to "default" on <html> when no preference has been saved', () => {
+    render(<App />);
+    expect(document.documentElement.getAttribute('data-font-size')).toBe('default');
+  });
+
+  it('updates <html> when the font-size-changed event fires elsewhere (e.g. from Settings)', () => {
+    render(<App />);
+    act(() => {
+      window.dispatchEvent(new CustomEvent('mazaosmart-font-size-changed', { detail: 'x-large' }));
+    });
+    expect(document.documentElement.getAttribute('data-font-size')).toBe('x-large');
   });
 });
