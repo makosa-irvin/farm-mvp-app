@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import OnboardingTour, { STORAGE_KEY, steps } from './OnboardingTour.jsx';
+import OnboardingTour, { STORAGE_KEY, steps } from '../../src/components/OnboardingTour.jsx';
 
 const farm = {
   seedTutorialData: vi.fn(),
