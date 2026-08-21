@@ -373,3 +373,58 @@ describe('useFarmData — backup export/import round-trip', () => {
     expect(result.current.expenses).toEqual(originalExpenses);
   });
 });
+
+describe('useFarmData — abandoned onboarding tour leaves no permanent tutorial data', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('mount-time cleanup removes tutorial data left over from a previous, abandoned session', () => {
+    const toasts = [];
+    const confirm = async () => true;
+
+    const { result: firstSession, unmount } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+    act(() => {
+      firstSession.current.seedTutorialData();
+    });
+    expect(firstSession.current.units.some((u) => u.tutorial)).toBe(true);
+    unmount(); // the tab "closes" — no resetTutorialData() call happens
+
+    const { result: secondSession } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+    expect(secondSession.current.units.some((u) => u.tutorial)).toBe(false);
+  });
+
+  it('does not disturb real farm data while cleaning up leftover tutorial data', () => {
+    const toasts = [];
+    const confirm = async () => true;
+    const { result: firstSession, unmount } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      firstSession.current.addUnit({ id: 'real-unit', name: 'My Real Farm Group', type: 'eggs', initialCount: 50, startDate: '2026-08-01' });
+      firstSession.current.seedTutorialData();
+    });
+    unmount();
+
+    const { result: secondSession } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+    expect(secondSession.current.units).toEqual([
+      { id: 'real-unit', name: 'My Real Farm Group', type: 'eggs', initialCount: 50, startDate: '2026-08-01' },
+    ]);
+  });
+
+  it('the beforeunload handler cleans up tutorial data still present in localStorage at unload time', () => {
+    const toasts = [];
+    const confirm = async () => true;
+    const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
+
+    act(() => {
+      result.current.seedTutorialData();
+    });
+    expect(JSON.parse(localStorage.getItem('farm-units')).some((u) => u.tutorial)).toBe(true);
+
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+
+    expect(JSON.parse(localStorage.getItem('farm-units')).some((u) => u.tutorial)).toBe(false);
+  });
+});

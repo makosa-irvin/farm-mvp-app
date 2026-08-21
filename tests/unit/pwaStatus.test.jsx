@@ -58,13 +58,13 @@ describe('PWAStatus', () => {
     expect(screen.queryByRole('button', { name: /Update available/ })).not.toBeInTheDocument();
   });
 
-  it('shows "Update available" after the service worker posts FIELD_LEDGER_UPDATE_READY', () => {
+  it('shows "Update available" after the service worker posts MAZAOSMART_UPDATE_READY', () => {
     const sw = new EventTarget();
     navigator.serviceWorker = sw;
     render(<PWAStatus lastSavedAt={null} />);
 
     act(() => {
-      const event = new MessageEvent('message', { data: { type: 'FIELD_LEDGER_UPDATE_READY' } });
+      const event = new MessageEvent('message', { data: { type: 'MAZAOSMART_UPDATE_READY' } });
       sw.dispatchEvent(event);
     });
 
@@ -93,7 +93,7 @@ describe('PWAStatus', () => {
 
     render(<PWAStatus lastSavedAt={null} />);
     act(() => {
-      sw.dispatchEvent(new MessageEvent('message', { data: { type: 'FIELD_LEDGER_UPDATE_READY' } }));
+      sw.dispatchEvent(new MessageEvent('message', { data: { type: 'MAZAOSMART_UPDATE_READY' } }));
     });
     screen.getByRole('button', { name: /Update available/ }).click();
 

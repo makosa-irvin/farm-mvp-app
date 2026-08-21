@@ -16,7 +16,7 @@ export default function PWAStatus({ lastSavedAt }) {
 
   useEffect(() => {
     const onMessage = (event) => {
-      if (event.data?.type === 'FIELD_LEDGER_UPDATE_READY') setUpdateAvailable(true);
+      if (event.data?.type === 'MAZAOSMART_UPDATE_READY') setUpdateAvailable(true);
     };
     navigator.serviceWorker?.addEventListener('message', onMessage);
     return () => navigator.serviceWorker?.removeEventListener('message', onMessage);
