@@ -14,8 +14,23 @@ function setupFarm(toasts) {
   const confirm = async () => true;
   const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
   act(() => {
-    result.current.addUnit({ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0.2 });
-    result.current.addInventoryItem({ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 0, reorderLevel: 20, unitCost: 0 });
+    result.current.addUnit({
+      id: 'u1',
+      name: 'Layer House A',
+      type: 'eggs',
+      initialCount: 100,
+      startDate: '2026-08-01',
+      producePrice: 0.2,
+    });
+    result.current.addInventoryItem({
+      id: 'i1',
+      name: 'Layer Mash',
+      category: 'Feed',
+      unit: 'kg',
+      openingStock: 0,
+      reorderLevel: 20,
+      unitCost: 0,
+    });
   });
   return result;
 }
@@ -23,8 +38,14 @@ function setupFarm(toasts) {
 function addFeedExpense(result, overrides = {}) {
   act(() => {
     result.current.addExpense({
-      id: 'e1', category: 'feed', amount: 105, date: '2026-08-17',
-      unitId: null, description: '', inventoryItemId: 'i1', inventoryQuantity: 150,
+      id: 'e1',
+      category: 'feed',
+      amount: 105,
+      date: '2026-08-17',
+      unitId: null,
+      description: '',
+      inventoryItemId: 'i1',
+      inventoryQuantity: 150,
       createdAt: Date.now(),
       ...overrides,
     });
@@ -34,8 +55,20 @@ function addFeedExpense(result, overrides = {}) {
 function addFeedLog(result) {
   act(() => {
     result.current.addLog(
-      { id: 'l1', unitId: 'u1', date: '2026-08-18', produced: 90, grades: { large: 60, medium: 25, small: 5 }, loss: 4, feedKg: 45, feedQuantity: 45, feedItemId: 'i1', mortality: 1, notes: '' },
-      result.current.units[0]
+      {
+        id: 'l1',
+        unitId: 'u1',
+        date: '2026-08-18',
+        produced: 90,
+        grades: { large: 60, medium: 25, small: 5 },
+        loss: 4,
+        feedKg: 45,
+        feedQuantity: 45,
+        feedItemId: 'i1',
+        mortality: 1,
+        notes: '',
+      },
+      result.current.units[0],
     );
   });
 }
@@ -77,8 +110,14 @@ describe('useFarmData — expense/inventory/log linking', () => {
     let updateResult;
     act(() => {
       updateResult = result.current.updateExpense({
-        id: 'e1', category: 'feed', amount: 28, date: '2026-08-17',
-        unitId: null, description: '', inventoryItemId: 'i1', inventoryQuantity: 40,
+        id: 'e1',
+        category: 'feed',
+        amount: 28,
+        date: '2026-08-17',
+        unitId: null,
+        description: '',
+        inventoryItemId: 'i1',
+        inventoryQuantity: 40,
         createdAt: result.current.expenses[0].createdAt,
       });
     });
@@ -96,8 +135,14 @@ describe('useFarmData — expense/inventory/log linking', () => {
     let updateResult;
     act(() => {
       updateResult = result.current.updateExpense({
-        id: 'e1', category: 'feed', amount: 140, date: '2026-08-17',
-        unitId: null, description: '', inventoryItemId: 'i1', inventoryQuantity: 200,
+        id: 'e1',
+        category: 'feed',
+        amount: 140,
+        date: '2026-08-17',
+        unitId: null,
+        description: '',
+        inventoryItemId: 'i1',
+        inventoryQuantity: 200,
         createdAt: result.current.expenses[0].createdAt,
       });
     });
@@ -111,7 +156,9 @@ describe('useFarmData — expense/inventory/log linking', () => {
     addFeedExpense(result);
     addFeedLog(result);
 
-    await act(async () => { await result.current.removeExpense('e1'); });
+    await act(async () => {
+      await result.current.removeExpense('e1');
+    });
 
     expect(result.current.expenses.some((e) => e.id === 'e1')).toBe(true);
     expect(result.current.getBalance('i1')).toBe(105);
@@ -121,10 +168,14 @@ describe('useFarmData — expense/inventory/log linking', () => {
     const result = setupFarm(toasts);
     addFeedExpense(result);
     addFeedLog(result);
-    await act(async () => { await result.current.removeLog('l1'); });
+    await act(async () => {
+      await result.current.removeLog('l1');
+    });
     expect(result.current.getBalance('i1')).toBe(150);
 
-    await act(async () => { await result.current.removeExpense('e1'); });
+    await act(async () => {
+      await result.current.removeExpense('e1');
+    });
 
     expect(result.current.expenses.some((e) => e.id === 'e1')).toBe(false);
     expect(result.current.getBalance('i1')).toBe(0);
@@ -137,7 +188,13 @@ describe('useFarmData — expense/inventory/log linking', () => {
     addFeedExpense(result);
     addFeedLog(result);
 
-    const metrics = unitMetrics(result.current.units[0], result.current.logs, result.current.expenses, 'all', result.current.inventoryTransactions);
+    const metrics = unitMetrics(
+      result.current.units[0],
+      result.current.logs,
+      result.current.expenses,
+      'all',
+      result.current.inventoryTransactions,
+    );
     expect(metrics.directCost).toBeCloseTo(31.5); // 45kg * $0.70/kg, not the full $105
   });
 });
@@ -154,7 +211,13 @@ describe('useFarmData — manual inventory ledger and unit cascade', () => {
     const result = setupFarm(toasts);
     let tx;
     act(() => {
-      tx = result.current.addInventoryTransaction({ itemId: 'i1', transactionType: 'purchase', quantity: 20, date: '2026-08-17', unitCost: 4 });
+      tx = result.current.addInventoryTransaction({
+        itemId: 'i1',
+        transactionType: 'purchase',
+        quantity: 20,
+        date: '2026-08-17',
+        unitCost: 4,
+      });
     });
     expect(tx).toBeTruthy();
     expect(result.current.getBalance('i1')).toBe(20);
@@ -162,12 +225,23 @@ describe('useFarmData — manual inventory ledger and unit cascade', () => {
 
   it('records a transfer as a balance-neutral paired out/in entry', () => {
     const result = setupFarm(toasts);
-    act(() => { result.current.addUnit({ id: 'u2', name: 'Barn B', type: 'milk', initialCount: 20, startDate: '2026-08-01' }); });
-    act(() => { result.current.addInventoryTransaction({ itemId: 'i1', transactionType: 'purchase', quantity: 20, date: '2026-08-17', unitCost: 4 }); });
+    act(() => {
+      result.current.addUnit({ id: 'u2', name: 'Barn B', type: 'milk', initialCount: 20, startDate: '2026-08-01' });
+    });
+    act(() => {
+      result.current.addInventoryTransaction({ itemId: 'i1', transactionType: 'purchase', quantity: 20, date: '2026-08-17', unitCost: 4 });
+    });
 
     let transferResult;
     act(() => {
-      transferResult = result.current.addInventoryTransaction({ itemId: 'i1', transactionType: 'transfer', quantity: 5, date: '2026-08-18', sourceUnitId: 'u1', destinationUnitId: 'u2' });
+      transferResult = result.current.addInventoryTransaction({
+        itemId: 'i1',
+        transactionType: 'transfer',
+        quantity: 5,
+        date: '2026-08-18',
+        sourceUnitId: 'u1',
+        destinationUnitId: 'u2',
+      });
     });
 
     expect(transferResult).toBeTruthy();
@@ -178,10 +252,25 @@ describe('useFarmData — manual inventory ledger and unit cascade', () => {
 
   it('removing a unit un-attributes its expenses and cleans up its transactions, without deleting the expenses themselves', async () => {
     const result = setupFarm(toasts);
-    act(() => { result.current.addUnit({ id: 'u2', name: 'Barn B', type: 'milk', initialCount: 20, startDate: '2026-08-01' }); });
-    act(() => { result.current.addExpense({ id: 'e2', category: 'labor', amount: 50, date: '2026-08-17', unitId: 'u2', description: '', inventoryItemId: null, inventoryQuantity: null }); });
+    act(() => {
+      result.current.addUnit({ id: 'u2', name: 'Barn B', type: 'milk', initialCount: 20, startDate: '2026-08-01' });
+    });
+    act(() => {
+      result.current.addExpense({
+        id: 'e2',
+        category: 'labor',
+        amount: 50,
+        date: '2026-08-17',
+        unitId: 'u2',
+        description: '',
+        inventoryItemId: null,
+        inventoryQuantity: null,
+      });
+    });
 
-    await act(async () => { await result.current.removeUnit('u2'); });
+    await act(async () => {
+      await result.current.removeUnit('u2');
+    });
 
     expect(result.current.units.some((u) => u.id === 'u2')).toBe(false);
     expect(result.current.expenses.find((e) => e.id === 'e2').unitId).toBeNull();
@@ -207,11 +296,37 @@ describe('synthetic (non-cash) expense records — must not be editable via expe
     const confirm = async () => true;
     const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
     act(() => {
-      result.current.addUnit({ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 0 });
-      result.current.addInventoryItem({ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 100, reorderLevel: 20, unitCost: 50 });
+      result.current.addUnit({
+        id: 'u1',
+        name: 'Layer House A',
+        type: 'eggs',
+        initialCount: 100,
+        startDate: '2026-08-01',
+        producePrice: 0,
+      });
+      result.current.addInventoryItem({
+        id: 'i1',
+        name: 'Layer Mash',
+        category: 'Feed',
+        unit: 'kg',
+        openingStock: 100,
+        reorderLevel: 20,
+        unitCost: 50,
+      });
     });
     act(() => {
-      result.current.addInventoryMove({ id: 'txn1', itemId: 'i1', transactionType: 'wastage', direction: 'out', quantity: 10, unit: 'kg', unitCost: 50, date: '2026-08-10', unitId: 'u1', note: '' });
+      result.current.addInventoryMove({
+        id: 'txn1',
+        itemId: 'i1',
+        transactionType: 'wastage',
+        direction: 'out',
+        quantity: 10,
+        unit: 'kg',
+        unitCost: 50,
+        date: '2026-08-10',
+        unitId: 'u1',
+        note: '',
+      });
     });
     return result;
   }
@@ -222,7 +337,9 @@ describe('synthetic (non-cash) expense records — must not be editable via expe
     const synthetic = result.current.expenses.find((e) => e.inventoryTransactionId === 'txn1');
     expect(synthetic).toBeTruthy();
 
-    await act(async () => { await result.current.removeExpense(synthetic.id); });
+    await act(async () => {
+      await result.current.removeExpense(synthetic.id);
+    });
 
     expect(result.current.expenses.some((e) => e.id === synthetic.id)).toBe(true); // refused, not removed
     expect(result.current.inventoryTransactions.some((t) => t.id === 'txn1')).toBe(true); // never at risk
@@ -234,7 +351,9 @@ describe('synthetic (non-cash) expense records — must not be editable via expe
     const result = setupFarmWithWastage(toasts);
     const synthetic = result.current.expenses.find((e) => e.inventoryTransactionId === 'txn1');
 
-    act(() => { result.current.updateExpense({ ...synthetic, description: 'edited note' }); });
+    act(() => {
+      result.current.updateExpense({ ...synthetic, description: 'edited note' });
+    });
 
     expect(result.current.inventoryTransactions.find((t) => t.transactionType === 'purchase')).toBeUndefined();
     expect(result.current.expenses.find((e) => e.id === synthetic.id).description).not.toBe('edited note');
@@ -244,9 +363,20 @@ describe('synthetic (non-cash) expense records — must not be editable via expe
     const toasts = [];
     const result = setupFarmWithWastage(toasts);
     act(() => {
-      result.current.addExpense({ id: 'e1', category: 'labor', amount: 200, date: '2026-08-11', unitId: 'u1', description: '', inventoryItemId: null, inventoryQuantity: null });
+      result.current.addExpense({
+        id: 'e1',
+        category: 'labor',
+        amount: 200,
+        date: '2026-08-11',
+        unitId: 'u1',
+        description: '',
+        inventoryItemId: null,
+        inventoryQuantity: null,
+      });
     });
-    await act(async () => { await result.current.removeExpense('e1'); });
+    await act(async () => {
+      await result.current.removeExpense('e1');
+    });
     expect(result.current.expenses.some((e) => e.id === 'e1')).toBe(false); // real removal still works
   });
 });
@@ -269,17 +399,20 @@ describe('useFarmData — backup export/import round-trip', () => {
     expect(result.current.units).toHaveLength(1);
 
     const backupFile = {
-      text: () => Promise.resolve(JSON.stringify({
-        kind: 'mazaosmart-backup',
-        version: 1,
-        data: {
-          units: [{ id: 'u2', name: 'Restored Unit', type: 'milk', initialCount: 20, startDate: '2026-02-01' }],
-          logs: [{ id: 'l1', unitId: 'u2', date: '2026-02-02', produced: 10, mortality: 0 }],
-          expenses: [],
-          inventory: [],
-          inventoryTransactions: [],
-        },
-      })),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            kind: 'mazaosmart-backup',
+            version: 1,
+            data: {
+              units: [{ id: 'u2', name: 'Restored Unit', type: 'milk', initialCount: 20, startDate: '2026-02-01' }],
+              logs: [{ id: 'l1', unitId: 'u2', date: '2026-02-02', produced: 10, mortality: 0 }],
+              expenses: [],
+              inventory: [],
+              inventoryTransactions: [],
+            },
+          }),
+        ),
     };
 
     let success;
@@ -302,11 +435,14 @@ describe('useFarmData — backup export/import round-trip', () => {
     });
 
     const backupFile = {
-      text: () => Promise.resolve(JSON.stringify({
-        kind: 'mazaosmart-backup',
-        version: 1,
-        data: { units: [{ id: 'u2', name: 'Should Not Appear' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] },
-      })),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            kind: 'mazaosmart-backup',
+            version: 1,
+            data: { units: [{ id: 'u2', name: 'Should Not Appear' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] },
+          }),
+        ),
     };
 
     let success;
@@ -343,9 +479,33 @@ describe('useFarmData — backup export/import round-trip', () => {
     const { result } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
 
     act(() => {
-      result.current.addUnit({ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-01-01', producePrice: 12 });
-      result.current.addInventoryItem({ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 50, reorderLevel: 10, unitCost: 70 });
-      result.current.addExpense({ id: 'e1', category: 'labor', amount: 500, date: '2026-01-02', unitId: 'u1', description: '', inventoryItemId: null, inventoryQuantity: null });
+      result.current.addUnit({
+        id: 'u1',
+        name: 'Layer House A',
+        type: 'eggs',
+        initialCount: 100,
+        startDate: '2026-01-01',
+        producePrice: 12,
+      });
+      result.current.addInventoryItem({
+        id: 'i1',
+        name: 'Layer Mash',
+        category: 'Feed',
+        unit: 'kg',
+        openingStock: 50,
+        reorderLevel: 10,
+        unitCost: 70,
+      });
+      result.current.addExpense({
+        id: 'e1',
+        category: 'labor',
+        amount: 500,
+        date: '2026-01-02',
+        unitId: 'u1',
+        description: '',
+        inventoryItemId: null,
+        inventoryQuantity: null,
+      });
     });
 
     const originalUnits = result.current.units;
@@ -400,7 +560,13 @@ describe('useFarmData — abandoned onboarding tour leaves no permanent tutorial
     const { result: firstSession, unmount } = renderHook(() => useFarmData((msg) => toasts.push(msg), confirm));
 
     act(() => {
-      firstSession.current.addUnit({ id: 'real-unit', name: 'My Real Farm Group', type: 'eggs', initialCount: 50, startDate: '2026-08-01' });
+      firstSession.current.addUnit({
+        id: 'real-unit',
+        name: 'My Real Farm Group',
+        type: 'eggs',
+        initialCount: 50,
+        startDate: '2026-08-01',
+      });
       firstSession.current.seedTutorialData();
     });
     unmount();

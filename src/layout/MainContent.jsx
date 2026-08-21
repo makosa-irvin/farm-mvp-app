@@ -14,15 +14,84 @@ import FarmAlerts from '../components/FarmAlerts.jsx';
 export default function MainContent({ tab, farm, setTab }) {
   return (
     <main id="main-content" tabIndex="-1" className="px-5 pt-6 max-w-3xl mx-auto">
-      {tab === 'dashboard' && <div className="space-y-5"><FarmAlerts units={farm.units} logs={farm.logs} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} goTo={setTab} /><Dashboard {...farm} goTo={setTab} /></div>}
-      {tab === 'log' && <DailyLogView units={farm.units} logs={farm.logs} inventory={farm.inventory} getBalance={farm.getBalance} onAdd={farm.addLog} onUpdate={farm.updateLog} onRemove={farm.removeLog} goTo={setTab} />}
-      {tab === 'expenses' && <ExpensesView units={farm.units} inventory={farm.inventory} expenses={farm.expenses} onAdd={farm.addExpense} onUpdate={farm.updateExpense} onRemove={farm.removeExpense} />}
-      {tab === 'inventory' && <InventoryView units={farm.units} transactionTypes={farm.transactionTypes} inventory={farm.inventory} expenses={farm.expenses} moves={farm.inventoryMoves} onAddItem={farm.addInventoryItem} onUpdateItem={farm.updateInventoryItem} onRemoveItem={farm.removeInventoryItem} onAddMove={farm.addInventoryMove} onUpdateMove={farm.updateInventoryMove} onRemoveMove={farm.removeInventoryMove} getExpenseUnitCost={farm.getExpenseUnitCost} />}
-      {tab === 'units' && <UnitsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventoryMoves={farm.inventoryMoves} onAdd={farm.addUnit} onUpdate={farm.updateUnit} onRemove={farm.removeUnit} onNavigateToAnalytics={() => setTab('analytics')} />}
+      {tab === 'dashboard' && (
+        <div className="space-y-5">
+          <FarmAlerts units={farm.units} logs={farm.logs} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} goTo={setTab} />
+          <Dashboard {...farm} goTo={setTab} />
+        </div>
+      )}
+      {tab === 'log' && (
+        <DailyLogView
+          units={farm.units}
+          logs={farm.logs}
+          inventory={farm.inventory}
+          getBalance={farm.getBalance}
+          onAdd={farm.addLog}
+          onUpdate={farm.updateLog}
+          onRemove={farm.removeLog}
+          goTo={setTab}
+        />
+      )}
+      {tab === 'expenses' && (
+        <ExpensesView
+          units={farm.units}
+          inventory={farm.inventory}
+          expenses={farm.expenses}
+          onAdd={farm.addExpense}
+          onUpdate={farm.updateExpense}
+          onRemove={farm.removeExpense}
+        />
+      )}
+      {tab === 'inventory' && (
+        <InventoryView
+          units={farm.units}
+          transactionTypes={farm.transactionTypes}
+          inventory={farm.inventory}
+          expenses={farm.expenses}
+          moves={farm.inventoryMoves}
+          onAddItem={farm.addInventoryItem}
+          onUpdateItem={farm.updateInventoryItem}
+          onRemoveItem={farm.removeInventoryItem}
+          onAddMove={farm.addInventoryMove}
+          onUpdateMove={farm.updateInventoryMove}
+          onRemoveMove={farm.removeInventoryMove}
+          getExpenseUnitCost={farm.getExpenseUnitCost}
+        />
+      )}
+      {tab === 'units' && (
+        <UnitsView
+          units={farm.units}
+          logs={farm.logs}
+          expenses={farm.expenses}
+          inventoryMoves={farm.inventoryMoves}
+          onAdd={farm.addUnit}
+          onUpdate={farm.updateUnit}
+          onRemove={farm.removeUnit}
+          onNavigateToAnalytics={() => setTab('analytics')}
+        />
+      )}
       {tab === 'suppliers' && <SuppliersView expenses={farm.expenses} />}
-      {tab === 'analytics' && <AnalyticsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} />}
-      {tab === 'reports' && <ReportsView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} inventoryMoves={farm.inventoryMoves} />}
-      {tab === 'search' && <SearchView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} goTo={setTab} />}
+      {tab === 'analytics' && (
+        <AnalyticsView
+          units={farm.units}
+          logs={farm.logs}
+          expenses={farm.expenses}
+          inventory={farm.inventory}
+          inventoryMoves={farm.inventoryMoves}
+        />
+      )}
+      {tab === 'reports' && (
+        <ReportsView
+          units={farm.units}
+          logs={farm.logs}
+          expenses={farm.expenses}
+          inventory={farm.inventory}
+          inventoryMoves={farm.inventoryMoves}
+        />
+      )}
+      {tab === 'search' && (
+        <SearchView units={farm.units} logs={farm.logs} expenses={farm.expenses} inventory={farm.inventory} goTo={setTab} />
+      )}
       {tab === 'settings' && <SettingsView exportData={farm.exportData} importData={farm.importData} onNavigate={setTab} />}
       {tab === 'import-records' && <ImportRecordsView farm={farm} onBack={() => setTab('settings')} />}
     </main>

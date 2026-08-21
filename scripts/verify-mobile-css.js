@@ -34,22 +34,25 @@ const CHECKS = [
   {
     name: 'text-size accessibility setting targets <html>, not a descendant div (regression check)',
     pattern: /html\[data-font-size=/,
-    ifMissing: 'The "Text size" setting in Settings would have almost no visible effect: rem units, which every Tailwind text-size utility (text-sm, text-lg, text-xs, ...) compiles to, are always relative to the root <html> element\u2019s font-size, never to a descendant div. This exact bug was found and fixed once already — selecting "Large" or "Extra large" looked like it worked but barely changed anything on screen.',
+    ifMissing:
+      'The "Text size" setting in Settings would have almost no visible effect: rem units, which every Tailwind text-size utility (text-sm, text-lg, text-xs, ...) compiles to, are always relative to the root <html> element\u2019s font-size, never to a descendant div. This exact bug was found and fixed once already — selecting "Large" or "Extra large" looked like it worked but barely changed anything on screen.',
   },
   {
     name: 'mobile media query breakpoint exists',
     pattern: /@media \(max-width:\s*639px\)/,
-    ifMissing: 'None of the mobile-only styles (bottom nav, safe-area padding, touch targets, single-column forms) will apply on a real phone.',
+    ifMissing:
+      'None of the mobile-only styles (bottom nav, safe-area padding, touch targets, single-column forms) will apply on a real phone.',
   },
   {
     name: 'bottom nav is styled',
     pattern: /\._?mobileNav_[a-zA-Z0-9_]+\{[^}]*position:fixed/,
-    ifMissing: 'The mobile bottom navigation bar exists in the DOM but has no fixed positioning — it would render inline in the page flow instead of pinned to the bottom of the screen.',
+    ifMissing:
+      'The mobile bottom navigation bar exists in the DOM but has no fixed positioning — it would render inline in the page flow instead of pinned to the bottom of the screen.',
   },
   {
     name: 'safe-area inset padding exists',
     pattern: /env\(safe-area-inset-bottom\)/,
-    ifMissing: 'The bottom nav and floating quick-actions button could sit under a phone\'s home-indicator area on notched devices.',
+    ifMissing: "The bottom nav and floating quick-actions button could sit under a phone's home-indicator area on notched devices.",
   },
   {
     name: 'form inputs are at least 16px on mobile (iOS zoom prevention)',
@@ -64,7 +67,8 @@ const CHECKS = [
   {
     name: 'core buttons are styled (regression check for the @import-ordering bug)',
     pattern: /\.btn-primary\{/,
-    ifMissing: 'Every primary button in the app would render completely unstyled — this exact failure has happened before in this project via an @import-ordering mistake in index.css.',
+    ifMissing:
+      'Every primary button in the app would render completely unstyled — this exact failure has happened before in this project via an @import-ordering mistake in index.css.',
   },
 ];
 
@@ -102,7 +106,9 @@ function main() {
 
   console.log('');
   if (failures > 0) {
-    console.error(`${failures} of ${CHECKS.length} checks failed. The build succeeded and Vitest would stay green — this is exactly the class of bug those checks can't catch.`);
+    console.error(
+      `${failures} of ${CHECKS.length} checks failed. The build succeeded and Vitest would stay green — this is exactly the class of bug those checks can't catch.`,
+    );
     process.exit(1);
   }
 

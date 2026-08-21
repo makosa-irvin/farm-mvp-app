@@ -16,5 +16,5 @@ export default mergeConfig(
       include: ['tests/unit/**/*.{test,spec}.{js,jsx}', 'src/**/*.{test,spec}.{js,jsx}'],
       restoreMocks: true,
     },
-  })
+  }),
 );

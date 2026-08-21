@@ -37,8 +37,8 @@ describe('import record mapping', () => {
   it('keeps farm-group quantities and historical dates', () => {
     const rows = parseCsv('Record Type,Date,Farm Group,Quantity\nfarm_group,2024-08-20,Dairy Cows,18\nfarm_group,2025-02-15,Dairy Cows,28');
     const normalized = rows.map(normalizeImportedRow);
-    expect(normalized.map(r => r.quantity)).toEqual([18, 28]);
-    expect(normalized.map(r => r.date)).toEqual(['2024-08-20', '2025-02-15']);
+    expect(normalized.map((r) => r.quantity)).toEqual([18, 28]);
+    expect(normalized.map((r) => r.date)).toEqual(['2024-08-20', '2025-02-15']);
   });
 });
 

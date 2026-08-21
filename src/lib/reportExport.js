@@ -1,12 +1,96 @@
-function csvCell(value){const text=value==null?'':String(value);return `"${text.replaceAll('"','""')}"`;}
-export function downloadCsv(filename,rows){if(!rows.length)return false;const headers=Object.keys(rows[0]);const csv=[headers,...rows.map(r=>headers.map(k=>r[k]))].map(r=>r.map(csvCell).join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);return true;}
+function csvCell(value) {
+  const text = value == null ? '' : String(value);
+  return `"${text.replaceAll('"', '""')}"`;
+}
+export function downloadCsv(filename, rows) {
+  if (!rows.length) return false;
+  const headers = Object.keys(rows[0]);
+  const csv = [headers, ...rows.map((r) => headers.map((k) => r[k]))].map((r) => r.map(csvCell).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+    url = URL.createObjectURL(blob),
+    a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  return true;
+}
 
-export function exportFarmReports({units,logs,expenses,inventory,inventoryMoves}){
- const stamp=new Date().toISOString().slice(0,10);
- downloadCsv(`mazaosmart-production-${stamp}.csv`,logs.map(log=>({date:log.date,group:units.find(u=>u.id===log.unitId)?.name||'',produced:log.produced||0,feedKg:log.feedKg||log.feedQuantity||0,loss:log.loss||0,mortality:log.mortality||0,notes:log.notes||''})));
- downloadCsv(`mazaosmart-expenses-${stamp}.csv`,expenses.map(e=>({date:e.date,group:units.find(u=>u.id===e.unitId)?.name||'',category:e.category||e.expenseType||'',paymentType:e.nonCash?'Non-cash (stock used or lost)':'Cash payment',amount:e.amount||0,supplier:e.supplier||'',paymentMethod:e.paymentMethod||'',description:e.description||''})));
- downloadCsv(`mazaosmart-stock-items-${stamp}.csv`,inventory.map(item=>{const moves=inventoryMoves.filter(m=>m.itemId===item.id);const balance=(Number(item.openingStock)||0)+moves.reduce((s,m)=>s+((m.direction||m.type)==='in'?Number(m.quantity)||0:-(Number(m.quantity)||0)),0);return{item:item.name,category:item.category||'',unit:item.unit||'',openingStock:item.openingStock||0,currentBalance:balance,reorderLevel:item.reorderLevel||0,usualUnitCost:item.unitCost||0,movementCount:moves.length};}));
- downloadCsv(`mazaosmart-stock-movements-${stamp}.csv`,inventoryMoves.map(move=>({date:move.date,item:inventory.find(i=>i.id===move.itemId)?.name||'',category:inventory.find(i=>i.id===move.itemId)?.category||'',group:units.find(u=>u.id===move.unitId)?.name||'',movement:move.transactionType||'',direction:move.direction||move.type||'',quantity:move.quantity||0,unit:move.unit||inventory.find(i=>i.id===move.itemId)?.unit||'',unitCost:move.unitCost||0,totalCost:(Number(move.quantity)||0)*(Number(move.unitCost)||0),source:move.source||'',note:move.note||''})));
- downloadCsv(`mazaosmart-groups-${stamp}.csv`,units.map(u=>({group:u.name,type:u.type,initialQuantity:u.initialCount||0,startDate:u.startDate||'',currentQuantity:Math.max(0,(u.initialCount||0)-logs.filter(l=>l.unitId===u.id).reduce((s,l)=>s+(Number(l.mortality)||0),0))})));
- return true;
+export function exportFarmReports({ units, logs, expenses, inventory, inventoryMoves }) {
+  const stamp = new Date().toISOString().slice(0, 10);
+  downloadCsv(
+    `mazaosmart-production-${stamp}.csv`,
+    logs.map((log) => ({
+      date: log.date,
+      group: units.find((u) => u.id === log.unitId)?.name || '',
+      produced: log.produced || 0,
+      feedKg: log.feedKg || log.feedQuantity || 0,
+      loss: log.loss || 0,
+      mortality: log.mortality || 0,
+      notes: log.notes || '',
+    })),
+  );
+  downloadCsv(
+    `mazaosmart-expenses-${stamp}.csv`,
+    expenses.map((e) => ({
+      date: e.date,
+      group: units.find((u) => u.id === e.unitId)?.name || '',
+      category: e.category || e.expenseType || '',
+      paymentType: e.nonCash ? 'Non-cash (stock used or lost)' : 'Cash payment',
+      amount: e.amount || 0,
+      supplier: e.supplier || '',
+      paymentMethod: e.paymentMethod || '',
+      description: e.description || '',
+    })),
+  );
+  downloadCsv(
+    `mazaosmart-stock-items-${stamp}.csv`,
+    inventory.map((item) => {
+      const moves = inventoryMoves.filter((m) => m.itemId === item.id);
+      const balance =
+        (Number(item.openingStock) || 0) +
+        moves.reduce((s, m) => s + ((m.direction || m.type) === 'in' ? Number(m.quantity) || 0 : -(Number(m.quantity) || 0)), 0);
+      return {
+        item: item.name,
+        category: item.category || '',
+        unit: item.unit || '',
+        openingStock: item.openingStock || 0,
+        currentBalance: balance,
+        reorderLevel: item.reorderLevel || 0,
+        usualUnitCost: item.unitCost || 0,
+        movementCount: moves.length,
+      };
+    }),
+  );
+  downloadCsv(
+    `mazaosmart-stock-movements-${stamp}.csv`,
+    inventoryMoves.map((move) => ({
+      date: move.date,
+      item: inventory.find((i) => i.id === move.itemId)?.name || '',
+      category: inventory.find((i) => i.id === move.itemId)?.category || '',
+      group: units.find((u) => u.id === move.unitId)?.name || '',
+      movement: move.transactionType || '',
+      direction: move.direction || move.type || '',
+      quantity: move.quantity || 0,
+      unit: move.unit || inventory.find((i) => i.id === move.itemId)?.unit || '',
+      unitCost: move.unitCost || 0,
+      totalCost: (Number(move.quantity) || 0) * (Number(move.unitCost) || 0),
+      source: move.source || '',
+      note: move.note || '',
+    })),
+  );
+  downloadCsv(
+    `mazaosmart-groups-${stamp}.csv`,
+    units.map((u) => ({
+      group: u.name,
+      type: u.type,
+      initialQuantity: u.initialCount || 0,
+      startDate: u.startDate || '',
+      currentQuantity: Math.max(
+        0,
+        (u.initialCount || 0) - logs.filter((l) => l.unitId === u.id).reduce((s, l) => s + (Number(l.mortality) || 0), 0),
+      ),
+    })),
+  );
+  return true;
 }

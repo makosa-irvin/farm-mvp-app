@@ -101,7 +101,11 @@ describe('readBackupFile', () => {
   }
 
   it('parses and validates a real backup file', async () => {
-    const payload = { kind: 'mazaosmart-backup', version: 1, data: { units: [{ id: 'u1' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] } };
+    const payload = {
+      kind: 'mazaosmart-backup',
+      version: 1,
+      data: { units: [{ id: 'u1' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] },
+    };
     const result = await readBackupFile(fakeFile(JSON.stringify(payload)));
     expect(result.units).toEqual([{ id: 'u1' }]);
   });

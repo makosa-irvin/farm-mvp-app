@@ -36,14 +36,15 @@ export function filterAnalyticsData({ units = [], logs = [], expenses = [], inve
   return {
     units: units.filter((u) => unitId === 'all' || u.id === unitId),
     logs: logs.filter((l) => inRange(l.date) && (unitId === 'all' || l.unitId === unitId)),
-    expenses: expenses.filter((e) =>
-      inRange(e.date) &&
-      (unitId === 'all' || e.unitId === unitId) &&
-      (expenseType === 'all' || (e.category || e.expenseType || 'other') === expenseType)
+    expenses: expenses.filter(
+      (e) =>
+        inRange(e.date) &&
+        (unitId === 'all' || e.unitId === unitId) &&
+        (expenseType === 'all' || (e.category || e.expenseType || 'other') === expenseType),
     ),
     inventory: inventory.filter((i) => itemId === 'all' || i.id === itemId),
-    inventoryMoves: inventoryMoves.filter((m) =>
-      inRange(m.date) && (unitId === 'all' || m.unitId === unitId) && (itemId === 'all' || m.itemId === itemId)
+    inventoryMoves: inventoryMoves.filter(
+      (m) => inRange(m.date) && (unitId === 'all' || m.unitId === unitId) && (itemId === 'all' || m.itemId === itemId),
     ),
   };
 }
@@ -70,18 +71,20 @@ export function buildFeedAnalysis(data, filters = {}) {
   const wastage = moves.filter((m) => m.transactionType === 'wastage' && (m.direction || m.type) === 'out');
   const purchases = moves.filter((m) => m.transactionType === 'purchase' && (m.direction || m.type) === 'in');
 
-  const rows = d.inventory.filter((i) => feedIds.has(i.id)).map((item) => {
-    const itemMoves = moves.filter((m) => m.itemId === item.id);
-    return {
-      id: item.id,
-      name: item.name,
-      unit: item.unit || 'units',
-      consumed: itemMoves.filter((m) => m.transactionType === 'consumption').reduce((s, m) => s + num(m.quantity), 0),
-      wastage: itemMoves.filter((m) => m.transactionType === 'wastage').reduce((s, m) => s + num(m.quantity), 0),
-      purchased: itemMoves.filter((m) => m.transactionType === 'purchase').reduce((s, m) => s + num(m.quantity), 0),
-      cost: itemMoves.filter(isInventoryCostDeduction).reduce((s, m) => s + inventoryTransactionCost(m), 0),
-    };
-  });
+  const rows = d.inventory
+    .filter((i) => feedIds.has(i.id))
+    .map((item) => {
+      const itemMoves = moves.filter((m) => m.itemId === item.id);
+      return {
+        id: item.id,
+        name: item.name,
+        unit: item.unit || 'units',
+        consumed: itemMoves.filter((m) => m.transactionType === 'consumption').reduce((s, m) => s + num(m.quantity), 0),
+        wastage: itemMoves.filter((m) => m.transactionType === 'wastage').reduce((s, m) => s + num(m.quantity), 0),
+        purchased: itemMoves.filter((m) => m.transactionType === 'purchase').reduce((s, m) => s + num(m.quantity), 0),
+        cost: itemMoves.filter(isInventoryCostDeduction).reduce((s, m) => s + inventoryTransactionCost(m), 0),
+      };
+    });
 
   const feedCost = consumption.reduce((s, m) => s + inventoryTransactionCost(m), 0);
   const consumed = consumption.reduce((s, m) => s + num(m.quantity), 0);
@@ -219,29 +222,49 @@ export function downloadComprehensiveAnalysis(data, filters = {}) {
   add('Summary', { metric: 'Feed cost', value: report.summary.feedCost });
   add('Summary', { metric: 'Feed wastage', value: report.summary.wastage });
 
-  report.feed.rows.forEach((r) => add('Feed', { item: r.name, unit: r.unit, consumed: r.consumed, wastage: r.wastage, purchased: r.purchased, cost: r.cost }));
+  report.feed.rows.forEach((r) =>
+    add('Feed', { item: r.name, unit: r.unit, consumed: r.consumed, wastage: r.wastage, purchased: r.purchased, cost: r.cost }),
+  );
   report.expenses.byType.forEach((r) => add('Expense type', { type: r.type, amount: r.amount }));
   report.production.byMonth.forEach((r) => add('Production trend', { month: r.month, produced: r.value }));
 
-  report.rows.logs.forEach((l) => add('Production record', {
-    date: l.date, group: data.units.find((u) => u.id === l.unitId)?.name || '',
-    produced: num(l.produced), feedKg: num(l.feedQuantity ?? l.feedKg), loss: num(l.loss), mortality: num(l.mortality),
-  }));
-  report.rows.expenses.forEach((e) => add('Expense record', {
-    date: e.date, group: data.units.find((u) => u.id === e.unitId)?.name || '', type: e.category || e.expenseType || '',
-    // Same marker added to the plain expenses CSV export (reportExport.js)
-    // for the same reason: a raw per-record listing that doesn't
-    // distinguish a real cash payment from the app's auto-generated
-    // non-cash "stock used or lost" echo risks someone reconciling this
-    // file against a bank/M-Pesa statement double-counting by hand, even
-    // though the Summary section above is computed correctly.
-    paymentType: e.nonCash ? 'Non-cash (stock used or lost)' : 'Cash payment',
-    amount: num(e.amount), description: e.description || '',
-  }));
-  report.rows.inventoryMoves.forEach((m) => add('Stock movement', {
-    date: m.date, item: data.inventory.find((i) => i.id === m.itemId)?.name || '', group: data.units.find((u) => u.id === m.unitId)?.name || '',
-    movement: m.transactionType || '', quantity: num(m.quantity), unitCost: num(m.unitCost), totalCost: num(m.quantity) * num(m.unitCost),
-  }));
+  report.rows.logs.forEach((l) =>
+    add('Production record', {
+      date: l.date,
+      group: data.units.find((u) => u.id === l.unitId)?.name || '',
+      produced: num(l.produced),
+      feedKg: num(l.feedQuantity ?? l.feedKg),
+      loss: num(l.loss),
+      mortality: num(l.mortality),
+    }),
+  );
+  report.rows.expenses.forEach((e) =>
+    add('Expense record', {
+      date: e.date,
+      group: data.units.find((u) => u.id === e.unitId)?.name || '',
+      type: e.category || e.expenseType || '',
+      // Same marker added to the plain expenses CSV export (reportExport.js)
+      // for the same reason: a raw per-record listing that doesn't
+      // distinguish a real cash payment from the app's auto-generated
+      // non-cash "stock used or lost" echo risks someone reconciling this
+      // file against a bank/M-Pesa statement double-counting by hand, even
+      // though the Summary section above is computed correctly.
+      paymentType: e.nonCash ? 'Non-cash (stock used or lost)' : 'Cash payment',
+      amount: num(e.amount),
+      description: e.description || '',
+    }),
+  );
+  report.rows.inventoryMoves.forEach((m) =>
+    add('Stock movement', {
+      date: m.date,
+      item: data.inventory.find((i) => i.id === m.itemId)?.name || '',
+      group: data.units.find((u) => u.id === m.unitId)?.name || '',
+      movement: m.transactionType || '',
+      quantity: num(m.quantity),
+      unitCost: num(m.unitCost),
+      totalCost: num(m.quantity) * num(m.unitCost),
+    }),
+  );
 
   const headers = [...new Set(rows.flatMap((r) => Object.keys(r)))];
   const cell = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;

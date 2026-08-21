@@ -19,7 +19,11 @@ export default function App() {
   const [fontSize, setFontSize] = useState(() => localStorage.getItem(FONT_SIZE_KEY) || 'default');
   const [lastSavedAt, setLastSavedAt] = useState(() => localStorage.getItem('mazaosmart-last-saved-at') || '');
   const toastTimer = useRef(null);
-  const showToast = (message) => { setToast(message); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 3800); };
+  const showToast = (message) => {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3800);
+  };
   const { confirm, dialogProps } = useConfirmDialog();
   const farm = useFarmData(showToast, confirm);
 
@@ -45,9 +49,18 @@ export default function App() {
 
   return (
     <div className="farm-app min-h-screen pb-16" data-font-size={fontSize}>
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:px-3 focus:py-2" style={{ background: 'var(--surface)', color: 'var(--forest)', border: '1px solid var(--line)' }}>Skip to main content</a>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:px-3 focus:py-2"
+        style={{ background: 'var(--surface)', color: 'var(--forest)', border: '1px solid var(--line)' }}
+      >
+        Skip to main content
+      </a>
       <Header tabs={TABS} activeTab={tab} onSelectTab={setTab} />
-      <div className="mx-auto max-w-6xl px-4 pt-3 sm:px-6 flex flex-wrap justify-end gap-2"><OfflineStatus /><PWAStatus lastSavedAt={lastSavedAt} /></div>
+      <div className="mx-auto max-w-6xl px-4 pt-3 sm:px-6 flex flex-wrap justify-end gap-2">
+        <OfflineStatus />
+        <PWAStatus lastSavedAt={lastSavedAt} />
+      </div>
       <MainContent tab={tab} farm={farm} setTab={setTab} />
       <Toast message={toast} />
       <ConfirmDialog {...dialogProps} />

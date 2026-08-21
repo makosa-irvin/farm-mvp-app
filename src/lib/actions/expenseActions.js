@@ -37,7 +37,7 @@ export function createExpenseActions({ expenses, inventory, transactions, setExp
     // where inventoryActions.js keeps the synthetic record in sync
     // automatically.
     if (expense.nonCash || expense.inventoryTransactionId) {
-      showToast("This is stock usage or loss, not a payment — edit it from Stock instead.");
+      showToast('This is stock usage or loss, not a payment — edit it from Stock instead.');
       return false;
     }
     if (!syncExpensePurchaseTransaction(expense)) return false;
@@ -49,13 +49,15 @@ export function createExpenseActions({ expenses, inventory, transactions, setExp
   const removeExpense = async (id) => {
     const target = expenses.find((e) => e.id === id);
     if (target?.nonCash || target?.inventoryTransactionId) {
-      showToast("This is stock usage or loss, not a payment — remove it from Stock instead.");
+      showToast('This is stock usage or loss, not a payment — remove it from Stock instead.');
       return;
     }
     const { linkedTx, balance } = balanceIfExpensePurchaseRemoved(id, inventory, transactions);
     if (linkedTx && balance < -1e-9) {
       const item = inventory.find((i) => i.id === linkedTx.itemId);
-      showToast(`Can't remove — ${fmtNum(Math.abs(balance))} ${item?.unit || ''} of ${item?.name || 'this item'} from this purchase has already been used elsewhere.`);
+      showToast(
+        `Can't remove — ${fmtNum(Math.abs(balance))} ${item?.unit || ''} of ${item?.name || 'this item'} from this purchase has already been used elsewhere.`,
+      );
       return;
     }
     const message = linkedTx

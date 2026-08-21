@@ -72,17 +72,17 @@ Use names that communicate domain meaning.
 Prefer:
 
 ```js
-getWeightedAverageCost(itemId)
-removeInventoryTransaction(id)
-syncedTransactionsForExpense(expense, inventory, transactions)
+getWeightedAverageCost(itemId);
+removeInventoryTransaction(id);
+syncedTransactionsForExpense(expense, inventory, transactions);
 ```
 
 Avoid vague names:
 
 ```js
-handleData(data)
-doThing(x)
-processStuff(value)
+handleData(data);
+doThing(x);
+processStuff(value);
 ```
 
 Use established domain terminology consistently: `unit`, `log`, `expense`, `inventory`, `transaction`, `item`, `quantity`, `unitCost`, and `balance`.

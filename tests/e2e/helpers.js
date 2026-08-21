@@ -8,11 +8,7 @@
 export function fieldByLabel(page, labelText, { exact = false } = {}) {
   const escaped = labelText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const matcher = exact ? new RegExp(`^${escaped}$`) : labelText;
-  return page
-    .locator('label', { hasText: matcher })
-    .locator('xpath=..')
-    .locator('input, select, textarea')
-    .first();
+  return page.locator('label', { hasText: matcher }).locator('xpath=..').locator('input, select, textarea').first();
 }
 
 export async function clearAppState(page) {

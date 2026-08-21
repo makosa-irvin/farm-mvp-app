@@ -1,5 +1,18 @@
 import { useMemo, useState } from 'react';
-import { Boxes, Trash2, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, Pencil, X, Save, Scale, ShoppingBasket, PackageMinus, SlidersHorizontal } from 'lucide-react';
+import {
+  Boxes,
+  Trash2,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  AlertTriangle,
+  Pencil,
+  X,
+  Save,
+  Scale,
+  ShoppingBasket,
+  PackageMinus,
+  SlidersHorizontal,
+} from 'lucide-react';
 import FieldLabel from '../components/FieldLabel.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import { inputClass, inputStyle } from '../lib/styleTokens.js';
@@ -27,7 +40,20 @@ const DEFAULT_CATEGORIES = ['Feed', 'Seed', 'Fertilizer', 'Medicine', 'Packaging
 // the common case. Editing an existing entry of one of those rarer types
 // opens straight into the advanced picker, since the simple two-button
 // view can't represent it.
-export default function InventoryView({ inventory, units = [], expenses = [], moves, onAddItem, onUpdateItem, onRemoveItem, onAddMove, onUpdateMove, onRemoveMove, getExpenseUnitCost, transactionTypes = [] }) {
+export default function InventoryView({
+  inventory,
+  units = [],
+  expenses = [],
+  moves,
+  onAddItem,
+  onUpdateItem,
+  onRemoveItem,
+  onAddMove,
+  onUpdateMove,
+  onRemoveMove,
+  getExpenseUnitCost,
+  transactionTypes = [],
+}) {
   // --- "add inventory item" form state ---
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Feed');
@@ -61,9 +87,9 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
             moves
               .filter((m) => m.itemId === item.id)
               .reduce((s, m) => s + ((m.direction || m.type) === 'in' ? Number(m.quantity) : -Number(m.quantity)), 0),
-        ])
+        ]),
       ),
-    [inventory, moves]
+    [inventory, moves],
   );
 
   // Expenses eligible to be linked to a *manual* purchase transaction here.
@@ -71,7 +97,11 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
   // transaction (see expenseLinking.js) — otherwise the same purchase could
   // be linked twice and double-count the stock increase.
   const purchaseExpenses = expenses.filter(
-    (e) => e.inventoryItemId && Number(e.inventoryQuantity) > 0 && inventory.some((i) => i.id === e.inventoryItemId) && !moves.some((m) => m.source === 'expense-purchase' && m.sourceId === e.id)
+    (e) =>
+      e.inventoryItemId &&
+      Number(e.inventoryQuantity) > 0 &&
+      inventory.some((i) => i.id === e.inventoryItemId) &&
+      !moves.some((m) => m.source === 'expense-purchase' && m.sourceId === e.id),
   );
   const selectedExpense = purchaseExpenses.find((e) => e.id === expenseId);
   const selectedExpenseUnitCost = selectedExpense ? getExpenseUnitCost(selectedExpense) : null;
@@ -108,7 +138,7 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
       openingStock: Number(openingStock) || 0,
       reorderLevel: Number(reorderLevel) || 0,
       unitCost: Number(unitCost) || 0,
-      createdAt: editingItemId ? (inventory.find((i) => i.id === editingItemId)?.createdAt || Date.now()) : Date.now(),
+      createdAt: editingItemId ? inventory.find((i) => i.id === editingItemId)?.createdAt || Date.now() : Date.now(),
     };
     editingItemId ? onUpdateItem(r) : onAddItem(r);
     resetItem();
@@ -176,14 +206,14 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
       unit: item.unit,
       date: moveDate,
       note: moveNote.trim(),
-      expenseId: moveType === 'purchase' ? (expenseId || null) : null,
+      expenseId: moveType === 'purchase' ? expenseId || null : null,
       unitCost: effectiveCost,
       source: current?.source || 'manual',
       sourceId: current?.sourceId || null,
       unitId: unitId || current?.unitId || null,
       sourceUnitId: unitId || current?.sourceUnitId || null,
       destinationUnitId: destinationUnitId || current?.destinationUnitId || null,
-      createdAt: editingMoveId ? (current?.createdAt || Date.now()) : Date.now(),
+      createdAt: editingMoveId ? current?.createdAt || Date.now() : Date.now(),
       type: typeMeta?.direction || current?.type || 'in',
     };
     // onAddMove/onUpdateMove can return false — e.g. a transfer or an
@@ -197,18 +227,31 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
 
   return (
     <div className="space-y-6">
-      <form onSubmit={addItem} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+      <form
+        onSubmit={addItem}
+        className="rounded-2xl p-5 space-y-4"
+        style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+      >
         <div className="font-display text-lg font-semibold">{editingItemId ? 'Edit stock item' : 'Add a stock item'}</div>
 
         <div className="grid grid-cols-2 gap-3.5">
           <div>
             <FieldLabel>Item name</FieldLabel>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Layer mash" required className={inputClass} style={inputStyle} />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Layer mash"
+              required
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
           <div>
             <FieldLabel>Category</FieldLabel>
             <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass} style={inputStyle}>
-              {DEFAULT_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+              {DEFAULT_CATEGORIES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -216,19 +259,50 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
           <div>
             <FieldLabel>Unit</FieldLabel>
-            <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="kg, litre, bag..." required className={inputClass} style={inputStyle} />
+            <input
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="kg, litre, bag..."
+              required
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
           <div>
             <FieldLabel>How much do you have now</FieldLabel>
-            <input type="number" min="0" step="0.1" value={openingStock} onChange={(e) => setOpeningStock(e.target.value)} className={inputClass} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={openingStock}
+              onChange={(e) => setOpeningStock(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
           <div>
             <FieldLabel>Warn me when below</FieldLabel>
-            <input type="number" min="0" step="0.1" value={reorderLevel} onChange={(e) => setReorderLevel(e.target.value)} className={inputClass} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={reorderLevel}
+              onChange={(e) => setReorderLevel(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
           <div>
             <FieldLabel>Usual price per unit</FieldLabel>
-            <input type="number" min="0" step="0.01" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} className={inputClass} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={unitCost}
+              onChange={(e) => setUnitCost(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
         </div>
 
@@ -247,30 +321,47 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
       </form>
 
       {inventory.length === 0 ? (
-        <EmptyState icon={Boxes} title="Nothing tracked yet" body="Add feed, seed, fertilizer, medicine, or anything else you keep stock of." />
+        <EmptyState
+          icon={Boxes}
+          title="Nothing tracked yet"
+          body="Add feed, seed, fertilizer, medicine, or anything else you keep stock of."
+        />
       ) : (
         <div className="space-y-2.5">
           {inventory.map((item) => {
             const balance = balances[item.id] || 0;
             const low = balance <= (item.reorderLevel || 0);
             return (
-              <div key={item.id} className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+              <div
+                key={item.id}
+                className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+                style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+              >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 font-medium">
                     <Boxes size={15} style={{ color: 'var(--forest)' }} />
                     {item.name}
                     {low && (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--rust-tint)', color: 'var(--rust)' }}>
+                      <span
+                        className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: 'var(--rust-tint)', color: 'var(--rust)' }}
+                      >
                         <AlertTriangle size={11} />
                         Low stock
                       </span>
                     )}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>{item.category} · usually {fmtMoney(item.unitCost || 0, 2)} / {item.unit}</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>
+                    {item.category} · usually {fmtMoney(item.unitCost || 0, 2)} / {item.unit}
+                  </div>
                 </div>
                 <div className="text-right font-mono">
-                  <div className="text-lg font-semibold">{fmtNum(balance, 1)} {item.unit}</div>
-                  <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>warn below {fmtNum(item.reorderLevel, 1)}</div>
+                  <div className="text-lg font-semibold">
+                    {fmtNum(balance, 1)} {item.unit}
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
+                    warn below {fmtNum(item.reorderLevel, 1)}
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => editItem(item)} className="p-1.5 rounded hover:bg-black/5" aria-label="Edit stock item">
@@ -293,13 +384,29 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
         </div>
       </div>
 
-      <form onSubmit={addMove} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+      <form
+        onSubmit={addMove}
+        className="rounded-2xl p-5 space-y-4"
+        style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+      >
         <div className="font-display text-lg font-semibold">{editingMoveId ? 'Edit this update' : 'Update your stock'}</div>
 
         <div>
           <FieldLabel>Which item</FieldLabel>
-          <select value={moveItemId} onChange={(e) => { setMoveItemId(e.target.value); setExpenseId(''); }} className={inputClass} style={inputStyle}>
-            {inventory.map((i) => <option key={i.id} value={i.id}>{i.name} — {fmtNum(balances[i.id], 1)} {i.unit}</option>)}
+          <select
+            value={moveItemId}
+            onChange={(e) => {
+              setMoveItemId(e.target.value);
+              setExpenseId('');
+            }}
+            className={inputClass}
+            style={inputStyle}
+          >
+            {inventory.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name} — {fmtNum(balances[i.id], 1)} {i.unit}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -345,12 +452,29 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <FieldLabel>What happened</FieldLabel>
-              <button type="button" onClick={() => setShowAdvanced(false)} className="text-xs font-medium" style={{ color: 'var(--forest)' }}>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(false)}
+                className="text-xs font-medium"
+                style={{ color: 'var(--forest)' }}
+              >
                 Back to common options
               </button>
             </div>
-            <select value={moveType} onChange={(e) => { setMoveType(e.target.value); if (e.target.value !== 'purchase') setExpenseId(''); }} className={inputClass} style={inputStyle}>
-              {transactionTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            <select
+              value={moveType}
+              onChange={(e) => {
+                setMoveType(e.target.value);
+                if (e.target.value !== 'purchase') setExpenseId('');
+              }}
+              className={inputClass}
+              style={inputStyle}
+            >
+              {transactionTypes.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -360,9 +484,13 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
             <FieldLabel>Link to an expense you already logged — optional</FieldLabel>
             <select value={expenseId} onChange={(e) => setExpenseId(e.target.value)} className={inputClass} style={inputStyle}>
               <option value="">Use this item's usual price instead</option>
-              {purchaseExpenses.filter((e) => e.inventoryItemId === moveItemId).map((e) => (
-                <option key={e.id} value={e.id}>{e.date} · {fmtMoney(e.amount)} / {fmtNum(e.inventoryQuantity, 2)} = {fmtMoney(getExpenseUnitCost(e), 2)} per unit</option>
-              ))}
+              {purchaseExpenses
+                .filter((e) => e.inventoryItemId === moveItemId)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.date} · {fmtMoney(e.amount)} / {fmtNum(e.inventoryQuantity, 2)} = {fmtMoney(getExpenseUnitCost(e), 2)} per unit
+                  </option>
+                ))}
             </select>
             {selectedExpenseUnitCost != null && (
               <div className="text-xs mt-1" style={{ color: 'var(--forest)' }}>
@@ -377,18 +505,44 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
             {moveType === 'stock_count' ? (
               <>
                 <FieldLabel>What you actually counted</FieldLabel>
-                <input type="number" min="0" step="0.1" value={moveCountQty} onChange={(e) => setMoveCountQty(e.target.value)} required className={inputClass} style={inputStyle} />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={moveCountQty}
+                  onChange={(e) => setMoveCountQty(e.target.value)}
+                  required
+                  className={inputClass}
+                  style={inputStyle}
+                />
               </>
             ) : (
               <>
                 <FieldLabel>How much</FieldLabel>
-                <input type="number" min="0.1" step="0.1" value={moveQty} onChange={(e) => setMoveQty(e.target.value)} required className={inputClass} style={inputStyle} />
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={moveQty}
+                  onChange={(e) => setMoveQty(e.target.value)}
+                  required
+                  className={inputClass}
+                  style={inputStyle}
+                />
               </>
             )}
           </div>
           <div>
             <FieldLabel>Date</FieldLabel>
-            <input type="date" value={moveDate} max={todayISO()} onChange={(e) => setMoveDate(e.target.value)} required className={inputClass} style={inputStyle} />
+            <input
+              type="date"
+              value={moveDate}
+              max={todayISO()}
+              onChange={(e) => setMoveDate(e.target.value)}
+              required
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
         </div>
 
@@ -397,7 +551,11 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
             <FieldLabel>Which farm group used it — optional</FieldLabel>
             <select value={unitId} onChange={(e) => setUnitId(e.target.value)} className={inputClass} style={inputStyle}>
               <option value="">General use / not one unit</option>
-              {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -408,14 +566,30 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
               <FieldLabel>From unit</FieldLabel>
               <select value={unitId} onChange={(e) => setUnitId(e.target.value)} required className={inputClass} style={inputStyle}>
                 <option value="">Select source</option>
-                {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
               <FieldLabel>To unit</FieldLabel>
-              <select value={destinationUnitId} onChange={(e) => setDestinationUnitId(e.target.value)} required className={inputClass} style={inputStyle}>
+              <select
+                value={destinationUnitId}
+                onChange={(e) => setDestinationUnitId(e.target.value)}
+                required
+                className={inputClass}
+                style={inputStyle}
+              >
                 <option value="">Select destination</option>
-                {units.filter((u) => u.id !== unitId).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {units
+                  .filter((u) => u.id !== unitId)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -423,13 +597,25 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
 
         <div>
           <FieldLabel>Note — optional</FieldLabel>
-          <input value={moveNote} onChange={(e) => setMoveNote(e.target.value)} placeholder="Supplier, reason, anything worth remembering" className={inputClass} style={inputStyle} />
+          <input
+            value={moveNote}
+            onChange={(e) => setMoveNote(e.target.value)}
+            placeholder="Supplier, reason, anything worth remembering"
+            className={inputClass}
+            style={inputStyle}
+          />
         </div>
 
         <div className="flex gap-2 flex-wrap">
           <button className="btn-primary rounded-xl px-5 py-2.5 text-sm flex items-center gap-2">
-            {moveType === 'purchase' || moveType === 'return' || moveType === 'adjustment_in' ? <ArrowDownToLine size={15} /> : moveType === 'stock_count' ? <Scale size={15} /> : <ArrowUpFromLine size={15} />}
-            {' '}{editingMoveId ? 'Save changes' : 'Save this update'}
+            {moveType === 'purchase' || moveType === 'return' || moveType === 'adjustment_in' ? (
+              <ArrowDownToLine size={15} />
+            ) : moveType === 'stock_count' ? (
+              <Scale size={15} />
+            ) : (
+              <ArrowUpFromLine size={15} />
+            )}{' '}
+            {editingMoveId ? 'Save changes' : 'Save this update'}
           </button>
           {editingMoveId && (
             <button type="button" onClick={resetMove} className="btn-ghost rounded-xl px-4 py-2.5 text-sm flex items-center gap-2">
@@ -451,11 +637,18 @@ export default function InventoryView({ inventory, units = [], expenses = [], mo
                 const item = inventory.find((i) => i.id === m.itemId);
                 return (
                   <tr key={m.id} className="font-mono">
-                    <td className="px-5 py-2.5" style={{ color: 'var(--ink-soft)' }}>{m.date}</td>
+                    <td className="px-5 py-2.5" style={{ color: 'var(--ink-soft)' }}>
+                      {m.date}
+                    </td>
                     <td className="px-3 py-2.5 font-sans">{item?.name || 'Removed item'}</td>
-                    <td className="px-3 py-2.5 text-right">{m.type === 'in' ? '+' : '-'}{fmtNum(m.quantity, 1)} {m.unit}</td>
+                    <td className="px-3 py-2.5 text-right">
+                      {m.type === 'in' ? '+' : '-'}
+                      {fmtNum(m.quantity, 1)} {m.unit}
+                    </td>
                     <td className="px-3 py-2.5 font-sans" style={{ color: 'var(--ink-soft)' }}>
-                      {m.source === 'daily-log' ? 'Daily log' : (transactionTypes.find((t) => t.value === m.transactionType)?.label || (m.expenseId ? 'Linked expense' : 'Manual'))}
+                      {m.source === 'daily-log'
+                        ? 'Daily log'
+                        : transactionTypes.find((t) => t.value === m.transactionType)?.label || (m.expenseId ? 'Linked expense' : 'Manual')}
                       {m.unitCost ? ` · ${fmtMoney(m.unitCost, 2)}/${m.unit}` : ''}
                     </td>
                     <td className="px-5 py-2.5 text-right">

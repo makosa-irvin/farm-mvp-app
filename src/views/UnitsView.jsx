@@ -55,9 +55,10 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
       initialCount: Number(initialCount) || 0,
       producePrice: Number(producePrice) || 0,
       startDate,
-      createdAt: editingId ? (units.find((u) => u.id === editingId)?.createdAt || Date.now()) : Date.now(),
+      createdAt: editingId ? units.find((u) => u.id === editingId)?.createdAt || Date.now() : Date.now(),
     };
-    if (editingId) onUpdate(record); else onAdd(record);
+    if (editingId) onUpdate(record);
+    else onAdd(record);
     resetForm();
   }
 
@@ -70,24 +71,48 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
         </div>
       </section>
 
-      <form onSubmit={submit} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+      <form
+        onSubmit={submit}
+        className="rounded-2xl p-5 space-y-4"
+        style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+      >
         <div className="font-display text-lg font-semibold">{editingId ? `Edit ${name || 'farm group'}` : 'Add a farm group'}</div>
 
         <div>
           <FieldLabel>What should we call it?</FieldLabel>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Layer House A" required className={inputClass} style={inputStyle} />
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Layer House A"
+            required
+            className={inputClass}
+            style={inputStyle}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3.5 mobile-stack-form">
           <div>
             <FieldLabel>What are you managing?</FieldLabel>
             <select value={type} onChange={(e) => setType(e.target.value)} className={inputClass} style={inputStyle}>
-              {UNIT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {UNIT_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
             <FieldLabel>How many at the start?</FieldLabel>
-            <input type="number" min="0" value={initialCount} onChange={(e) => setInitialCount(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              value={initialCount}
+              onChange={(e) => setInitialCount(e.target.value)}
+              placeholder="0"
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
         </div>
 
@@ -95,14 +120,34 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
           {/* Label follows the selected type's natural selling unit (tray
               for eggs, liter for milk, etc.) — see UNIT_TYPES in
               constants.js for where groupLabel comes from. */}
-          <FieldLabel>How much do you usually sell one {UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'} for? (KSh)</FieldLabel>
-          <input type="number" min="0" step="0.01" value={producePrice} onChange={(e) => setProducePrice(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
-          <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>Used to give you simple revenue and surplus estimates.</div>
+          <FieldLabel>
+            How much do you usually sell one {UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'} for? (KSh)
+          </FieldLabel>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={producePrice}
+            onChange={(e) => setProducePrice(e.target.value)}
+            placeholder="0"
+            className={inputClass}
+            style={inputStyle}
+          />
+          <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>
+            Used to give you simple revenue and surplus estimates.
+          </div>
         </div>
 
         <div>
           <FieldLabel>When did you start?</FieldLabel>
-          <input type="date" value={startDate} max={todayISO()} onChange={(e) => setStartDate(e.target.value)} className={inputClass} style={inputStyle} />
+          <input
+            type="date"
+            value={startDate}
+            max={todayISO()}
+            onChange={(e) => setStartDate(e.target.value)}
+            className={inputClass}
+            style={inputStyle}
+          />
         </div>
 
         <div className="flex gap-2 flex-wrap">
@@ -125,35 +170,65 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
             const live = currentCountFor(unit, logs);
             const isExpanded = expandedId === unit.id;
             return (
-              <div key={unit.id} className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+              <div
+                key={unit.id}
+                className="rounded-2xl overflow-hidden"
+                style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+              >
                 <div
                   className="flex items-center justify-between px-5 py-3.5 cursor-pointer"
                   onClick={() => setExpandedId(isExpanded ? null : unit.id)}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--forest-tint)' }}>
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: 'var(--forest-tint)' }}
+                    >
                       <Icon size={16} style={{ color: 'var(--forest)' }} />
                     </div>
                     <div className="min-w-0">
                       <div className="font-medium text-sm">{unit.name}</div>
                       <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
-                        {typeOf(unit).label} · {fmtNum(live)} live · {unit.producePrice ? `${fmtMoney(Number(unit.producePrice), 2)} / ${typeOf(unit).groupLabel}` : 'selling price not set'}
+                        {typeOf(unit).label} · {fmtNum(live)} live ·{' '}
+                        {unit.producePrice
+                          ? `${fmtMoney(Number(unit.producePrice), 2)} / ${typeOf(unit).groupLabel}`
+                          : 'selling price not set'}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    <button onClick={(e) => { e.stopPropagation(); editUnit(unit); }} className="p-1.5 rounded hover:bg-black/5" aria-label={`Edit ${unit.name}`}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        editUnit(unit);
+                      }}
+                      className="p-1.5 rounded hover:bg-black/5"
+                      aria-label={`Edit ${unit.name}`}
+                    >
                       <Pencil size={15} />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onRemove(unit.id); }} className="p-1.5 rounded hover:bg-black/5" aria-label={`Remove ${unit.name}`}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove(unit.id);
+                      }}
+                      className="p-1.5 rounded hover:bg-black/5"
+                      aria-label={`Remove ${unit.name}`}
+                    >
                       <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
 
                 {isExpanded && (
-                  <UnitSnapshot unit={unit} logs={logs} expenses={expenses} inventoryMoves={inventoryMoves} onNavigateToAnalytics={onNavigateToAnalytics} />
+                  <UnitSnapshot
+                    unit={unit}
+                    logs={logs}
+                    expenses={expenses}
+                    inventoryMoves={inventoryMoves}
+                    onNavigateToAnalytics={onNavigateToAnalytics}
+                  />
                 )}
               </div>
             );
@@ -176,7 +251,9 @@ function UnitSnapshot({ unit, logs, expenses, inventoryMoves, onNavigateToAnalyt
 
   return (
     <div className="px-5 pb-4 pt-1" style={{ borderTop: '1px solid var(--line)' }}>
-      <div className="text-xs mb-2.5 mt-3" style={{ color: 'var(--ink-soft)' }}>This month so far</div>
+      <div className="text-xs mb-2.5 mt-3" style={{ color: 'var(--ink-soft)' }}>
+        This month so far
+      </div>
       <div className="grid grid-cols-3 gap-3 mb-3">
         <SnapshotStat label="Produced" value={`${fmtNum(metrics.produced)} ${type.unitLabel}`} />
         <SnapshotStat label="Farm cost" value={fmtMoney(metrics.directCost)} />
@@ -185,12 +262,17 @@ function UnitSnapshot({ unit, logs, expenses, inventoryMoves, onNavigateToAnalyt
             falls back to plain cost-per-unit otherwise. */}
         <SnapshotStat
           label={hasPrice ? 'Estimated surplus' : 'Cost per unit'}
-          value={hasPrice ? fmtMoney(metrics.profit) : (metrics.costPerUnit !== null ? fmtMoney(metrics.costPerUnit, 2) : '—')}
+          value={hasPrice ? fmtMoney(metrics.profit) : metrics.costPerUnit !== null ? fmtMoney(metrics.costPerUnit, 2) : '—'}
           accent={hasPrice ? (metrics.profit >= 0 ? 'var(--forest)' : 'var(--rust)') : undefined}
         />
       </div>
       {onNavigateToAnalytics && (
-        <button type="button" onClick={onNavigateToAnalytics} className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--forest)' }}>
+        <button
+          type="button"
+          onClick={onNavigateToAnalytics}
+          className="flex items-center gap-1.5 text-xs font-medium"
+          style={{ color: 'var(--forest)' }}
+        >
           <BarChart3 size={13} /> See more results
         </button>
       )}
@@ -202,8 +284,12 @@ function UnitSnapshot({ unit, logs, expenses, inventoryMoves, onNavigateToAnalyt
 function SnapshotStat({ label, value, accent }) {
   return (
     <div>
-      <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>{label}</div>
-      <div className="font-mono text-sm font-semibold mt-0.5" style={{ color: accent || 'var(--ink)' }}>{value}</div>
+      <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
+        {label}
+      </div>
+      <div className="font-mono text-sm font-semibold mt-0.5" style={{ color: accent || 'var(--ink)' }}>
+        {value}
+      </div>
     </div>
   );
 }

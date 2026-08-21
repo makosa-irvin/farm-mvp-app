@@ -40,7 +40,15 @@ describe('Header — "More" menu opens and closes correctly', () => {
 
   it('calls onSelectTab with the correct tab value when a menu item is selected', () => {
     let selected = null;
-    render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={(value) => { selected = value; }} />);
+    render(
+      <Header
+        tabs={TABS}
+        activeTab="dashboard"
+        onSelectTab={(value) => {
+          selected = value;
+        }}
+      />,
+    );
     fireEvent.click(screen.getByText('More').closest('button'));
     fireEvent.click(screen.getByRole('menuitem', { name: /Groups/ }));
     expect(selected).toBe('units');
@@ -51,7 +59,7 @@ describe('Header — "More" menu opens and closes correctly', () => {
       <div>
         <div data-testid="outside-content">Somewhere else on the page</div>
         <Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />
-      </div>
+      </div>,
     );
     fireEvent.click(screen.getByText('More').closest('button'));
     expect(screen.getByRole('menu')).toBeInTheDocument();
