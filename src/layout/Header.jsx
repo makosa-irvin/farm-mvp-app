@@ -6,6 +6,7 @@ import styles from './Header.module.css';
 export default function Header({ tabs, activeTab, onSelectTab }) {
   const mobilePrimary = tabs.filter((t) => ['dashboard', 'log', 'inventory', 'expenses'].includes(t.value));
   const mobileMore = tabs.filter((t) => ['units', 'suppliers', 'analytics', 'reports', 'settings'].includes(t.value));
+  const searchTab = tabs.find((t) => t.value === 'search');
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -42,46 +43,52 @@ export default function Header({ tabs, activeTab, onSelectTab }) {
   }
 
   function openSearch() {
+    if (!searchTab) return;
     setIsMenuOpen(false);
-    onSelectTab('search');
+    onSelectTab(searchTab.value);
   }
 
   return (
     <>
       <header className={`sticky top-0 z-20 px-5 pt-5 pb-3 ${styles.header}`}>
-        <div className="flex items-baseline justify-between gap-3">
-          <div className="min-w-0 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={goHome}
-              className={`font-display text-2xl font-bold leading-none ${styles.titleButton}`}
-              aria-label="Go to home"
-              title="Home"
-            >
-              Mazaosmart
-            </button>
-            <button
-              type="button"
-              onClick={openSearch}
-              className="btn-ghost rounded-xl p-2.5 shrink-0"
-              aria-label="Search records"
-              title="Search records"
-            >
-              <Search size={21} strokeWidth={2.25} />
-            </button>
-            <div className={`text-xs mt-1 truncate hidden sm:block ${styles.subtitle}`}>Smart farm records &amp; decisions</div>
-          </div>
+        <div className="flex items-center justify-between gap-3">
           <button
-            onClick={() => window.location.reload()}
-            className="btn-ghost hidden sm:flex rounded-xl px-3 py-2 text-sm items-center gap-2 shrink-0"
-            title="Refresh the app. Saved records remain in this browser."
+            type="button"
+            onClick={goHome}
+            className={`font-display text-2xl font-bold leading-none ${styles.titleButton}`}
+            aria-label="Go to home"
+            title="Home"
           >
-            <RefreshCw size={15} /> Refresh
+            Mazaosmart
           </button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {searchTab && (
+              <button
+                type="button"
+                onClick={openSearch}
+                className="btn-ghost rounded-xl p-2.5"
+                aria-label="Search records"
+                title="Search records"
+              >
+                <Search size={21} strokeWidth={2.25} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="btn-ghost hidden sm:flex rounded-xl px-3 py-2 text-sm items-center gap-2"
+              title="Refresh the app. Saved records remain in this browser."
+            >
+              <RefreshCw size={15} /> Refresh
+            </button>
+          </div>
         </div>
-        <div className="mt-1 sm:hidden">
-          <div className={`text-xs truncate ${styles.subtitle}`}>Smart farm records &amp; decisions</div>
+
+        <div className={`text-xs mt-1 truncate ${styles.subtitle}`}>
+          Smart farm records &amp; decisions
         </div>
+
         <div className="mt-4 hidden sm:block">
           <NavTabs tabs={tabs} activeTab={activeTab} onSelect={onSelectTab} />
         </div>
