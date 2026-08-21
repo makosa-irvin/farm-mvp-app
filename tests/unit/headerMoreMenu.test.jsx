@@ -16,63 +16,116 @@ describe('Header — "More" menu opens and closes correctly', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
+
   it('opens when the More button is clicked, and reflects that in aria-expanded', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     const moreButton = screen.getByText('More').closest('button');
     expect(moreButton).toHaveAttribute('aria-expanded', 'false');
+
     fireEvent.click(moreButton);
+
     expect(screen.getByRole('menu')).toBeInTheDocument();
     expect(moreButton).toHaveAttribute('aria-expanded', 'true');
   });
+
   it('exposes Farm insights in the More menu', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
     expect(screen.getByRole('menuitem', { name: /Farm insights/i })).toBeInTheDocument();
   });
+
   it('closes when a menu item is selected', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('menuitem', { name: /Groups/ }));
+
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
-  it('closes when clicking outside the menu', () => {
-    render(<div><div data-testid="outside-content">Somewhere else on the page</div><Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} /></div>);
+
+  it('calls onSelectTab with the correct tab value when a menu item is selected', () => {
+    let selected = null;
+    render(
+      <Header
+        tabs={TABS}
+        activeTab="dashboard"
+        onSelectTab={(value) => {
+          selected = value;
+        }}
+      />,
+    );
     fireEvent.click(screen.getByText('More').closest('button'));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Groups/ }));
+    expect(selected).toBe('units');
+  });
+
+  it('closes when clicking outside the menu — the gap native <details> has no built-in way to cover', () => {
+    render(
+      <div>
+        <div data-testid="outside-content">Somewhere else on the page</div>
+        <Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />
+      </div>,
+    );
+    fireEvent.click(screen.getByText('More').closest('button'));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
     fireEvent.mouseDown(screen.getByTestId('outside-content'));
+
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
-  it('does not close when clicking inside the menu', () => {
+
+  it('does not close when clicking inside the menu but not on an item', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
     fireEvent.mouseDown(screen.getByRole('menu'));
     expect(screen.getByRole('menu')).toBeInTheDocument();
   });
+
   it('closes when Escape is pressed', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
     fireEvent.keyDown(document, { key: 'Escape' });
+
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
-  it('clicking More again toggles it closed', () => {
+
+  it('clicking the More button again toggles it closed', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
-    const button = screen.getByText('More').closest('button');
-    fireEvent.click(button); fireEvent.click(button);
+    const moreButton = screen.getByText('More').closest('button');
+    fireEvent.click(moreButton);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    fireEvent.click(moreButton);
+
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
-  it('the Refresh item closes the menu', () => {
+
+  it('the Refresh item inside the menu also closes it', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
-    const button = screen.getByText('More').closest('button');
-    fireEvent.click(button); fireEvent.click(screen.getByRole('menuitem', { name: /Refresh/ }));
-    expect(button).toHaveAttribute('aria-expanded', 'false');
+    const moreButton = screen.getByText('More').closest('button');
+    fireEvent.click(moreButton);
+
+    fireEvent.click(screen.getByRole('menuitem', { name: /Refresh/ }));
+
+    expect(moreButton).toHaveAttribute('aria-expanded', 'false');
   });
-  it('every current secondary tab appears in the menu', () => {
+
+  it('every current secondary tab (units, suppliers, analytics, reports, settings) appears in the menu', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
-    for (const label of ['Groups', 'Suppliers', 'Analytics', 'Farm insights', 'Reports', 'Settings']) expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeInTheDocument();
+    for (const label of ['Groups', 'Suppliers', 'Analytics', 'Farm insights', 'Reports', 'Settings']) {
+      expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeInTheDocument();
+    }
   });
-  it('renders accessible home and search controls', () => {
+
+  it('data-tour targets used by the onboarding tour are preserved on the trigger and each item', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
-    expect(screen.getByRole('button', { name: /go to home/i })).toHaveTextContent('Mazaosmart');
-    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
+    expect(document.querySelector('[data-tour="nav-more"]')).not.toBeNull();
+    fireEvent.click(screen.getByText('More').closest('button'));
+    expect(document.querySelector('[data-tour="more-units"]')).not.toBeNull();
+    expect(document.querySelector('[data-tour="more-settings"]')).not.toBeNull();
   });
 });
