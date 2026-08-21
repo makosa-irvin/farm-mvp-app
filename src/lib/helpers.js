@@ -15,10 +15,13 @@ export function typeOf(unit) {
 
 export function fmtMoney(value, decimals = 0) {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-  return 'KSh ' + value.toLocaleString(undefined, {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
+  return (
+    'KSh ' +
+    value.toLocaleString(undefined, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    })
+  );
 }
 
 export function fmtNum(value, digits = 0) {
@@ -103,11 +106,31 @@ export function unitMetrics(unit, logs, expenses, period, inventoryMoves = []) {
   const productionRate = animalDays > 0 && unitType.hasGrades ? (produced / animalDays) * 100 : null;
   const mortalityRate = liveCount + mortality > 0 ? (mortality / (liveCount + mortality)) * 100 : null;
 
-  return { produced, loss, mortality, feedKg, directCost, costPerUnit, costPerGroup, fcr, productionRate, mortalityRate, revenue, profit, liveCount, logCount: unitLogs.length };
+  return {
+    produced,
+    loss,
+    mortality,
+    feedKg,
+    directCost,
+    costPerUnit,
+    costPerGroup,
+    fcr,
+    productionRate,
+    mortalityRate,
+    revenue,
+    profit,
+    liveCount,
+    logCount: unitLogs.length,
+  };
 }
 
 const EXPENSE_CATEGORY_LABELS = {
-  feed: 'Feed', medicine: 'Medicine', labor: 'Labor', utilities: 'Utilities', supplies: 'Supplies', capital: 'Capital',
+  feed: 'Feed',
+  medicine: 'Medicine',
+  labor: 'Labor',
+  utilities: 'Utilities',
+  supplies: 'Supplies',
+  capital: 'Capital',
 };
 
 export function unitCostBreakdown(unit, logs, expenses, period, inventoryMoves = [], inventory = []) {
@@ -120,7 +143,9 @@ export function unitCostBreakdown(unit, logs, expenses, period, inventoryMoves =
     totals.set(label, (totals.get(label) || 0) + (expense.amount || 0));
   }
 
-  const deductions = inventoryMoves.filter((move) => move.unitId === unit.id && inPeriod(move.date, period) && isInventoryCostDeduction(move));
+  const deductions = inventoryMoves.filter(
+    (move) => move.unitId === unit.id && inPeriod(move.date, period) && isInventoryCostDeduction(move),
+  );
   for (const move of deductions) {
     const item = inventory.find((i) => i.id === move.itemId);
     const label = item?.category || 'Other';

@@ -54,7 +54,7 @@ describe('FarmAlerts', () => {
     expect(screen.getByText('2 stock losses recorded in the last 7 days.')).toBeInTheDocument();
   });
 
-  it('flags today\'s mortality specifically, not mortality from any other day', () => {
+  it("flags today's mortality specifically, not mortality from any other day", () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const logs = [
       { unitId: 'u1', date: today, mortality: 3 },
@@ -93,7 +93,17 @@ describe('FarmAlerts', () => {
   it('clicking an alert navigates to its associated tab', () => {
     let navigatedTo = null;
     const inventory = [{ id: 'i1', name: 'Layer Mash', openingStock: 0, reorderLevel: 20 }];
-    render(<FarmAlerts units={[]} logs={[]} inventory={inventory} inventoryMoves={[]} goTo={(tab) => { navigatedTo = tab; }} />);
+    render(
+      <FarmAlerts
+        units={[]}
+        logs={[]}
+        inventory={inventory}
+        inventoryMoves={[]}
+        goTo={(tab) => {
+          navigatedTo = tab;
+        }}
+      />,
+    );
     fireEvent.click(screen.getByText('Layer Mash is at or below its reorder level.'));
     expect(navigatedTo).toBe('inventory');
   });
@@ -101,7 +111,17 @@ describe('FarmAlerts', () => {
   it('an under-logged alert navigates to the log tab specifically', () => {
     let navigatedTo = null;
     const units = [{ id: 'u1', name: 'Forgotten Group' }];
-    render(<FarmAlerts units={units} logs={[]} inventory={[]} inventoryMoves={[]} goTo={(tab) => { navigatedTo = tab; }} />);
+    render(
+      <FarmAlerts
+        units={units}
+        logs={[]}
+        inventory={[]}
+        inventoryMoves={[]}
+        goTo={(tab) => {
+          navigatedTo = tab;
+        }}
+      />,
+    );
     fireEvent.click(screen.getByText('Forgotten Group has no daily log for today.'));
     expect(navigatedTo).toBe('log');
   });

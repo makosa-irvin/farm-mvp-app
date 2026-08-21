@@ -19,9 +19,7 @@ test('recording a feed expense increases inventory, and logging feed use decreas
   await fieldByLabel(page, 'Unit', { exact: true }).fill('kg');
   await page.getByRole('button', { name: 'Add item' }).click();
 
-  const inventoryCard = page
-    .locator('div.rounded-2xl.px-5.py-4.flex.items-center.justify-between')
-    .filter({ hasText: 'Layer Mash' });
+  const inventoryCard = page.locator('div.rounded-2xl.px-5.py-4.flex.items-center.justify-between').filter({ hasText: 'Layer Mash' });
   await expect(inventoryCard).toContainText('0.0 kg');
 
   // --- THE CORE BEHAVIOR: record a feed purchase via Expenses ---

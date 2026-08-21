@@ -76,8 +76,8 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
       inventoryItemId: inventoryItemId || null,
       // Only meaningful when an item is selected — the field itself is
       // disabled otherwise (see the input below).
-      inventoryQuantity: inventoryItemId ? (Number(inventoryQuantity) || null) : null,
-      createdAt: editingId ? (expenses.find((x) => x.id === editingId)?.createdAt || Date.now()) : Date.now(),
+      inventoryQuantity: inventoryItemId ? Number(inventoryQuantity) || null : null,
+      createdAt: editingId ? expenses.find((x) => x.id === editingId)?.createdAt || Date.now() : Date.now(),
     };
     // onAdd/onUpdate can return false — e.g. reducing a purchase's quantity
     // below what's already been consumed is rejected (see
@@ -107,32 +107,62 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
         </div>
       </section>
 
-      <form onSubmit={submit} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+      <form
+        onSubmit={submit}
+        className="rounded-2xl p-5 space-y-4"
+        style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+      >
         <div className="font-display text-lg font-semibold">{editingId ? 'Edit money spent' : 'Record money spent'}</div>
 
         <div className="grid grid-cols-2 gap-3.5">
           <div>
             <FieldLabel>What was it for?</FieldLabel>
             <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass} style={inputStyle}>
-              {EXPENSE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {EXPENSE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
             <FieldLabel>How much did you pay? (KSh)</FieldLabel>
-            <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" required className={inputClass} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0"
+              required
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3.5">
           <div>
             <FieldLabel>When?</FieldLabel>
-            <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} required className={inputClass} style={inputStyle} />
+            <input
+              type="date"
+              value={date}
+              max={todayISO()}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
           <div>
             <FieldLabel>Which farm group? (optional)</FieldLabel>
             <select value={unitId} onChange={(e) => setUnitId(e.target.value)} className={inputClass} style={inputStyle}>
               <option value="">Shared across farm</option>
-              {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -142,37 +172,63 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
             <FieldLabel>Did you buy stock? (optional)</FieldLabel>
             <select value={inventoryItemId} onChange={(e) => setInventoryItemId(e.target.value)} className={inputClass} style={inputStyle}>
               <option value="">No</option>
-              {inventory.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+              {inventory.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name} ({i.unit})
+                </option>
+              ))}
             </select>
           </div>
           <div>
             <FieldLabel>How much stock?</FieldLabel>
             <input
-              type="number" min="0.01" step="0.01" value={inventoryQuantity}
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={inventoryQuantity}
               onChange={(e) => setInventoryQuantity(e.target.value)}
               disabled={!inventoryItemId}
               required={!!inventoryItemId}
               placeholder="e.g. 50"
-              className={inputClass} style={inputStyle}
+              className={inputClass}
+              style={inputStyle}
             />
           </div>
         </div>
 
         <div>
           <FieldLabel>Note (optional)</FieldLabel>
-          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. 50 kg layer mash" className={inputClass} style={inputStyle} />
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. 50 kg layer mash"
+            className={inputClass}
+            style={inputStyle}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3.5">
           <div>
             <FieldLabel>Who did you buy from? (optional)</FieldLabel>
-            <input type="text" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="e.g. local agrovet" className={inputClass} style={inputStyle} />
+            <input
+              type="text"
+              value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
+              placeholder="e.g. local agrovet"
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
           <div>
             <FieldLabel>How did you pay? (optional)</FieldLabel>
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className={inputClass} style={inputStyle}>
               <option value="">Not recorded</option>
-              {PAYMENT_METHODS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+              {PAYMENT_METHODS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -192,7 +248,10 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
 
         <div className="flex items-start gap-2 text-xs pt-1" style={{ color: 'var(--ink-soft)' }}>
           <Info size={13} className="mt-0.5 shrink-0" />
-          <span>When you buy stock, the money you pay is recorded now. When the stock is later used, lost, or spoiled, its value becomes a farm cost without counting another cash payment.</span>
+          <span>
+            When you buy stock, the money you pay is recorded now. When the stock is later used, lost, or spoiled, its value becomes a farm
+            cost without counting another cash payment.
+          </span>
         </div>
       </form>
 
@@ -219,7 +278,9 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
                       onClick={() => setExpandedId(isExpanded ? null : expense.id)}
                       style={{ background: isExpanded ? 'var(--surface-alt)' : undefined }}
                     >
-                      <td className="px-5 py-2.5" style={{ color: 'var(--ink-soft)' }}>{expense.date}</td>
+                      <td className="px-5 py-2.5" style={{ color: 'var(--ink-soft)' }}>
+                        {expense.date}
+                      </td>
                       <td className="px-3 py-2.5 font-sans">
                         <span className="inline-flex items-center gap-1.5">
                           {expense.nonCash && <PackageMinus size={13} style={{ color: 'var(--rust)' }} />}
@@ -257,10 +318,24 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
                           */}
                           {!expense.nonCash && (
                             <>
-                              <button onClick={(ev) => { ev.stopPropagation(); edit(expense); }} className="p-1 rounded hover:bg-black/5" aria-label="Edit expense">
+                              <button
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  edit(expense);
+                                }}
+                                className="p-1 rounded hover:bg-black/5"
+                                aria-label="Edit expense"
+                              >
                                 <Pencil size={14} />
                               </button>
-                              <button onClick={(ev) => { ev.stopPropagation(); onRemove(expense.id); }} className="p-1 rounded hover:bg-black/5" aria-label="Delete expense">
+                              <button
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  onRemove(expense.id);
+                                }}
+                                className="p-1 rounded hover:bg-black/5"
+                                aria-label="Delete expense"
+                              >
                                 <Trash2 size={14} />
                               </button>
                             </>
@@ -271,7 +346,10 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
                     {isExpanded && (
                       <tr style={{ background: 'var(--surface-alt)' }}>
                         <td colSpan={5} className="px-5 pb-3 pt-0 font-sans">
-                          <div className="rounded-xl p-3 space-y-1.5 text-xs" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                          <div
+                            className="rounded-xl p-3 space-y-1.5 text-xs"
+                            style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+                          >
                             {expense.nonCash && (
                               <div>
                                 <span style={{ color: 'var(--ink-soft)' }}>What this means: </span>
@@ -284,13 +362,22 @@ export default function ExpensesView({ units, inventory = [], expenses, onAdd, o
                               </div>
                             )}
                             {expense.description && (
-                              <div><span style={{ color: 'var(--ink-soft)' }}>Note: </span>{expense.description}</div>
+                              <div>
+                                <span style={{ color: 'var(--ink-soft)' }}>Note: </span>
+                                {expense.description}
+                              </div>
                             )}
                             {expense.supplier && (
-                              <div><span style={{ color: 'var(--ink-soft)' }}>Bought from: </span>{expense.supplier}</div>
+                              <div>
+                                <span style={{ color: 'var(--ink-soft)' }}>Bought from: </span>
+                                {expense.supplier}
+                              </div>
                             )}
                             {expense.paymentMethod && (
-                              <div><span style={{ color: 'var(--ink-soft)' }}>Paid by: </span>{PAYMENT_METHODS.find((p) => p.value === expense.paymentMethod)?.label || expense.paymentMethod}</div>
+                              <div>
+                                <span style={{ color: 'var(--ink-soft)' }}>Paid by: </span>
+                                {PAYMENT_METHODS.find((p) => p.value === expense.paymentMethod)?.label || expense.paymentMethod}
+                              </div>
                             )}
                             {item && (
                               <div>

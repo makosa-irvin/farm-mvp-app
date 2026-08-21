@@ -3,8 +3,12 @@
   border-bottom: 1px solid var(--line);
 }
 
-.title { color: var(--ink); }
-.subtitle { color: var(--ink-soft); }
+.title {
+  color: var(--ink);
+}
+.subtitle {
+  color: var(--ink-soft);
+}
 
 .mobileNav {
   display: none;

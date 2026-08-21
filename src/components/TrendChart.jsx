@@ -12,7 +12,13 @@ export default function TrendChart({ data, height = 72 }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" style={{ width: '100%', height }} role="img" aria-label="Production over recent days">
+      <svg
+        viewBox={`0 0 100 ${height}`}
+        preserveAspectRatio="none"
+        style={{ width: '100%', height }}
+        role="img"
+        aria-label="Production over recent days"
+      >
         {data.map((d, i) => {
           const barHeight = (d.value / max) * (height - 4);
           const isToday = d.date === todayStr;

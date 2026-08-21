@@ -56,7 +56,7 @@ describe('useConfirmDialog + ConfirmDialog', () => {
         message="Remove this thing? It cannot be undone."
         onConfirm={() => calls.push('confirm')}
         onCancel={() => calls.push('cancel')}
-      />
+      />,
     );
     expect(screen.getByText('Remove this thing? It cannot be undone.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Yes, remove it/ }));

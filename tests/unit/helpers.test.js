@@ -48,7 +48,9 @@ describe('unitMetrics — the core linking behavior', () => {
     const logs = [{ unitId: 'u1', date: '2026-08-18', produced: 90, feedKg: 45, mortality: 0 }];
     // A $105 purchase — but only 45kg (at 0.7/kg = $31.50) was actually consumed.
     const expenses = [{ unitId: null, date: '2026-08-17', amount: 105, inventoryItemId: 'i1' }];
-    const inventoryMoves = [{ transactionType: 'consumption', direction: 'out', unitId: 'u1', date: '2026-08-18', quantity: 45, unitCost: 0.7 }];
+    const inventoryMoves = [
+      { transactionType: 'consumption', direction: 'out', unitId: 'u1', date: '2026-08-18', quantity: 45, unitCost: 0.7 },
+    ];
 
     const metrics = unitMetrics(unit, logs, expenses, 'all', inventoryMoves);
     expect(metrics.directCost).toBeCloseTo(31.5);
@@ -65,7 +67,9 @@ describe('unitMetrics — the core linking behavior', () => {
   it('counts consumption transactions attributed to the unit regardless of source (daily-log or manual)', () => {
     const unit = { id: 'u1', type: 'eggs', initialCount: 100, startDate: '2026-08-01' };
     const logs = [{ unitId: 'u1', date: '2026-08-18', produced: 90, mortality: 0 }];
-    const manualConsumption = [{ transactionType: 'consumption', direction: 'out', source: 'manual', unitId: 'u1', date: '2026-08-18', quantity: 10, unitCost: 1 }];
+    const manualConsumption = [
+      { transactionType: 'consumption', direction: 'out', source: 'manual', unitId: 'u1', date: '2026-08-18', quantity: 10, unitCost: 1 },
+    ];
     const metrics = unitMetrics(unit, logs, [], 'all', manualConsumption);
     expect(metrics.directCost).toBe(10);
   });
@@ -88,14 +92,12 @@ describe('unitCostBreakdown', () => {
   });
 
   it('excludes expenses that already moved through an inventory purchase, so they are not double-counted', () => {
-    const expenses = [
-      { unitId: 'u1', date: '2026-08-01', category: 'feed', amount: 500, inventoryItemId: 'i1' },
-    ];
+    const expenses = [{ unitId: 'u1', date: '2026-08-01', category: 'feed', amount: 500, inventoryItemId: 'i1' }];
     const rows = unitCostBreakdown(unit, [], expenses, 'all', [], []);
     expect(rows).toEqual([]);
   });
 
-  it('attributes consumed inventory cost to the inventory item\'s own category', () => {
+  it("attributes consumed inventory cost to the inventory item's own category", () => {
     const inventory = [{ id: 'i1', category: 'Feed' }];
     const inventoryMoves = [
       { transactionType: 'consumption', direction: 'out', unitId: 'u1', date: '2026-08-05', itemId: 'i1', quantity: 10, unitCost: 7 },

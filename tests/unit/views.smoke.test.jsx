@@ -22,7 +22,22 @@ describe('view components render without crashing, empty-state', () => {
   });
 
   it('InventoryView', () => {
-    render(<InventoryView units={[]} inventory={[]} expenses={[]} moves={[]} transactionTypes={INVENTORY_TRANSACTION_TYPES} onAddItem={noop} onUpdateItem={noop} onRemoveItem={noop} onAddMove={noop} onUpdateMove={noop} onRemoveMove={noop} getExpenseUnitCost={noop} />);
+    render(
+      <InventoryView
+        units={[]}
+        inventory={[]}
+        expenses={[]}
+        moves={[]}
+        transactionTypes={INVENTORY_TRANSACTION_TYPES}
+        onAddItem={noop}
+        onUpdateItem={noop}
+        onRemoveItem={noop}
+        onAddMove={noop}
+        onUpdateMove={noop}
+        onRemoveMove={noop}
+        getExpenseUnitCost={noop}
+      />,
+    );
     expect(screen.getByText('Nothing tracked yet')).toBeInTheDocument();
   });
 
@@ -56,7 +71,22 @@ describe('the fields the E2E suite depends on actually exist', () => {
 
   it('InventoryView exposes "Item name"/"Category"/"Unit" fields and lists items with their balance', () => {
     const inventory = [{ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 150, reorderLevel: 20, unitCost: 0 }];
-    render(<InventoryView units={[]} inventory={inventory} expenses={[]} moves={[]} transactionTypes={INVENTORY_TRANSACTION_TYPES} onAddItem={noop} onUpdateItem={noop} onRemoveItem={noop} onAddMove={noop} onUpdateMove={noop} onRemoveMove={noop} getExpenseUnitCost={noop} />);
+    render(
+      <InventoryView
+        units={[]}
+        inventory={inventory}
+        expenses={[]}
+        moves={[]}
+        transactionTypes={INVENTORY_TRANSACTION_TYPES}
+        onAddItem={noop}
+        onUpdateItem={noop}
+        onRemoveItem={noop}
+        onAddMove={noop}
+        onUpdateMove={noop}
+        onRemoveMove={noop}
+        getExpenseUnitCost={noop}
+      />,
+    );
     expect(screen.getByText('Item name', { selector: 'label' })).toBeInTheDocument();
     expect(screen.getByText('Layer Mash')).toBeInTheDocument();
     expect(screen.getByText('150.0 kg')).toBeInTheDocument(); // the balance the E2E test asserts on
@@ -83,10 +113,17 @@ describe('the fields the E2E suite depends on actually exist', () => {
 describe('InventoryView — progressive disclosure for stock updates', () => {
   const inventory = [{ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 100, reorderLevel: 20, unitCost: 50 }];
   const baseProps = {
-    units: [], inventory, expenses: [], moves: [],
+    units: [],
+    inventory,
+    expenses: [],
+    moves: [],
     transactionTypes: INVENTORY_TRANSACTION_TYPES,
-    onAddItem: noop, onUpdateItem: noop, onRemoveItem: noop,
-    onAddMove: noop, onUpdateMove: noop, onRemoveMove: noop,
+    onAddItem: noop,
+    onUpdateItem: noop,
+    onRemoveItem: noop,
+    onAddMove: noop,
+    onUpdateMove: noop,
+    onRemoveMove: noop,
     getExpenseUnitCost: noop,
   };
 
@@ -113,14 +150,30 @@ describe('ExpensesView — expandable rows with optional detail', () => {
   const units = [{ id: 'u1', name: 'Layer House A' }];
   const expenses = [
     {
-      id: 'e1', category: 'feed', amount: 500, date: '2026-08-10', unitId: 'u1',
-      description: 'Layer mash', supplier: 'Wanjiku Agrovet', paymentMethod: 'mpesa',
-      inventoryItemId: null, inventoryQuantity: null, createdAt: 1,
+      id: 'e1',
+      category: 'feed',
+      amount: 500,
+      date: '2026-08-10',
+      unitId: 'u1',
+      description: 'Layer mash',
+      supplier: 'Wanjiku Agrovet',
+      paymentMethod: 'mpesa',
+      inventoryItemId: null,
+      inventoryQuantity: null,
+      createdAt: 1,
     },
     {
-      id: 'e2', category: 'labor', amount: 200, date: '2026-08-09', unitId: null,
-      description: '', supplier: null, paymentMethod: null,
-      inventoryItemId: null, inventoryQuantity: null, createdAt: 2,
+      id: 'e2',
+      category: 'labor',
+      amount: 200,
+      date: '2026-08-09',
+      unitId: null,
+      description: '',
+      supplier: null,
+      paymentMethod: null,
+      inventoryItemId: null,
+      inventoryQuantity: null,
+      createdAt: 2,
     },
   ];
 
@@ -176,12 +229,32 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
   const expenses = [{ id: 'e1', unitId: 'u1', date: '2026-08-10', category: 'feed', amount: 150, inventoryItemId: null }];
 
   it('the snapshot is hidden until the unit row is clicked', () => {
-    render(<UnitsView units={units} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
+    render(
+      <UnitsView
+        units={units}
+        logs={logs}
+        expenses={expenses}
+        inventoryMoves={[]}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onRemove={() => {}}
+      />,
+    );
     expect(screen.queryByText('This month so far')).not.toBeInTheDocument();
   });
 
   it('clicking the unit row reveals produced/spent/cost-per-unit for this month', () => {
-    render(<UnitsView units={units} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
+    render(
+      <UnitsView
+        units={units}
+        logs={logs}
+        expenses={expenses}
+        inventoryMoves={[]}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onRemove={() => {}}
+      />,
+    );
     fireEvent.click(screen.getByText('Layer House A'));
     expect(screen.getByText('This month so far')).toBeInTheDocument();
     expect(screen.getByText('Cost per unit')).toBeInTheDocument(); // no producePrice set on this unit, so cost/unit shows instead of profit
@@ -189,13 +262,33 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
 
   it('shows Profit instead of Cost/unit once the unit has a selling price', () => {
     const pricedUnits = [{ ...units[0], producePrice: 20 }];
-    render(<UnitsView units={pricedUnits} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
+    render(
+      <UnitsView
+        units={pricedUnits}
+        logs={logs}
+        expenses={expenses}
+        inventoryMoves={[]}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onRemove={() => {}}
+      />,
+    );
     fireEvent.click(screen.getByText('Layer House A'));
     expect(screen.getByText('Estimated surplus')).toBeInTheDocument();
   });
 
   it('clicking Edit or Remove does not also toggle the snapshot', () => {
-    render(<UnitsView units={units} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} />);
+    render(
+      <UnitsView
+        units={units}
+        logs={logs}
+        expenses={expenses}
+        inventoryMoves={[]}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onRemove={() => {}}
+      />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Edit Layer House A' }));
     expect(screen.queryByText('This month so far')).not.toBeInTheDocument();
   });
@@ -203,7 +296,18 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
   it('a "see full analytics" link navigates to the Analytics tab when provided', () => {
     let navigated = false;
     render(
-      <UnitsView units={units} logs={logs} expenses={expenses} inventoryMoves={[]} onAdd={() => {}} onUpdate={() => {}} onRemove={() => {}} onNavigateToAnalytics={() => { navigated = true; }} />
+      <UnitsView
+        units={units}
+        logs={logs}
+        expenses={expenses}
+        inventoryMoves={[]}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onRemove={() => {}}
+        onNavigateToAnalytics={() => {
+          navigated = true;
+        }}
+      />,
     );
     fireEvent.click(screen.getByText('Layer House A'));
     fireEvent.click(screen.getByText('See more results'));
@@ -262,11 +366,48 @@ describe('Dashboard — "Farm costs" is an accrual figure, not the purchase pric
     // Bought 50kg of feed for KSh 3500 (70/kg) — but only 5kg has been
     // used so far via a real daily log, exactly like a farmer would do.
     const expenses = [
-      { id: 'e1', category: 'feed', amount: 3500, date: today, unitId: null, inventoryItemId: 'i1', inventoryQuantity: 50, description: '', supplier: null, paymentMethod: null },
+      {
+        id: 'e1',
+        category: 'feed',
+        amount: 3500,
+        date: today,
+        unitId: null,
+        inventoryItemId: 'i1',
+        inventoryQuantity: 50,
+        description: '',
+        supplier: null,
+        paymentMethod: null,
+      },
     ];
     const inventoryMoves = [
-      { id: 'exppurchase_e1', itemId: 'i1', transactionType: 'purchase', direction: 'in', type: 'in', quantity: 50, unit: 'kg', unitCost: 70, date: today, source: 'expense-purchase', sourceId: 'e1', expenseId: 'e1' },
-      { id: 'logfeed_l1', itemId: 'i1', transactionType: 'consumption', direction: 'out', type: 'out', quantity: 5, unit: 'kg', unitCost: 70, date: today, source: 'daily-log', sourceId: 'l1', unitId: 'u1' },
+      {
+        id: 'exppurchase_e1',
+        itemId: 'i1',
+        transactionType: 'purchase',
+        direction: 'in',
+        type: 'in',
+        quantity: 50,
+        unit: 'kg',
+        unitCost: 70,
+        date: today,
+        source: 'expense-purchase',
+        sourceId: 'e1',
+        expenseId: 'e1',
+      },
+      {
+        id: 'logfeed_l1',
+        itemId: 'i1',
+        transactionType: 'consumption',
+        direction: 'out',
+        type: 'out',
+        quantity: 5,
+        unit: 'kg',
+        unitCost: 70,
+        date: today,
+        source: 'daily-log',
+        sourceId: 'l1',
+        unitId: 'u1',
+      },
     ];
 
     render(<Dashboard units={units} logs={[]} expenses={expenses} inventory={[]} inventoryMoves={inventoryMoves} goTo={() => {}} />);

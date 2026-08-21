@@ -26,9 +26,15 @@
   font-size: calc(16px * var(--font-scale));
 }
 
-html[data-font-size='compact'] { --font-scale: 1; }
-html[data-font-size='large'] { --font-scale: 1.16; }
-html[data-font-size='x-large'] { --font-scale: 1.26; }
+html[data-font-size='compact'] {
+  --font-scale: 1;
+}
+html[data-font-size='large'] {
+  --font-scale: 1.16;
+}
+html[data-font-size='x-large'] {
+  --font-scale: 1.26;
+}
 
 .farm-app {
   --bg: #f3f5ee;
@@ -52,19 +58,36 @@ html[data-font-size='x-large'] { --font-scale: 1.26; }
   line-height: 1.55;
 }
 
-.font-display { font-family: 'Fraunces', serif; font-optical-sizing: auto; }
-.font-mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.01em; }
+.font-display {
+  font-family: 'Fraunces', serif;
+  font-optical-sizing: auto;
+}
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: -0.01em;
+}
 
-input, select, textarea { font-family: 'Inter', sans-serif; }
+input,
+select,
+textarea {
+  font-family: 'Inter', sans-serif;
+}
 
-input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
   outline: 2px solid var(--forest);
   outline-offset: 1px;
 }
 
-input:focus, select:focus, textarea:focus { border-color: var(--forest) !important; }
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--forest) !important;
+}
 
-button[class*="hover:bg-black/5"] {
+button[class*='hover:bg-black/5'] {
   min-width: 40px;
   min-height: 40px;
   display: inline-flex;

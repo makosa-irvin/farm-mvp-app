@@ -73,7 +73,17 @@ describe('SearchView', () => {
   it('clicking a result navigates to its associated tab', () => {
     let navigatedTo = null;
     const units = [{ id: 'u1', name: 'Layer House A', type: 'eggs' }];
-    render(<SearchView units={units} logs={[]} expenses={[]} inventory={[]} goTo={(tab) => { navigatedTo = tab; }} />);
+    render(
+      <SearchView
+        units={units}
+        logs={[]}
+        expenses={[]}
+        inventory={[]}
+        goTo={(tab) => {
+          navigatedTo = tab;
+        }}
+      />,
+    );
     fireEvent.change(screen.getByLabelText('Search farm records'), { target: { value: 'layer house' } });
     fireEvent.click(screen.getByText('Layer House A'));
     expect(navigatedTo).toBe('units');

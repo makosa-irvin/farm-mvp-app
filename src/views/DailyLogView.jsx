@@ -29,7 +29,7 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
 
   const unit = units.find((u) => u.id === unitId);
 
-  const feedItems = inventory.filter(i => i.category === 'Feed');
+  const feedItems = inventory.filter((i) => i.category === 'Feed');
 
   // Auto-select the first unit and first feed item so the form is usable
   // immediately, without forcing an explicit pick every time either list
@@ -93,7 +93,9 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
     let produced = 0;
     let grades = null;
     if (t.hasGrades) {
-      const L = Number(large) || 0, M = Number(medium) || 0, S = Number(small) || 0;
+      const L = Number(large) || 0,
+        M = Number(medium) || 0,
+        S = Number(small) || 0;
       produced = L + M + S;
       grades = { large: L, medium: M, small: S };
     } else {
@@ -105,7 +107,7 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
       date,
       produced,
       grades,
-      loss: t.hasGrades ? (Number(broken) || 0) : (Number(loss) || 0),
+      loss: t.hasGrades ? Number(broken) || 0 : Number(loss) || 0,
       feedKg: Number(feedQty) || 0,
       feedQuantity: Number(feedQty) || 0,
       // Only link to a real inventory item if feed was actually logged —
@@ -114,7 +116,7 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
       feedItemId: Number(feedQty) > 0 ? feedItemId : null,
       mortality: Number(mortality) || 0,
       notes: notes.trim(),
-      createdAt: editingId ? (logs.find(l => l.id === editingId)?.createdAt || Date.now()) : Date.now(),
+      createdAt: editingId ? logs.find((l) => l.id === editingId)?.createdAt || Date.now() : Date.now(),
     };
     const saved = editingId ? onUpdate(entry) : onAdd(entry, unit);
     if (saved !== false) reset();
@@ -137,15 +139,35 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
         </div>
       </div>
 
-      <form onSubmit={submit} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+      <form
+        onSubmit={submit}
+        className="rounded-2xl p-5 space-y-4"
+        style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+      >
         <div className="grid grid-cols-2 gap-3.5">
           <div>
             <FieldLabel>Date</FieldLabel>
-            <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} required className={inputClass} style={inputStyle} />
+            <input
+              type="date"
+              value={date}
+              max={todayISO()}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
           <div>
             <FieldLabel>Mortality / losses (animals)</FieldLabel>
-            <input type="number" min="0" value={mortality} onChange={(e) => setMortality(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              value={mortality}
+              onChange={(e) => setMortality(e.target.value)}
+              placeholder="0"
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
         </div>
 
@@ -154,20 +176,60 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
             <FieldLabel>Eggs collected, by grade</FieldLabel>
             <div className="grid grid-cols-4 gap-2.5">
               <div>
-                <div className="text-xs mb-1" style={{ color: 'var(--ink-soft)' }}>Large</div>
-                <input type="number" min="0" value={large} onChange={(e) => setLarge(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+                <div className="text-xs mb-1" style={{ color: 'var(--ink-soft)' }}>
+                  Large
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={large}
+                  onChange={(e) => setLarge(e.target.value)}
+                  placeholder="0"
+                  className={inputClass}
+                  style={inputStyle}
+                />
               </div>
               <div>
-                <div className="text-xs mb-1" style={{ color: 'var(--ink-soft)' }}>Medium</div>
-                <input type="number" min="0" value={medium} onChange={(e) => setMedium(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+                <div className="text-xs mb-1" style={{ color: 'var(--ink-soft)' }}>
+                  Medium
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={medium}
+                  onChange={(e) => setMedium(e.target.value)}
+                  placeholder="0"
+                  className={inputClass}
+                  style={inputStyle}
+                />
               </div>
               <div>
-                <div className="text-xs mb-1" style={{ color: 'var(--ink-soft)' }}>Small</div>
-                <input type="number" min="0" value={small} onChange={(e) => setSmall(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+                <div className="text-xs mb-1" style={{ color: 'var(--ink-soft)' }}>
+                  Small
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={small}
+                  onChange={(e) => setSmall(e.target.value)}
+                  placeholder="0"
+                  className={inputClass}
+                  style={inputStyle}
+                />
               </div>
               <div>
-                <div className="text-xs mb-1" style={{ color: 'var(--ink-soft)' }}>Broken</div>
-                <input type="number" min="0" value={broken} onChange={(e) => setBroken(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+                <div className="text-xs mb-1" style={{ color: 'var(--ink-soft)' }}>
+                  Broken
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={broken}
+                  onChange={(e) => setBroken(e.target.value)}
+                  placeholder="0"
+                  className={inputClass}
+                  style={inputStyle}
+                />
               </div>
             </div>
           </div>
@@ -175,11 +237,29 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
           <div className="grid grid-cols-2 gap-3.5">
             <div>
               <FieldLabel>Quantity produced ({t.unitLabel})</FieldLabel>
-              <input type="number" min="0" step="0.1" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                placeholder="0"
+                className={inputClass}
+                style={inputStyle}
+              />
             </div>
             <div>
               <FieldLabel>Loss / spoilage ({t.unitLabel})</FieldLabel>
-              <input type="number" min="0" step="0.1" value={loss} onChange={(e) => setLoss(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={loss}
+                onChange={(e) => setLoss(e.target.value)}
+                placeholder="0"
+                className={inputClass}
+                style={inputStyle}
+              />
             </div>
           </div>
         )}
@@ -187,19 +267,49 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
         <div className="grid grid-cols-2 gap-3.5">
           <div>
             <FieldLabel>Feed item</FieldLabel>
-            <select value={feedItemId} onChange={(e) => setFeedItemId(e.target.value)} disabled={feedItems.length === 0} className={inputClass} style={inputStyle}>
-              {feedItems.length === 0 ? <option value="">Add a Feed item in Inventory first</option> : feedItems.map(i => <option key={i.id} value={i.id}>{i.name} · {fmtNum(getBalance ? getBalance(i.id) : i.openingStock || 0, 1)} {i.unit}</option>)}
+            <select
+              value={feedItemId}
+              onChange={(e) => setFeedItemId(e.target.value)}
+              disabled={feedItems.length === 0}
+              className={inputClass}
+              style={inputStyle}
+            >
+              {feedItems.length === 0 ? (
+                <option value="">Add a Feed item in Inventory first</option>
+              ) : (
+                feedItems.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name} · {fmtNum(getBalance ? getBalance(i.id) : i.openingStock || 0, 1)} {i.unit}
+                  </option>
+                ))
+              )}
             </select>
           </div>
           <div>
-            <FieldLabel>Feed consumed ({feedItems.find(i => i.id === feedItemId)?.unit || 'unit'}) — optional</FieldLabel>
-            <input type="number" min="0" step="0.1" value={feedQty} onChange={(e) => setFeedQty(e.target.value)} placeholder="0" className={inputClass} style={inputStyle} />
+            <FieldLabel>Feed consumed ({feedItems.find((i) => i.id === feedItemId)?.unit || 'unit'}) — optional</FieldLabel>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={feedQty}
+              onChange={(e) => setFeedQty(e.target.value)}
+              placeholder="0"
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
         </div>
 
         <div>
           <FieldLabel>Notes — optional</FieldLabel>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Anything worth remembering about today" className={inputClass} style={inputStyle} />
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Anything worth remembering about today"
+            className={inputClass}
+            style={inputStyle}
+          />
         </div>
 
         <div className="flex gap-2 flex-wrap">
@@ -225,8 +335,12 @@ export default function DailyLogView({ units, logs, inventory = [], getBalance, 
             <tbody>
               {recent.map((l) => (
                 <tr key={l.id} className="font-mono">
-                  <td className="px-5 py-2.5" style={{ color: 'var(--ink-soft)' }}>{l.date}</td>
-                  <td className="px-3 py-2.5 text-right">{fmtNum(l.produced)} {t.unitLabel}</td>
+                  <td className="px-5 py-2.5" style={{ color: 'var(--ink-soft)' }}>
+                    {l.date}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    {fmtNum(l.produced)} {t.unitLabel}
+                  </td>
                   <td className="px-3 py-2.5 text-right" style={{ color: l.mortality > 0 ? 'var(--rust)' : 'var(--ink-soft)' }}>
                     {l.mortality > 0 ? `${l.mortality} lost` : '—'}
                   </td>

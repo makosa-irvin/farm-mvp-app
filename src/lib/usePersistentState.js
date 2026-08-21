@@ -5,15 +5,21 @@ const SAVED_EVENT = 'mazaosmart-saved';
 
 export function usePersistentState(key, initialValue) {
   const [state, setState] = useState(() => {
-    try { const stored = window.localStorage.getItem(key); return stored ? JSON.parse(stored) : initialValue; }
-    catch { return initialValue; }
+    try {
+      const stored = window.localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : initialValue;
+    } catch {
+      return initialValue;
+    }
   });
   useEffect(() => {
     try {
       window.localStorage.setItem(key, JSON.stringify(state));
       window.localStorage.setItem(LAST_SAVED_KEY, String(Date.now()));
       window.dispatchEvent(new Event(SAVED_EVENT));
-    } catch { /* Storage can fail; keep the current session usable. */ }
+    } catch {
+      /* Storage can fail; keep the current session usable. */
+    }
   }, [key, state]);
   return [state, setState];
 }

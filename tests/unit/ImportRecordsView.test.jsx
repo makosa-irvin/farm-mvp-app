@@ -2,12 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import ImportRecordsView from '../../src/views/ImportRecordsView.jsx';
-import {
-  parseCsv,
-  mapHeaders,
-  normalizeImportedRow,
-  inferRecordType,
-} from '../../src/lib/importRecords.js';
+import { parseCsv, mapHeaders, normalizeImportedRow, inferRecordType } from '../../src/lib/importRecords.js';
 
 const farm = {
   units: [{ id: 'u1', name: 'Layer House A' }],
@@ -24,24 +19,28 @@ describe('ImportRecordsView', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('maps common spreadsheet headers into canonical fields', () => {
-    const rows = parseCsv([
-      'Date,Group,Item,Qty,Cost,Expense,Vendor,Payment,Produced,Losses,Deaths,Remarks',
-      '2026-08-01,Layer House A,Layer Mash,50,75,3750,Agrovet,M-Pesa,30,2,1,Old notebook record',
-    ].join('\n'));
+    const rows = parseCsv(
+      [
+        'Date,Group,Item,Qty,Cost,Expense,Vendor,Payment,Produced,Losses,Deaths,Remarks',
+        '2026-08-01,Layer House A,Layer Mash,50,75,3750,Agrovet,M-Pesa,30,2,1,Old notebook record',
+      ].join('\n'),
+    );
 
-    expect(rows[0]).toEqual(expect.objectContaining({
-      date: '2026-08-01',
-      farm_group: 'Layer House A',
-      name: 'Layer Mash',
-      quantity: '50',
-      unit_cost: '75',
-      amount: '3750',
-      supplier: 'Agrovet',
-      payment_method: 'M-Pesa',
-      loss: '2',
-      mortality: '1',
-      notes: 'Old notebook record',
-    }));
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        date: '2026-08-01',
+        farm_group: 'Layer House A',
+        name: 'Layer Mash',
+        quantity: '50',
+        unit_cost: '75',
+        amount: '3750',
+        supplier: 'Agrovet',
+        payment_method: 'M-Pesa',
+        loss: '2',
+        mortality: '1',
+        notes: 'Old notebook record',
+      }),
+    );
   });
 
   it('explains both paper and spreadsheet migration', () => {
@@ -58,7 +57,9 @@ describe('ImportRecordsView', () => {
     fireEvent.change(screen.getByLabelText('What was it for?'), { target: { value: 'Old feed purchase' } });
     fireEvent.change(screen.getByLabelText(/amount \(ksh\)/i), { target: { value: '2500' } });
     fireEvent.click(screen.getByRole('button', { name: /save past record/i }));
-    expect(farm.addExpense).toHaveBeenCalledWith(expect.objectContaining({ amount: 2500, description: 'Old feed purchase', date: expect.any(String) }));
+    expect(farm.addExpense).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 2500, description: 'Old feed purchase', date: expect.any(String) }),
+    );
   });
 
   it('requires a farm group before saving a historical daily log', () => {
@@ -88,9 +89,22 @@ describe('ImportRecordsView', () => {
     fireEvent.click(screen.getByRole('button', { name: /import records/i }));
 
     expect(farm.addUnit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Old Layer House', startDate: '2026-08-01' }));
-    expect(farm.addInventoryItem).toHaveBeenCalledWith(expect.objectContaining({ name: 'Layer Mash', openingStock: 50, openingDate: '2026-08-02', unitCost: 75 }));
-    expect(farm.addExpense).toHaveBeenCalledWith(expect.objectContaining({ amount: 3750, description: 'Feed purchase', date: '2026-08-03', supplier: 'Agrovet', paymentMethod: 'M-Pesa' }));
-    expect(farm.addLog).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-08-04', produced: 30, loss: 2, mortality: 1, notes: 'Historical production' }), expect.objectContaining({ name: 'Old Layer House' }));
+    expect(farm.addInventoryItem).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Layer Mash', openingStock: 50, openingDate: '2026-08-02', unitCost: 75 }),
+    );
+    expect(farm.addExpense).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 3750,
+        description: 'Feed purchase',
+        date: '2026-08-03',
+        supplier: 'Agrovet',
+        paymentMethod: 'M-Pesa',
+      }),
+    );
+    expect(farm.addLog).toHaveBeenCalledWith(
+      expect.objectContaining({ date: '2026-08-04', produced: 30, loss: 2, mortality: 1, notes: 'Historical production' }),
+      expect.objectContaining({ name: 'Old Layer House' }),
+    );
   });
 
   it('infers record types when a spreadsheet does not have a Record Type column', async () => {

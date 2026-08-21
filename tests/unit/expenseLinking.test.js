@@ -22,7 +22,15 @@ describe('syncedTransactionsForExpense', () => {
 
   it('returns null (reject) when reducing quantity would drive stock negative', () => {
     const inventory = [{ id: 'i1', unit: 'kg', openingStock: 0 }];
-    const existingPurchase = { id: expensePurchaseTransactionId('e1'), itemId: 'i1', source: 'expense-purchase', sourceId: 'e1', direction: 'in', quantity: 150, unitCost: 0.7 };
+    const existingPurchase = {
+      id: expensePurchaseTransactionId('e1'),
+      itemId: 'i1',
+      source: 'expense-purchase',
+      sourceId: 'e1',
+      direction: 'in',
+      quantity: 150,
+      unitCost: 0.7,
+    };
     const consumption = { id: 'logfeed_l1', itemId: 'i1', direction: 'out', quantity: 45, unitCost: 0.7 };
     const transactions = [existingPurchase, consumption];
 
@@ -32,7 +40,15 @@ describe('syncedTransactionsForExpense', () => {
 
   it('allows increasing the quantity even with existing consumption', () => {
     const inventory = [{ id: 'i1', unit: 'kg', openingStock: 0 }];
-    const existingPurchase = { id: expensePurchaseTransactionId('e1'), itemId: 'i1', source: 'expense-purchase', sourceId: 'e1', direction: 'in', quantity: 150, unitCost: 0.7 };
+    const existingPurchase = {
+      id: expensePurchaseTransactionId('e1'),
+      itemId: 'i1',
+      source: 'expense-purchase',
+      sourceId: 'e1',
+      direction: 'in',
+      quantity: 150,
+      unitCost: 0.7,
+    };
     const consumption = { id: 'logfeed_l1', itemId: 'i1', direction: 'out', quantity: 45, unitCost: 0.7 };
     const transactions = [existingPurchase, consumption];
 
@@ -44,7 +60,16 @@ describe('syncedTransactionsForExpense', () => {
 
   it('preserves the original createdAt across an edit', () => {
     const inventory = [{ id: 'i1', unit: 'kg', openingStock: 0 }];
-    const existingPurchase = { id: expensePurchaseTransactionId('e1'), itemId: 'i1', source: 'expense-purchase', sourceId: 'e1', direction: 'in', quantity: 150, unitCost: 0.7, createdAt: 12345 };
+    const existingPurchase = {
+      id: expensePurchaseTransactionId('e1'),
+      itemId: 'i1',
+      source: 'expense-purchase',
+      sourceId: 'e1',
+      direction: 'in',
+      quantity: 150,
+      unitCost: 0.7,
+      createdAt: 12345,
+    };
     const expense = { id: 'e1', amount: 140, date: '2026-08-17', inventoryItemId: 'i1', inventoryQuantity: 200 };
     const result = syncedTransactionsForExpense(expense, inventory, [existingPurchase]);
     expect(result.find((t) => t.source === 'expense-purchase').createdAt).toBe(12345);

@@ -58,28 +58,59 @@ export default function ImportRecordsView({ farm, onBack }) {
 
     if (type === 'unit') {
       farm.addUnit({
-        id: makeId('unit'), name: form.name.trim(), type: 'other',
-        initialCount: Number(form.quantity) || 0, producePrice: 0, startDate: form.date, createdAt,
+        id: makeId('unit'),
+        name: form.name.trim(),
+        type: 'other',
+        initialCount: Number(form.quantity) || 0,
+        producePrice: 0,
+        startDate: form.date,
+        createdAt,
       });
     } else if (type === 'inventory') {
       farm.addInventoryItem({
-        id: makeId('item'), name: form.name.trim(), category: form.category, unit: form.unit,
-        openingStock: Number(form.quantity) || 0, openingDate: form.date, reorderLevel: 0,
-        unitCost: Number(form.amount) || 0, createdAt,
+        id: makeId('item'),
+        name: form.name.trim(),
+        category: form.category,
+        unit: form.unit,
+        openingStock: Number(form.quantity) || 0,
+        openingDate: form.date,
+        reorderLevel: 0,
+        unitCost: Number(form.amount) || 0,
+        createdAt,
       });
     } else if (type === 'expense') {
       farm.addExpense({
-        id: makeId('expense'), category: form.category, amount: Number(form.amount) || 0, date: form.date,
-        unitId: form.unitId || null, description: form.name.trim(), supplier: null, paymentMethod: null,
-        inventoryItemId: null, inventoryQuantity: null, createdAt,
+        id: makeId('expense'),
+        category: form.category,
+        amount: Number(form.amount) || 0,
+        date: form.date,
+        unitId: form.unitId || null,
+        description: form.name.trim(),
+        supplier: null,
+        paymentMethod: null,
+        inventoryItemId: null,
+        inventoryQuantity: null,
+        createdAt,
       });
     } else {
       if (!selectedUnit) return;
-      farm.addLog({
-        id: makeId('log'), unitId: selectedUnit.id, date: form.date, produced: Number(form.quantity) || 0,
-        grades: null, loss: 0, feedKg: 0, feedQuantity: 0, feedItemId: null, mortality: 0,
-        notes: form.notes || form.name.trim(), createdAt,
-      }, selectedUnit);
+      farm.addLog(
+        {
+          id: makeId('log'),
+          unitId: selectedUnit.id,
+          date: form.date,
+          produced: Number(form.quantity) || 0,
+          grades: null,
+          loss: 0,
+          feedKg: 0,
+          feedQuantity: 0,
+          feedItemId: null,
+          mortality: 0,
+          notes: form.notes || form.name.trim(),
+          createdAt,
+        },
+        selectedUnit,
+      );
     }
 
     setSaved(true);
@@ -128,97 +159,155 @@ export default function ImportRecordsView({ farm, onBack }) {
 
       // Farm groups first — later rows (stock, expenses, logs) may
       // reference a group this same import just created.
-      rows.filter((r) => r.record_type === 'unit').forEach((r) => {
-        const name = (r.name || r.farm_group).trim();
-        if (!name) return;
-        const existing = getUnit(name);
-        if (existing) {
-          // A repeated group row with a later date and a positive
-          // quantity is treated as "more animals/birds added to an
-          // existing group" rather than a duplicate group.
-          if (r.quantity > 0 && r.date > existing.startDate) {
-            const updated = { ...existing, initialCount: (Number(existing.initialCount) || 0) + r.quantity };
-            farm.updateUnit(updated);
-            units.splice(units.indexOf(existing), 1, updated);
-            unitsByName.set(existing.name.trim().toLowerCase(), updated);
-            groupQuantitiesApplied += r.quantity;
+      rows
+        .filter((r) => r.record_type === 'unit')
+        .forEach((r) => {
+          const name = (r.name || r.farm_group).trim();
+          if (!name) return;
+          const existing = getUnit(name);
+          if (existing) {
+            // A repeated group row with a later date and a positive
+            // quantity is treated as "more animals/birds added to an
+            // existing group" rather than a duplicate group.
+            if (r.quantity > 0 && r.date > existing.startDate) {
+              const updated = { ...existing, initialCount: (Number(existing.initialCount) || 0) + r.quantity };
+              farm.updateUnit(updated);
+              units.splice(units.indexOf(existing), 1, updated);
+              unitsByName.set(existing.name.trim().toLowerCase(), updated);
+              groupQuantitiesApplied += r.quantity;
+              imported++;
+            }
+            return;
+          }
+          const unit = {
+            id: makeId('unit'),
+            name,
+            type: 'other',
+            initialCount: r.quantity || 0,
+            producePrice: 0,
+            startDate: r.date,
+            createdAt: Date.now(),
+          };
+          farm.addUnit(unit);
+          units.push(unit);
+          unitsByName.set(name.toLowerCase(), unit);
+          groupsAdded++;
+          imported++;
+        });
+
+      rows
+        .filter((r) => r.record_type !== 'unit')
+        .forEach((r) => {
+          const date = r.date || todayISO();
+
+          if (r.record_type === 'inventory') {
+            if (!r.name || r.quantity <= 0) {
+              skipped++;
+              return;
+            }
+            let item = inventoryByName.get(r.name.trim().toLowerCase());
+            if (!item) {
+              item = {
+                id: makeId('item'),
+                name: r.name,
+                category: r.category,
+                unit: r.unit,
+                openingStock: r.movement_type ? 0 : r.quantity,
+                openingDate: r.movement_type ? null : date,
+                reorderLevel: 0,
+                unitCost: r.unit_cost,
+                supplier: r.supplier || null,
+                createdAt: Date.now(),
+              };
+              item = farm.addInventoryItem(item) || item;
+              inventory.push(item);
+              inventoryByName.set(r.name.trim().toLowerCase(), item);
+              stockItemsAdded++;
+            }
+            if (r.movement_type) {
+              const unit = getUnit(r.farm_group);
+              const result = farm.addInventoryMove({
+                id: makeId('import_txn'),
+                itemId: item.id,
+                itemSnapshot: item,
+                transactionType: r.movement_type,
+                quantity: r.quantity,
+                unitCost: r.unit_cost || item.unitCost || 0,
+                date,
+                note: r.notes || 'Imported stock movement',
+                source: 'import',
+                sourceId: r._row,
+                unitId: unit?.id || null,
+              });
+              if (result === false) {
+                skipped++;
+                return;
+              }
+              movementsAdded++;
+            }
             imported++;
-          }
-          return;
-        }
-        const unit = { id: makeId('unit'), name, type: 'other', initialCount: r.quantity || 0, producePrice: 0, startDate: r.date, createdAt: Date.now() };
-        farm.addUnit(unit);
-        units.push(unit);
-        unitsByName.set(name.toLowerCase(), unit);
-        groupsAdded++;
-        imported++;
-      });
-
-      rows.filter((r) => r.record_type !== 'unit').forEach((r) => {
-        const date = r.date || todayISO();
-
-        if (r.record_type === 'inventory') {
-          if (!r.name || r.quantity <= 0) { skipped++; return; }
-          let item = inventoryByName.get(r.name.trim().toLowerCase());
-          if (!item) {
-            item = {
-              id: makeId('item'), name: r.name, category: r.category, unit: r.unit,
-              openingStock: r.movement_type ? 0 : r.quantity,
-              openingDate: r.movement_type ? null : date,
-              reorderLevel: 0, unitCost: r.unit_cost, supplier: r.supplier || null, createdAt: Date.now(),
-            };
-            item = farm.addInventoryItem(item) || item;
-            inventory.push(item);
-            inventoryByName.set(r.name.trim().toLowerCase(), item);
-            stockItemsAdded++;
-          }
-          if (r.movement_type) {
+          } else if (r.record_type === 'expense') {
+            if (!r.name || r.amount <= 0) {
+              skipped++;
+              return;
+            }
             const unit = getUnit(r.farm_group);
-            const result = farm.addInventoryMove({
-              id: makeId('import_txn'), itemId: item.id, itemSnapshot: item, transactionType: r.movement_type,
-              quantity: r.quantity, unitCost: r.unit_cost || item.unitCost || 0, date,
-              note: r.notes || 'Imported stock movement', source: 'import', sourceId: r._row, unitId: unit?.id || null,
+            farm.addExpense({
+              id: makeId('expense'),
+              category: r.category,
+              amount: r.amount,
+              date,
+              unitId: unit?.id || null,
+              description: r.name,
+              supplier: r.supplier || null,
+              paymentMethod: r.payment_method || null,
+              inventoryItemId: null,
+              inventoryQuantity: r.quantity || null,
+              createdAt: Date.now(),
             });
-            if (result === false) { skipped++; return; }
-            movementsAdded++;
+            imported++;
+          } else if (r.record_type === 'log') {
+            const unit = getUnit(r.farm_group);
+            if (!unit || (r.quantity <= 0 && r.loss <= 0 && r.mortality <= 0)) {
+              skipped++;
+              return;
+            }
+            farm.addLog(
+              {
+                id: makeId('log'),
+                unitId: unit.id,
+                date,
+                produced: r.quantity,
+                grades: null,
+                loss: r.loss,
+                feedKg: 0,
+                feedQuantity: 0,
+                feedItemId: null,
+                mortality: r.mortality,
+                notes: r.notes || r.name || '',
+                createdAt: Date.now(),
+              },
+              unit,
+            );
+            imported++;
+          } else {
+            skipped++;
           }
-          imported++;
-        } else if (r.record_type === 'expense') {
-          if (!r.name || r.amount <= 0) { skipped++; return; }
-          const unit = getUnit(r.farm_group);
-          farm.addExpense({
-            id: makeId('expense'), category: r.category, amount: r.amount, date, unitId: unit?.id || null,
-            description: r.name, supplier: r.supplier || null, paymentMethod: r.payment_method || null,
-            inventoryItemId: null, inventoryQuantity: r.quantity || null, createdAt: Date.now(),
-          });
-          imported++;
-        } else if (r.record_type === 'log') {
-          const unit = getUnit(r.farm_group);
-          if (!unit || (r.quantity <= 0 && r.loss <= 0 && r.mortality <= 0)) { skipped++; return; }
-          farm.addLog({
-            id: makeId('log'), unitId: unit.id, date, produced: r.quantity, grades: null, loss: r.loss,
-            feedKg: 0, feedQuantity: 0, feedItemId: null, mortality: r.mortality,
-            notes: r.notes || r.name || '', createdAt: Date.now(),
-          }, unit);
-          imported++;
-        } else {
-          skipped++;
-        }
-      });
+        });
 
       setSaved(true);
       setRows([]);
       setMode('choose');
       setMessage(
         `${imported} records imported. ${groupsAdded} groups added` +
-        `${groupQuantitiesApplied ? `, ${groupQuantitiesApplied} animals/birds added to existing groups` : ''}, ` +
-        `${stockItemsAdded} stock items added, ${movementsAdded} stock movements recorded` +
-        `${skipped ? `. ${skipped} rows skipped.` : '.'}`
+          `${groupQuantitiesApplied ? `, ${groupQuantitiesApplied} animals/birds added to existing groups` : ''}, ` +
+          `${stockItemsAdded} stock items added, ${movementsAdded} stock movements recorded` +
+          `${skipped ? `. ${skipped} rows skipped.` : '.'}`,
       );
     } catch (err) {
       setMessage(
         `Something went wrong partway through the import (${err.message || 'unknown error'}). ` +
-        'Some records may already have been added — please check your Farm groups, Stock, Expenses, and Daily log before importing again.'
+          'Some records may already have been added — please check your Farm groups, Stock, Expenses, and Daily log before importing again.',
       );
       setMode('choose');
     }
@@ -249,56 +338,103 @@ export default function ImportRecordsView({ farm, onBack }) {
     return (
       <div className="space-y-5">
         <button className="btn-ghost rounded-xl px-3 py-2 text-sm" onClick={() => setMode('choose')}>
-          <ArrowLeft size={16} className="inline mr-2" />Back
+          <ArrowLeft size={16} className="inline mr-2" />
+          Back
         </button>
         <header>
-          <div className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--forest)' }}>Bring in old records</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--forest)' }}>
+            Bring in old records
+          </div>
           <h1 className="font-display text-2xl font-semibold mt-1">Add a past record</h1>
         </header>
         <div className="grid grid-cols-2 gap-2">
           {TYPES.map((x) => (
             <button
-              key={x.value} type="button"
-              onClick={() => { setType(x.value); setSaved(false); }}
+              key={x.value}
+              type="button"
+              onClick={() => {
+                setType(x.value);
+                setSaved(false);
+              }}
               className={`rounded-xl border p-3 text-left text-sm ${type === x.value ? 'ring-2' : ''}`}
               style={{ borderColor: 'var(--line)', background: 'var(--surface)' }}
             >
               <div className="font-semibold">{x.label}</div>
-              <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>{x.hint}</div>
+              <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>
+                {x.hint}
+              </div>
             </button>
           ))}
         </div>
-        <form onSubmit={saveManual} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+        <form
+          onSubmit={saveManual}
+          className="rounded-2xl p-5 space-y-4"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+        >
           <label className="block text-sm font-medium">
             Date
             <input className="field mt-1 w-full" type="date" value={form.date} onChange={(e) => update('date', e.target.value)} required />
           </label>
           <label className="block text-sm font-medium">
-            {type === 'unit' ? 'Farm group name' : type === 'inventory' ? 'Stock item' : type === 'expense' ? 'What was it for?' : 'What happened?'}
+            {type === 'unit'
+              ? 'Farm group name'
+              : type === 'inventory'
+                ? 'Stock item'
+                : type === 'expense'
+                  ? 'What was it for?'
+                  : 'What happened?'}
             <input className="field mt-1 w-full" value={form.name} onChange={(e) => update('name', e.target.value)} required />
           </label>
           {type === 'unit' && (
             <label className="block text-sm font-medium">
               Starting quantity
-              <input className="field mt-1 w-full" type="number" min="0" value={form.quantity} onChange={(e) => update('quantity', e.target.value)} />
+              <input
+                className="field mt-1 w-full"
+                type="number"
+                min="0"
+                value={form.quantity}
+                onChange={(e) => update('quantity', e.target.value)}
+              />
             </label>
           )}
           {type === 'inventory' && (
             <>
               <label className="block text-sm font-medium">
                 Quantity
-                <input className="field mt-1 w-full" type="number" min="0" step="any" value={form.quantity} onChange={(e) => update('quantity', e.target.value)} />
+                <input
+                  className="field mt-1 w-full"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.quantity}
+                  onChange={(e) => update('quantity', e.target.value)}
+                />
               </label>
               <label className="block text-sm font-medium">
                 Unit cost
-                <input className="field mt-1 w-full" type="number" min="0" step="any" value={form.amount} onChange={(e) => update('amount', e.target.value)} />
+                <input
+                  className="field mt-1 w-full"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.amount}
+                  onChange={(e) => update('amount', e.target.value)}
+                />
               </label>
             </>
           )}
           {type === 'expense' && (
             <label className="block text-sm font-medium">
               Amount (KSh)
-              <input className="field mt-1 w-full" type="number" min="0" step="any" value={form.amount} onChange={(e) => update('amount', e.target.value)} required />
+              <input
+                className="field mt-1 w-full"
+                type="number"
+                min="0"
+                step="any"
+                value={form.amount}
+                onChange={(e) => update('amount', e.target.value)}
+                required
+              />
             </label>
           )}
           {type === 'log' && (
@@ -307,21 +443,35 @@ export default function ImportRecordsView({ farm, onBack }) {
                 Farm group
                 <select className="field mt-1 w-full" value={form.unitId} onChange={(e) => update('unitId', e.target.value)} required>
                   <option value="">Choose group</option>
-                  {farm.units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  {farm.units.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="block text-sm font-medium">
                 Production quantity
-                <input className="field mt-1 w-full" type="number" min="0" step="any" value={form.quantity} onChange={(e) => update('quantity', e.target.value)} required />
+                <input
+                  className="field mt-1 w-full"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.quantity}
+                  onChange={(e) => update('quantity', e.target.value)}
+                  required
+                />
               </label>
             </>
           )}
           <button className="btn-primary w-full rounded-xl px-4 py-3 font-semibold" type="submit">
-            <Plus size={17} className="inline mr-2" />Save past record
+            <Plus size={17} className="inline mr-2" />
+            Save past record
           </button>
           {saved && (
             <div className="text-sm flex items-center gap-2" style={{ color: 'var(--forest)' }}>
-              <CheckCircle2 size={18} />Saved.
+              <CheckCircle2 size={18} />
+              Saved.
             </div>
           )}
         </form>
@@ -333,11 +483,14 @@ export default function ImportRecordsView({ farm, onBack }) {
     return (
       <div className="space-y-5">
         <button className="btn-ghost rounded-xl px-3 py-2 text-sm" onClick={() => setMode('choose')}>
-          <ArrowLeft size={16} className="inline mr-2" />Back
+          <ArrowLeft size={16} className="inline mr-2" />
+          Back
         </button>
         <header>
           <h1 className="font-display text-2xl font-semibold">Check your records</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>{rows.length} rows found. We add them to your existing records.</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>
+            {rows.length} rows found. We add them to your existing records.
+          </p>
         </header>
         <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--line)' }}>
           <div className="overflow-auto max-h-72">
@@ -356,7 +509,9 @@ export default function ImportRecordsView({ farm, onBack }) {
             </table>
           </div>
         </div>
-        <button className="btn-primary w-full rounded-xl px-4 py-3 font-semibold" onClick={importCsv}>Import records</button>
+        <button className="btn-primary w-full rounded-xl px-4 py-3 font-semibold" onClick={importCsv}>
+          Import records
+        </button>
       </div>
     );
   }
@@ -364,28 +519,57 @@ export default function ImportRecordsView({ farm, onBack }) {
   return (
     <div className="space-y-5">
       <header>
-        <div className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--forest)' }}>Settings · Data</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--forest)' }}>
+          Settings · Data
+        </div>
         <h1 className="font-display text-2xl font-semibold mt-1">Bring in existing records</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>Have paper records? Enter the important ones. Have a spreadsheet? Upload it.</p>
+        <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>
+          Have paper records? Enter the important ones. Have a spreadsheet? Upload it.
+        </p>
       </header>
       <section className="grid gap-3">
-        <button type="button" onClick={() => setMode('manual')} className="rounded-2xl p-5 text-left" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+        <button
+          type="button"
+          onClick={() => setMode('manual')}
+          className="rounded-2xl p-5 text-left"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+        >
           <NotebookPen size={22} style={{ color: 'var(--forest)' }} />
           <h2 className="font-semibold mt-3">Enter records from paper</h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>Add groups, stock, expenses and daily records.</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>
+            Add groups, stock, expenses and daily records.
+          </p>
         </button>
-        <button type="button" onClick={() => fileRef.current?.click()} className="rounded-2xl p-5 text-left" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="rounded-2xl p-5 text-left"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+        >
           <FileSpreadsheet size={22} style={{ color: 'var(--forest)' }} />
           <h2 className="font-semibold mt-3">Upload a spreadsheet</h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>CSV files are supported. Common headings are mapped automatically.</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>
+            CSV files are supported. Common headings are mapped automatically.
+          </p>
         </button>
         <input ref={fileRef} type="file" accept="text/csv,.csv" onChange={handleFile} className="hidden" />
-        <button type="button" onClick={downloadTemplate} className="btn-ghost rounded-xl px-4 py-3 text-sm inline-flex items-center justify-center gap-2">
-          <Upload size={16} />Download CSV template
+        <button
+          type="button"
+          onClick={downloadTemplate}
+          className="btn-ghost rounded-xl px-4 py-3 text-sm inline-flex items-center justify-center gap-2"
+        >
+          <Upload size={16} />
+          Download CSV template
         </button>
       </section>
-      {message && <p className="text-sm rounded-xl p-3" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>{message}</p>}
-      <button type="button" onClick={onBack} className="btn-ghost rounded-xl px-4 py-3 text-sm w-full">Back to Settings</button>
+      {message && (
+        <p className="text-sm rounded-xl p-3" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+          {message}
+        </p>
+      )}
+      <button type="button" onClick={onBack} className="btn-ghost rounded-xl px-4 py-3 text-sm w-full">
+        Back to Settings
+      </button>
     </div>
   );
 }

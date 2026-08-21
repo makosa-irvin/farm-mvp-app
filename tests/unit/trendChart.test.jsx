@@ -14,7 +14,10 @@ describe('TrendChart', () => {
   });
 
   it('does not crash when every value is zero', () => {
-    const data = [{ date: '2026-08-01', value: 0 }, { date: '2026-08-02', value: 0 }];
+    const data = [
+      { date: '2026-08-01', value: 0 },
+      { date: '2026-08-02', value: 0 },
+    ];
     const { container } = render(<TrendChart data={data} />);
     expect(container.querySelectorAll('rect')).toHaveLength(2);
   });

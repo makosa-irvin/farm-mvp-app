@@ -53,7 +53,7 @@ test('primary touch targets meet the 44px minimum', async ({ page }) => {
   expect(saveBox.height).toBeGreaterThanOrEqual(44);
 });
 
-test('form inputs use 16px+ text, avoiding iOS Safari\'s auto-zoom-on-focus', async ({ page }) => {
+test("form inputs use 16px+ text, avoiding iOS Safari's auto-zoom-on-focus", async ({ page }) => {
   await page.getByRole('button', { name: 'Expenses', exact: true }).click();
   const amountInput = fieldByLabel(page, 'How much did you pay? (KSh)');
   const fontSize = await amountInput.evaluate((el) => window.getComputedStyle(el).fontSize);

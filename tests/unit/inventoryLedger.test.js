@@ -51,7 +51,7 @@ describe('getWeightedAverageCost', () => {
     expect(getWeightedAverageCost(inventory, transactions, 'i1')).toBe(2);
   });
 
-  it('falls back to the item\'s fallback unit cost with no stock at all', () => {
+  it("falls back to the item's fallback unit cost with no stock at all", () => {
     const inventory = [{ id: 'i1', openingStock: 0, unitCost: 4.5 }];
     expect(getWeightedAverageCost(inventory, [], 'i1')).toBe(4.5);
   });
@@ -93,7 +93,7 @@ describe('normalizeTransaction', () => {
     const expenses = [{ id: 'e1', amount: 105, inventoryQuantity: 150 }];
     const record = normalizeTransaction(
       { itemId: 'i1', transactionType: 'purchase', quantity: 150, expenseId: 'e1' },
-      { inventory, expenses, transactions: [] }
+      { inventory, expenses, transactions: [] },
     );
     expect(record.unitCost).toBeCloseTo(0.7);
     expect(record.direction).toBe('in');
@@ -103,7 +103,7 @@ describe('normalizeTransaction', () => {
     const inventory = [{ id: 'i1', unit: 'kg', openingStock: 10, unitCost: 2 }];
     const record = normalizeTransaction(
       { itemId: 'i1', transactionType: 'consumption', quantity: 5 },
-      { inventory, expenses: [], transactions: [] }
+      { inventory, expenses: [], transactions: [] },
     );
     expect(record.unitCost).toBe(2);
   });
@@ -112,7 +112,7 @@ describe('normalizeTransaction', () => {
     const inventory = [{ id: 'i1', unit: 'kg', openingStock: 10 }];
     const record = normalizeTransaction(
       { itemId: 'i1', transactionType: 'stock_count', countQuantity: 7 },
-      { inventory, expenses: [], transactions: [] }
+      { inventory, expenses: [], transactions: [] },
     );
     expect(record.direction).toBe('out');
     expect(record.quantity).toBe(3);
