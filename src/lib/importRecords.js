@@ -52,10 +52,15 @@ export function inferRecordType(row) {
   if(['inventory','stock','item','supply'].includes(explicit)) return 'inventory';
   if(['expense','expenses','cost','spending'].includes(explicit)) return 'expense';
   if(['log','daily_log','dailylog','production','activity'].includes(explicit)) return 'log';
-  if(row.movement_type) return 'inventory';
+
+  // Infer from the canonical fields produced by parseCsv as well as the
+  // original spreadsheet headings. parseCsv maps Produced -> quantity,
+  // Losses -> loss, Deaths -> mortality and Expense -> amount, so checking
+  // only the original names would miss otherwise valid historical records.
+  if(row.movement_type || row.stock_movement || row.transaction_type) return 'inventory';
   if(row.loss || row.mortality || row.produced || row.production || row.production_quantity) return 'log';
-  if(row.supplier || row.payment_method || row.expense_amount || row.expense) return 'expense';
-  if(row.opening_stock || row.unit_cost || row.cost_per_unit) return 'inventory';
+  if(row.payment_method || row.paid_by || row.payment || row.supplier || row.vendor || row.expense_amount || row.expense || row.amount || row.total_amount) return 'expense';
+  if(row.opening_stock || row.unit_cost || row.cost_per_unit || row.quantity) return 'inventory';
   return '';
 }
 
