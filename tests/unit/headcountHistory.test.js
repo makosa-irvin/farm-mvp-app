@@ -1,0 +1,2 @@
+import { describe, expect, it } from 'vitest'; import { averageHeadcount, headcountOnDate } from '../../src/lib/headcountHistory.js';
+describe('headcountHistory', () => { const unit = { id: 'u1', initialCount: 10, startDate: '2026-08-01' }; const logs = [{ unitId: 'u1', date: '2026-08-02', mortality: 1, loss: 0 }, { unitId: 'u1', date: '2026-08-04', mortality: 1, loss: 1 }]; it('reconstructs history', () => expect(headcountOnDate(unit, logs, '2026-08-04')).toBe(7)); it('averages history', () => expect(averageHeadcount(unit, logs, '2026-08-01', '2026-08-04')).toBe(8.5)); });
