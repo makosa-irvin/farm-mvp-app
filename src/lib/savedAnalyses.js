@@ -1,0 +1,4 @@
+const KEY = 'mazaosmart-saved-analyses';
+export function readSavedAnalyses(storage = globalThis.localStorage) { try { const value = JSON.parse(storage.getItem(KEY) || '[]'); return Array.isArray(value) ? value : []; } catch { return []; } }
+export function saveAnalysis(name, filters, storage = globalThis.localStorage) { const title = String(name || '').trim(); if (!title) return readSavedAnalyses(storage); const next = [{ id: `${Date.now()}`, name: title, filters }, ...readSavedAnalyses(storage).filter((x) => x.name.toLowerCase() !== title.toLowerCase())].slice(0, 12); storage.setItem(KEY, JSON.stringify(next)); return next; }
+export function deleteAnalysis(id, storage = globalThis.localStorage) { const next = readSavedAnalyses(storage).filter((x) => x.id !== id); storage.setItem(KEY, JSON.stringify(next)); return next; }
