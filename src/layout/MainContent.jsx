@@ -3,6 +3,7 @@ import DailyLogView from '../views/DailyLogView.jsx';
 import ExpensesView from '../views/ExpensesView.jsx';
 import UnitsView from '../views/UnitsView.jsx';
 import AnalyticsView from '../views/AnalyticsView.jsx';
+import FarmInsightsView from '../views/FarmInsightsView.jsx';
 import InventoryView from '../views/InventoryView.jsx';
 import SettingsView from '../views/SettingsView.jsx';
 import SuppliersView from '../views/SuppliersView.jsx';
@@ -80,6 +81,7 @@ export default function MainContent({ tab, farm, setTab }) {
           inventoryMoves={farm.inventoryMoves}
         />
       )}
+      {tab === 'insights' && <FarmInsightsView farm={farm} goTo={setTab} />}
       {tab === 'reports' && (
         <ReportsView
           units={farm.units}

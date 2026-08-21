@@ -13,6 +13,7 @@ import {
   Droplets,
   Wheat,
   Package,
+  Lightbulb,
 } from 'lucide-react';
 
 export const UNIT_TYPES = [
@@ -57,6 +58,7 @@ export const TABS = [
   { value: 'units', label: 'Groups', icon: Tag },
   { value: 'suppliers', label: 'Suppliers', icon: Building2 },
   { value: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { value: 'insights', label: 'Farm insights', icon: Lightbulb },
   { value: 'reports', label: 'Reports', icon: FileBarChart },
   { value: 'search', label: 'Search', icon: Search },
   { value: 'settings', label: 'Settings', icon: Settings },

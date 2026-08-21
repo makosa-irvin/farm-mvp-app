@@ -28,6 +28,12 @@ describe('Header — "More" menu opens and closes correctly', () => {
     expect(moreButton).toHaveAttribute('aria-expanded', 'true');
   });
 
+  it('exposes Farm insights in the More menu', () => {
+    render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
+    fireEvent.click(screen.getByText('More').closest('button'));
+    expect(screen.getByRole('menuitem', { name: /Farm insights/i })).toBeInTheDocument();
+  });
+
   it('closes when a menu item is selected', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
@@ -110,7 +116,7 @@ describe('Header — "More" menu opens and closes correctly', () => {
   it('every current secondary tab (units, suppliers, analytics, reports, settings) appears in the menu', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
-    for (const label of ['Groups', 'Suppliers', 'Analytics', 'Reports', 'Settings']) {
+    for (const label of ['Groups', 'Suppliers', 'Analytics', 'Farm insights', 'Reports', 'Settings']) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeInTheDocument();
     }
   });

@@ -5,7 +5,7 @@ import styles from './Header.module.css';
 
 export default function Header({ tabs, activeTab, onSelectTab }) {
   const mobilePrimary = tabs.filter((t) => ['dashboard', 'log', 'inventory', 'expenses'].includes(t.value));
-  const mobileMore = tabs.filter((t) => ['units', 'suppliers', 'analytics', 'reports', 'settings'].includes(t.value));
+  const mobileMore = tabs.filter((t) => ['units', 'suppliers', 'analytics', 'insights', 'reports', 'settings'].includes(t.value));
 
   // The "More" popover used to be a native <details>/<summary>, closed on
   // selection by imperatively poking the DOM (event.currentTarget.closest
@@ -59,13 +59,12 @@ export default function Header({ tabs, activeTab, onSelectTab }) {
 
     setIsMenuOpen(false);
     onSelectTab(searchTab.value);
-  } 
+  }
 
   return (
     <>
       <header className={`sticky top-0 z-20 px-5 pt-5 pb-3 ${styles.header}`}>
         <div className="flex items-baseline justify-between gap-3">
-          
           <button
             type="button"
             onClick={goHome}
@@ -93,7 +92,6 @@ export default function Header({ tabs, activeTab, onSelectTab }) {
         >
           <RefreshCw size={15} /> Refresh
         </button>
-      
         <div className="mt-1 sm:hidden">
           <div className={`text-xs truncate ${styles.subtitle}`}>Smart farm records &amp; decisions</div>
         </div>

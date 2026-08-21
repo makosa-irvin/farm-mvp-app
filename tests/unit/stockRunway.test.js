@@ -1,0 +1,3 @@
+import { describe, expect, it } from 'vitest';
+import { getStockBalance, getStockRunway } from '../../src/lib/stockRunway.js';
+describe('stockRunway', () => { it('calculates ledger balance', () => expect(getStockBalance({ id: 'f', openingStock: 50 }, [{ itemId: 'f', direction: 'in', quantity: 20 }, { itemId: 'f', direction: 'out', quantity: 15 }])).toBe(55)); it('estimates days remaining', () => { const result = getStockRunway({ id: 'f', openingStock: 50, reorderLevel: 20 }, Array.from({ length: 10 }, (_, i) => ({ itemId: 'f', direction: 'out', quantity: 2, date: `2026-08-${String(i + 10).padStart(2, '0')}` })), [], 30); expect(result.daysRemaining).toBe(45); }); });
