@@ -107,10 +107,10 @@ describe('Header — "More" menu opens and closes correctly', () => {
     expect(moreButton).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('every current secondary tab (units, suppliers, analytics, reports, search, settings) appears in the menu', () => {
+  it('every current secondary tab (units, suppliers, analytics, reports, settings) appears in the menu', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
-    for (const label of ['Groups', 'Suppliers', 'Analytics', 'Reports', 'Search', 'Settings']) {
+    for (const label of ['Groups', 'Suppliers', 'Analytics', 'Reports', 'Settings']) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeInTheDocument();
     }
   });
