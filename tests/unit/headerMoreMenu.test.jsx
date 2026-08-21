@@ -1,3 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'; import { fireEvent, render, screen } from '@testing-library/react'; import '@testing-library/jest-dom/vitest'; import Header from '../../src/layout/Header.jsx'; import { TABS } from '../../src/constants.js';
-const noop = () => {}; beforeEach(() => vi.clearAllMocks());
-describe('Header navigation', () => { it('renders the home and search controls', () => { render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />); expect(screen.getByRole('button', { name: /go to home/i })).toHaveTextContent('Mazaosmart'); expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument(); }); it('opens Farm insights from More', () => { const select = vi.fn(); render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={select} />); fireEvent.click(screen.getByText('More').closest('button')); fireEvent.click(screen.getByRole('menuitem', { name: /Farm insights/i })); expect(select).toHaveBeenCalledWith('insights'); }); it('closes More on Escape', () => { render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />); fireEvent.click(screen.getByText('More').closest('button')); fireEvent.keyDown(document, { key: 'Escape' }); expect(screen.queryByRole('menu')).not.toBeInTheDocument(); }); });
+import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import Header from '../../src/layout/Header.jsx';
+import { TABS } from '../../src/constants.js';
+const noop = () => {};
+describe('Header — "More" menu opens and closes correctly', () => {
+  it('is closed by default', () => { render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />); expect(screen.queryByRole('menu')).not.toBeInTheDocument(); });
+  it('opens and exposes Farm insights', () => { render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />); const button = screen.getByText('More').closest('button'); fireEvent.click(button); expect(screen.getByRole('menu')).toBeInTheDocument(); expect(screen.getByRole('menuitem', { name: /Farm insights/i })).toBeInTheDocument(); });
+  it('closes on Escape', () => { render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />); fireEvent.click(screen.getByText('More').closest('button')); fireEvent.keyDown(document, { key: 'Escape' }); expect(screen.queryByRole('menu')).not.toBeInTheDocument(); });
+  it('renders accessible home and search controls', () => { render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />); expect(screen.getByRole('button', { name: /go to home/i })).toHaveTextContent('Mazaosmart'); expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument(); });
+});
