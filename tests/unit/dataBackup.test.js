@@ -26,6 +26,24 @@ describe('validateBackup', () => {
     data: { units: [{ id: 'u1' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] },
   });
 
+  // Regression test for a confirmed bug: LEGACY_BACKUP_KIND was found set
+  // to the exact same string as BACKUP_KIND, silently turning the
+  // backward-compatibility check into a no-op. A farmer with a backup
+  // downloaded before the Mazaosmart rebrand (carrying the pre-rebrand
+  // "field-ledger-backup" marker) would have that legitimate file
+  // rejected as "not a Mazaosmart backup" — exactly the safety net a
+  // backup feature exists to provide, failing at the moment it's
+  // actually needed.
+  it('accepts a backup downloaded before the Mazaosmart rebrand (the legacy "field-ledger-backup" marker)', () => {
+    const legacyPayload = {
+      kind: 'field-ledger-backup',
+      version: 1,
+      data: { units: [{ id: 'old-unit' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] },
+    };
+    const result = validateBackup(legacyPayload);
+    expect(result.units).toEqual([{ id: 'old-unit' }]);
+  });
+
   it('accepts a well-formed backup and returns its five arrays', () => {
     const result = validateBackup(validPayload());
     expect(result.units).toEqual([{ id: 'u1' }]);

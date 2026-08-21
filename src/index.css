@@ -6,6 +6,30 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Accessible default: comfortable on small phone screens and for users
+     who need a little more reading room. Users can override this with
+     data-font-size on <html> (see main.jsx/App.jsx).
+
+     Deliberately set on :root, not .farm-app: rem units — which is what
+     every Tailwind text-size utility (text-sm, text-lg, text-xs, ...)
+     compiles to, used throughout essentially every view in this app —
+     are always relative to the root <html> element's font-size, never to
+     a descendant div. An earlier version of this scaled .farm-app's own
+     font-size only, which left every Tailwind-sized element completely
+     unaffected: selecting "Large" or "Extra large" in Settings had
+     almost no visible effect on the actual app, despite the UI
+     explicitly promising "Easier to read" / "Highest visibility" for
+     those options. Setting the scale here means every rem-based size in
+     the app responds correctly, with no per-component changes needed. */
+  --font-scale: 1.08;
+  font-size: calc(16px * var(--font-scale));
+}
+
+html[data-font-size='compact'] { --font-scale: 1; }
+html[data-font-size='large'] { --font-scale: 1.16; }
+html[data-font-size='x-large'] { --font-scale: 1.26; }
+
 .farm-app {
   --bg: #f3f5ee;
   --surface: #ffffff;
@@ -21,21 +45,12 @@
   --rust-tint: #f3e1db;
   --line: #dee2d3;
 
-  /* Accessible default: comfortable on small phone screens and for users
-     who need a little more reading room. Users can override this with
-     data-font-size on .farm-app. */
-  --font-scale: 1.08;
   min-height: 100vh;
   color: var(--ink);
   background: var(--bg);
   font-family: 'Inter', sans-serif;
-  font-size: calc(16px * var(--font-scale));
   line-height: 1.55;
 }
-
-.farm-app[data-font-size='compact'] { --font-scale: 1; }
-.farm-app[data-font-size='large'] { --font-scale: 1.16; }
-.farm-app[data-font-size='x-large'] { --font-scale: 1.26; }
 
 .font-display { font-family: 'Fraunces', serif; font-optical-sizing: auto; }
 .font-mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.01em; }
@@ -56,8 +71,6 @@ button[class*="hover:bg-black/5"] {
   align-items: center;
   justify-content: center;
 }
-
-.mobile-quick-actions { display: none; }
 
 @media (max-width: 639px) {
   .farm-app {
@@ -88,62 +101,6 @@ button[class*="hover:bg-black/5"] {
   .farm-app main {
     padding-left: 16px;
     padding-right: 16px;
-  }
-
-  .mobile-quick-actions {
-    position: fixed;
-    right: 18px;
-    bottom: calc(76px + env(safe-area-inset-bottom));
-    z-index: 45;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-  }
-
-  .mobile-quick-actions__fab {
-    width: 56px;
-    height: 56px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    border-radius: 50%;
-    background: var(--forest);
-    color: #fff;
-    box-shadow: 0 8px 24px rgba(38, 43, 31, 0.22);
-  }
-
-  .mobile-quick-actions__menu {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 150px;
-    padding: 6px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--surface);
-    box-shadow: 0 14px 36px rgba(38, 43, 31, 0.16);
-  }
-
-  .mobile-quick-actions__menu button {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border: 0;
-    border-radius: 10px;
-    background: transparent;
-    color: var(--ink);
-    font-size: 14px;
-    font-weight: 600;
-    text-align: left;
-  }
-
-  .mobile-quick-actions__menu button:hover,
-  .mobile-quick-actions__menu button:focus-visible {
-    background: var(--bg);
   }
 }
 

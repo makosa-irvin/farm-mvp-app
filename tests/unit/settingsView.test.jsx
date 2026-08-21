@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import SettingsView from '../../src/views/SettingsView.jsx';
 
@@ -57,5 +57,43 @@ describe('SettingsView', () => {
   it('states the privacy boundary plainly, without implying any sync exists', () => {
     render(<SettingsView exportData={vi.fn()} importData={vi.fn()} />);
     expect(screen.getByText(/no backend account or automatic cloud sync/)).toBeInTheDocument();
+  });
+});
+
+describe('SettingsView — text size accessibility control', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('defaults to "default" when nothing has been chosen before', () => {
+    render(<SettingsView exportData={vi.fn()} importData={vi.fn()} />);
+    const defaultButton = screen.getByRole('button', { name: /Default/ });
+    expect(defaultButton).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('remembers a previously chosen size on mount', () => {
+    localStorage.setItem('mazaosmart-font-size', 'large');
+    render(<SettingsView exportData={vi.fn()} importData={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /^Large/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('selecting a size writes it to localStorage and dispatches an update event', () => {
+    const events = [];
+    const listener = (e) => events.push(e.detail);
+    window.addEventListener('mazaosmart-font-size-changed', listener);
+
+    render(<SettingsView exportData={vi.fn()} importData={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Extra large/ }));
+
+    expect(localStorage.getItem('mazaosmart-font-size')).toBe('x-large');
+    expect(events).toContain('x-large');
+    window.removeEventListener('mazaosmart-font-size-changed', listener);
+  });
+
+  it('selecting a size updates which button shows as pressed', () => {
+    render(<SettingsView exportData={vi.fn()} importData={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Compact/ }));
+    expect(screen.getByRole('button', { name: /Compact/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Default/ })).toHaveAttribute('aria-pressed', 'false');
   });
 });

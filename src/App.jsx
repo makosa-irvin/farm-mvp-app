@@ -34,6 +34,15 @@ export default function App() {
     };
   }, []);
 
+  // Applied to <html> (the actual document root), not just the .farm-app
+  // div below — rem units, which every Tailwind text-size utility
+  // compiles to, are always relative to the root element's font-size.
+  // Setting this only on a descendant div left almost all of the app's
+  // text completely unaffected by the "Text size" setting in Settings.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-font-size', fontSize);
+  }, [fontSize]);
+
   return (
     <div className="farm-app min-h-screen pb-16" data-font-size={fontSize}>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:px-3 focus:py-2" style={{ background: 'var(--surface)', color: 'var(--forest)', border: '1px solid var(--line)' }}>Skip to main content</a>

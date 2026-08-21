@@ -53,13 +53,8 @@
     position: relative;
   }
 
-  .moreMenu > summary {
-    list-style: none;
+  .moreMenu > button {
     cursor: pointer;
-  }
-
-  .moreMenu > summary::-webkit-details-marker {
-    display: none;
   }
 
   .morePopover {

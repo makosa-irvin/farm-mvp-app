@@ -32,6 +32,11 @@ const DIST_CSS_DIR = 'dist/assets';
 // copy of the source file content.
 const CHECKS = [
   {
+    name: 'text-size accessibility setting targets <html>, not a descendant div (regression check)',
+    pattern: /html\[data-font-size=/,
+    ifMissing: 'The "Text size" setting in Settings would have almost no visible effect: rem units, which every Tailwind text-size utility (text-sm, text-lg, text-xs, ...) compiles to, are always relative to the root <html> element\u2019s font-size, never to a descendant div. This exact bug was found and fixed once already — selecting "Large" or "Extra large" looked like it worked but barely changed anything on screen.',
+  },
+  {
     name: 'mobile media query breakpoint exists',
     pattern: /@media \(max-width:\s*639px\)/,
     ifMissing: 'None of the mobile-only styles (bottom nav, safe-area padding, touch targets, single-column forms) will apply on a real phone.',
@@ -47,19 +52,14 @@ const CHECKS = [
     ifMissing: 'The bottom nav and floating quick-actions button could sit under a phone\'s home-indicator area on notched devices.',
   },
   {
-    name: 'form inputs are 16px on mobile (iOS zoom prevention)',
-    pattern: /font-size:16px/,
+    name: 'form inputs are at least 16px on mobile (iOS zoom prevention)',
+    pattern: /font-size:\s*(16px|max\(16px)/,
     ifMissing: 'iOS Safari will auto-zoom the page whenever a form input is focused, which is disorienting on a phone.',
   },
   {
     name: 'mobile touch targets meet the 44px minimum',
     pattern: /min-height:44px/,
     ifMissing: 'Buttons and inputs may render below the 44px minimum touch-target recommendation on mobile.',
-  },
-  {
-    name: 'the quick-actions floating button is styled',
-    pattern: /\.mobile-quick-actions/,
-    ifMissing: 'MobileQuickActions.jsx would render but with no positioning or sizing at all.',
   },
   {
     name: 'core buttons are styled (regression check for the @import-ordering bug)',

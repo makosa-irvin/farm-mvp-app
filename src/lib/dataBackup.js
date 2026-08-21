@@ -1,6 +1,9 @@
 const BACKUP_VERSION = 1;
 const BACKUP_KIND = 'mazaosmart-backup';
-const LEGACY_BACKUP_KIND = 'mazaosmart-backup';
+// Backups downloaded before the Mazaosmart rebrand carry this marker —
+// must stay different from BACKUP_KIND above, or the backward-
+// compatibility check in validateBackup() below silently does nothing.
+const LEGACY_BACKUP_KIND = 'field-ledger-backup';
 export const PERSISTED_KEYS=['farm-units','farm-logs','farm-expenses','farm-inventory','farm-inventory-ledger'];
 export function buildBackup({units,logs,expenses,inventory,inventoryTransactions}){return{kind:BACKUP_KIND,version:BACKUP_VERSION,exportedAt:new Date().toISOString(),data:{units,logs,expenses,inventory,inventoryTransactions}};}
 export function downloadBackup(payload){const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=`mazaosmart-backup-${new Date().toISOString().slice(0,10)}.json`;anchor.click();URL.revokeObjectURL(url);}

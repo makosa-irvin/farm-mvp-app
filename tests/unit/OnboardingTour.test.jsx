@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import OnboardingTour, { STORAGE_KEY, steps } from './OnboardingTour.jsx';
+import OnboardingTour, { STORAGE_KEY, steps } from '../../src/components/OnboardingTour.jsx';
 
 const farm = {
   seedTutorialData: vi.fn(),
@@ -72,18 +72,50 @@ describe('OnboardingTour', () => {
     localStorage.setItem(STORAGE_KEY, 'true');
     const onNavigate = vi.fn();
     render(<OnboardingTour farm={farm} onNavigate={onNavigate} onReset={farm.resetTutorialData} />);
-    window.dispatchEvent(new Event('mazao-show-onboarding'));
+    act(() => {
+      window.dispatchEvent(new Event('mazao-show-onboarding'));
+    });
     expect(screen.getByText('Welcome — let’s learn by doing')).toBeInTheDocument();
     expect(onNavigate).toHaveBeenCalledWith('dashboard');
   });
 
-  it('finishes by cleaning tutorial data, recording completion, and returning home', () => {
+  it('finishes by cleaning tutorial data, recording completion, and returning home', async () => {
     const onNavigate = vi.fn();
+
+    // Every unique `target` used by a 'tap'-mode step needs a stand-in
+    // element in the DOM, since OnboardingTour attaches its click
+    // listener directly to document.querySelector(`[data-tour="..."]`)
+    // — in the real app those elements live in Header/NavTabs, not in
+    // this component, so a render of OnboardingTour alone has nothing
+    // for a 'tap' step to actually click.
+    const targetNames = [...new Set(steps.map((s) => s.target).filter(Boolean))];
+    for (const name of targetNames) {
+      const el = document.createElement('button');
+      el.setAttribute('data-tour', name);
+      el.textContent = name;
+      document.body.appendChild(el);
+    }
+
     render(<OnboardingTour farm={farm} onNavigate={onNavigate} onReset={farm.resetTutorialData} />);
 
     for (let i = 0; i < steps.length - 1; i += 1) {
-      const next = screen.getByRole('button', { name: i === 0 ? /start the tour/i : /next/i });
-      fireEvent.click(next);
+      if (i === 0) {
+        fireEvent.click(screen.getByRole('button', { name: /start the tour/i }));
+        continue;
+      }
+      const currentStep = steps[i];
+      if (currentStep.mode === 'tap') {
+        // The "Next"-equivalent button is genuinely disabled for a tap
+        // step — advancing means clicking the highlighted target itself,
+        // then waiting out the 120ms delay OnboardingTour applies before
+        // actually moving to the next step (see the component's onClick
+        // handler).
+        fireEvent.click(document.querySelector(`[data-tour="${currentStep.target}"]`));
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      } else {
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      }
     }
 
     expect(screen.getByText('You’re ready')).toBeInTheDocument();
