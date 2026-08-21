@@ -52,10 +52,24 @@ export function inferRecordType(row) {
   if(['inventory','stock','item','supply'].includes(explicit)) return 'inventory';
   if(['expense','expenses','cost','spending'].includes(explicit)) return 'expense';
   if(['log','daily_log','dailylog','production','activity'].includes(explicit)) return 'log';
+  // No explicit type column past this point — infer from which fields
+  // are present. Important: mapHeaders() already folds many spreadsheet
+  // header spellings into one shared canonical key before this function
+  // ever runs — "Produced", "Production", and "Opening Stock" all become
+  // `quantity`; "Cost Per Unit" becomes `unit_cost`; "Expense Amount"
+  // becomes `amount`. These checks must reference those canonical keys,
+  // not the original header spellings, or they can never match — that
+  // was the actual bug here: a completely ordinary "Group, Date,
+  // Produced" spreadsheet with no type column had its rows silently
+  // skipped, because every fallback check below referenced a key
+  // (row.produced, row.opening_stock, row.cost_per_unit) that can never
+  // exist post-mapping.
   if(row.movement_type) return 'inventory';
-  if(row.loss || row.mortality || row.produced || row.production || row.production_quantity) return 'log';
-  if(row.supplier || row.payment_method || row.expense_amount || row.expense) return 'expense';
-  if(row.opening_stock || row.unit_cost || row.cost_per_unit) return 'inventory';
+  if(row.loss || row.mortality) return 'log';
+  if(row.supplier || row.payment_method) return 'expense';
+  if(row.unit_cost || row.category) return 'inventory';
+  if(row.amount) return 'expense';
+  if(row.quantity) return 'log';
   return '';
 }
 
@@ -64,18 +78,22 @@ export function normalizeImportedRow(row) {
 }
 
 export function normalizeEntityName(value) { return String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' '); }
-
-const GROUP_SYNONYMS = [
-  ['dairy','cows','cow','herd','milk'],
-  ['layer','layers','chicken','chickens','poultry','eggs','flock'],
-];
 export function findMatchingUnit(units, importedName) {
-  const name=normalizeEntityName(importedName); if(!name) return null;
-  const exact=units.find((u)=>normalizeEntityName(u.name)===name); if(exact) return exact;
-  const tokens=new Set(name.split(' '));
-  const candidates=units.map((u)=>({u,tokens:new Set(normalizeEntityName(u.name).split(' '))})).filter(({tokens:t})=>[...tokens].some((x)=>t.has(x)));
-  if(candidates.length===1) return candidates[0].u;
-  const synonymMatch=GROUP_SYNONYMS.find((group)=>group.some((x)=>tokens.has(x)));
-  if(synonymMatch) { const matches=candidates.filter(({tokens:t})=>synonymMatch.some((x)=>t.has(x))); if(matches.length===1) return matches[0].u; }
-  return null;
+  const name = normalizeEntityName(importedName);
+  if (!name) return null;
+  // Exact match only (case/whitespace-normalized). An earlier version of
+  // this function also did fuzzy token-overlap and synonym-based
+  // matching, intended to catch spelling variations like "Dairy Herd"
+  // matching an existing "Dairy Cows". In practice this was unsafe: "Old
+  // Layer House" and "Layer House A" share the literal word "layer" (not
+  // a synonym substitution — the same word), and a real farm can
+  // plausibly have "Layer House A" and "Layer House B" as genuinely
+  // different flocks distinguished only by a letter suffix. No
+  // token-overlap heuristic can safely tell that apart from a spelling
+  // variation of the same group — and getting it wrong here means
+  // silently conflating two real groups' history, not just an
+  // inconvenience. An unmatched import creates a new, visible group
+  // instead, which the farmer can review and merge themselves if it
+  // really was a duplicate — the safer direction to err on.
+  return units.find((u) => normalizeEntityName(u.name) === name) || null;
 }

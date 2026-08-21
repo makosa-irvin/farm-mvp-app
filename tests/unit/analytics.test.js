@@ -37,8 +37,27 @@ describe('feed analysis', () => {
 describe('expense and production analysis', () => {
   it('groups expenses by type and production by month', () => {
     const expenses = buildExpenseAnalysis(data, { startDate:'2025-01-01', endDate:'2025-12-31' });
-    expect(expenses.total).toBe(1300);
+    // 1300 in pure cash expenses (labor 1000 + medicine 300 — none of
+    // this fixture's expenses are linked to a stock purchase) plus 5700
+    // in real inventory-deduction cost from the ledger: dm consumption
+    // 50*60=3000 (dairy) + bran consumption 20*30=600 (dairy) + dm
+    // wastage 5*60=300 (dairy) + dm consumption 30*60=1800 (layers) =
+    // 5700. Total 7000.
+    //
+    // This function used to never include inventory-deduction cost at
+    // all — a real gap distinct from (but alongside) the purchase
+    // double-counting bug it also had: buying stock counted at full
+    // price immediately, and what was actually consumed or lost was
+    // never counted anywhere in this total. Both are fixed together now:
+    // a cash expense linked to a stock purchase is excluded from the
+    // direct sum (this fixture doesn't exercise that path, since none of
+    // its expenses are purchase-linked), and the real ledger-derived
+    // deduction cost is added in its place — matching the same accrual
+    // approach already used in unitMetrics()/unitCostBreakdown()
+    // (helpers.js) and Dashboard's "Farm costs" figure.
+    expect(expenses.total).toBe(7000);
     expect(expenses.byType.find(r=>r.type==='labor').amount).toBe(1000);
+    expect(expenses.byType.find(r=>r.type==='stock used or lost').amount).toBe(5700);
     const production = buildProductionAnalysis(data, { unitId:'dairy', startDate:'2025-01-01', endDate:'2025-12-31' });
     expect(production.total).toBe(100);
     expect(production.byMonth).toEqual([{ month:'2025-01', value:100 }]);
@@ -51,5 +70,29 @@ describe('year over year', () => {
     expect(result.current.production).toBe(120);
     expect(result.prior.production).toBe(100);
     expect(result.change.production).toBeCloseTo(20);
+  });
+});
+
+describe('expense analysis — purchase double-counting regression', () => {
+  it('excludes a stock purchase from direct cost, using the real consumed cost instead', () => {
+    // Bought 50kg of feed for KSh 3,500 — a real cash expense, linked to
+    // stock. Only 5kg (KSh 350 at KSh 70/kg) has actually been consumed
+    // so far. Before this fix, buildExpenseAnalysis summed every
+    // expense's raw amount unconditionally, so this showed KSh 3,500 the
+    // moment the purchase was recorded — the full price, regardless of
+    // how much had actually been used. This fixture is what the earlier
+    // test above didn't cover: none of its expenses were purchase-linked,
+    // so it never exercised this exact path.
+    const purchaseData = {
+      units: [], logs: [],
+      expenses: [{ id: 'e1', category: 'feed', amount: 3500, date: '2026-08-01', unitId: null, inventoryItemId: 'i1', inventoryQuantity: 50 }],
+      inventory: [{ id: 'i1', category: 'Feed' }],
+      inventoryMoves: [
+        { id: 'exppurchase_e1', itemId: 'i1', transactionType: 'purchase', direction: 'in', quantity: 50, unitCost: 70, date: '2026-08-01', source: 'expense-purchase', sourceId: 'e1' },
+        { id: 'logfeed_l1', itemId: 'i1', transactionType: 'consumption', direction: 'out', quantity: 5, unitCost: 70, date: '2026-08-02', source: 'daily-log', sourceId: 'l1', unitId: 'u1' },
+      ],
+    };
+    const result = buildExpenseAnalysis(purchaseData);
+    expect(result.total).toBe(350);
   });
 });

@@ -11,8 +11,11 @@ import {
 
 const farm = {
   units: [{ id: 'u1', name: 'Layer House A' }],
+  inventory: [],
   addUnit: vi.fn(),
-  addInventoryItem: vi.fn(),
+  updateUnit: vi.fn(),
+  addInventoryItem: vi.fn((item) => item),
+  addInventoryMove: vi.fn(),
   addExpense: vi.fn(),
   addLog: vi.fn(),
 };
@@ -76,7 +79,7 @@ describe('ImportRecordsView', () => {
       'Farm Group,2026-08-01,,Old Layer House,,,,,,,,,,,',
       'Stock,2026-08-02,Old Layer House,Layer Mash,Feed,kg,50,75,,,,,,',
       'Expense,2026-08-03,Old Layer House,Feed purchase,feed,kg,50,75,3750,Agrovet,M-Pesa,,,,',
-      'Daily Log,2026-08-04,Old Layer House,Eggs collected,production,trays,30,,,,,,2,1,Historical production',
+      'Daily Log,2026-08-04,Old Layer House,Eggs collected,production,trays,30,,,,,2,1,Historical production',
     ].join('\n');
 
     fireEvent.change(fileInput, { target: { files: [new File([csv], 'records.csv', { type: 'text/csv' })] } });
@@ -95,8 +98,8 @@ describe('ImportRecordsView', () => {
     const fileInput = container.querySelector('input[type="file"]');
     const csv = [
       'Date,Group,Description,Qty,Unit Cost,Expense,Vendor,Payment,Produced,Losses,Deaths',
-      '2026-08-01,Old Layer House,Feed purchase,50,75,3750,Agrovet,M-Pesa,,,',
-      '2026-08-02,Old Layer House,Eggs collected,,,,, ,30,2,1',
+      '2026-08-01,Layer House A,Feed purchase,50,75,3750,Agrovet,M-Pesa,,,',
+      '2026-08-02,Layer House A,Eggs collected,,,,, ,30,2,1',
     ].join('\n');
 
     fireEvent.change(fileInput, { target: { files: [new File([csv], 'records.csv', { type: 'text/csv' })] } });
