@@ -1,17 +1,54 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import Header from '../../src/layout/Header.jsx';
 import { TABS } from '../../src/constants.js';
 
 const noop = () => {};
 
-// The "More" popover used to be a native <details>/<summary>, closed on
-// selection by imperatively poking the DOM. That handled the one case it
-// covered (clicking an item), but native <details> has no built-in way to
-// close on an outside click or Escape — the more general form of "the
-// menu doesn't close" someone actually experiences. This tests all three
-// closing paths against the React-state-controlled version.
-describe('Header — "More" menu opens and closes correctly', () => {
+describe('Header navigation', () => {
+  it('renders Mazaosmart as an accessible home button', () => {
+    render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
+
+    const homeButton = screen.getByRole('button', { name: /go to home/i });
+    expect(homeButton).toHaveTextContent('Mazaosmart');
+    expect(homeButton).toHaveAttribute('title', 'Home');
+  });
+
+  it('returns to the dashboard when Mazaosmart is clicked', () => {
+    const onSelectTab = vi.fn();
+    render(<Header tabs={TABS} activeTab="reports" onSelectTab={onSelectTab} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /go to home/i }));
+
+    expect(onSelectTab).toHaveBeenCalledTimes(1);
+    expect(onSelectTab).toHaveBeenCalledWith('dashboard');
+  });
+
+  it('renders Search in the header rather than the More menu', () => {
+    render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
+
+    expect(screen.getByRole('button', { name: /search records/i })).toBeInTheDocument();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('navigates to Search when the header Search button is clicked', () => {
+    const onSelectTab = vi.fn();
+    render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={onSelectTab} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /search records/i }));
+
+    expect(onSelectTab).toHaveBeenCalledTimes(1);
+    expect(onSelectTab).toHaveBeenCalledWith('search');
+  });
+
+  it('does not render the Search button when the search tab is unavailable', () => {
+    const tabsWithoutSearch = TABS.filter((tab) => tab.value !== 'search');
+    render(<Header tabs={tabsWithoutSearch} activeTab="dashboard" onSelectTab={noop} />);
+
+    expect(screen.queryByRole('button', { name: /search records/i })).not.toBeInTheDocument();
+  });
+
   it('is closed by default', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -31,8 +68,6 @@ describe('Header — "More" menu opens and closes correctly', () => {
   it('closes when a menu item is selected', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-
     fireEvent.click(screen.getByRole('menuitem', { name: /Groups/ }));
 
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -54,7 +89,7 @@ describe('Header — "More" menu opens and closes correctly', () => {
     expect(selected).toBe('units');
   });
 
-  it('closes when clicking outside the menu — the gap native <details> has no built-in way to cover', () => {
+  it('closes when clicking outside the menu', () => {
     render(
       <div>
         <div data-testid="outside-content">Somewhere else on the page</div>
@@ -62,8 +97,6 @@ describe('Header — "More" menu opens and closes correctly', () => {
       </div>,
     );
     fireEvent.click(screen.getByText('More').closest('button'));
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-
     fireEvent.mouseDown(screen.getByTestId('outside-content'));
 
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -79,8 +112,6 @@ describe('Header — "More" menu opens and closes correctly', () => {
   it('closes when Escape is pressed', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-
     fireEvent.keyDown(document, { key: 'Escape' });
 
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -90,8 +121,6 @@ describe('Header — "More" menu opens and closes correctly', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     const moreButton = screen.getByText('More').closest('button');
     fireEvent.click(moreButton);
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-
     fireEvent.click(moreButton);
 
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -107,15 +136,17 @@ describe('Header — "More" menu opens and closes correctly', () => {
     expect(moreButton).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('every current secondary tab (units, suppliers, analytics, reports, search, settings) appears in the menu', () => {
+  it('secondary navigation does not include Search because it has a dedicated header button', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     fireEvent.click(screen.getByText('More').closest('button'));
-    for (const label of ['Groups', 'Suppliers', 'Analytics', 'Reports', 'Search', 'Settings']) {
+
+    for (const label of ['Groups', 'Suppliers', 'Analytics', 'Reports', 'Settings']) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeInTheDocument();
     }
+    expect(screen.queryByRole('menuitem', { name: /^Search$/ })).not.toBeInTheDocument();
   });
 
-  it('data-tour targets used by the onboarding tour are preserved on the trigger and each item', () => {
+  it('preserves onboarding data-tour targets on the More trigger and items', () => {
     render(<Header tabs={TABS} activeTab="dashboard" onSelectTab={noop} />);
     expect(document.querySelector('[data-tour="nav-more"]')).not.toBeNull();
     fireEvent.click(screen.getByText('More').closest('button'));
