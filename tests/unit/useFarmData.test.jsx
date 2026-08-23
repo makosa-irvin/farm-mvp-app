@@ -270,7 +270,7 @@ describe('useFarmData — backup export/import round-trip', () => {
 
     const backupFile = {
       text: () => Promise.resolve(JSON.stringify({
-        kind: 'field-ledger-backup',
+        kind: 'mazaosmart-backup',
         version: 1,
         data: {
           units: [{ id: 'u2', name: 'Restored Unit', type: 'milk', initialCount: 20, startDate: '2026-02-01' }],
@@ -303,7 +303,7 @@ describe('useFarmData — backup export/import round-trip', () => {
 
     const backupFile = {
       text: () => Promise.resolve(JSON.stringify({
-        kind: 'field-ledger-backup',
+        kind: 'mazaosmart-backup',
         version: 1,
         data: { units: [{ id: 'u2', name: 'Should Not Appear' }], logs: [], expenses: [], inventory: [], inventoryTransactions: [] },
       })),

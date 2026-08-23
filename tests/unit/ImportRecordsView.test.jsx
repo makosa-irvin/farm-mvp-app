@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import ImportRecordsView, { parseCsv } from '../../src/views/ImportRecordsView.jsx';
+import ImportRecordsView from '../../src/views/ImportRecordsView.jsx';
+import {
+  parseCsv,
+  mapHeaders,
+  normalizeImportedRow,
+  inferRecordType,
+} from '../../src/lib/importRecords.js';
 
 const farm = {
   units: [{ id: 'u1', name: 'Layer House A' }],
@@ -76,7 +82,7 @@ describe('ImportRecordsView', () => {
     fireEvent.change(fileInput, { target: { files: [new File([csv], 'records.csv', { type: 'text/csv' })] } });
     await waitFor(() => expect(screen.getByText('Check your records')).toBeInTheDocument());
     expect(screen.getByText(/4 rows found/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /add these records/i }));
+    fireEvent.click(screen.getByRole('button', { name: /import records/i }));
 
     expect(farm.addUnit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Old Layer House', startDate: '2026-08-01' }));
     expect(farm.addInventoryItem).toHaveBeenCalledWith(expect.objectContaining({ name: 'Layer Mash', openingStock: 50, openingDate: '2026-08-02', unitCost: 75 }));
@@ -95,7 +101,7 @@ describe('ImportRecordsView', () => {
 
     fireEvent.change(fileInput, { target: { files: [new File([csv], 'records.csv', { type: 'text/csv' })] } });
     await waitFor(() => expect(screen.getByText('Check your records')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /add these records/i }));
+    fireEvent.click(screen.getByRole('button', { name: /import records/i }));
 
     expect(farm.addExpense).toHaveBeenCalled();
     expect(farm.addLog).toHaveBeenCalled();

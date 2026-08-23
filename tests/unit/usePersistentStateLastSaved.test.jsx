@@ -26,15 +26,15 @@ describe('usePersistentState — last-saved tracking', () => {
     expect(Number(secondSaved)).toBeGreaterThan(Number(firstSaved));
   });
 
-  it('dispatches a field-ledger-saved window event on every write, which is what App.jsx listens for to refresh PWAStatus', () => {
+  it('dispatches a mazaosmart-saved window event on every write, which is what App.jsx listens for to refresh PWAStatus', () => {
     const seen = [];
     const listener = () => seen.push(true);
-    window.addEventListener('field-ledger-saved', listener);
+    window.addEventListener('mazaosmart-saved', listener);
 
     renderHook(() => usePersistentState('test-key', []));
 
     expect(seen.length).toBeGreaterThan(0);
-    window.removeEventListener('field-ledger-saved', listener);
+    window.removeEventListener('mazaosmart-saved', listener);
   });
 
   it('the last-saved key is shared across different persisted state keys, not per-key', () => {

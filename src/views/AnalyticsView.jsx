@@ -21,7 +21,7 @@ export default function AnalyticsView({ units, logs, expenses, inventory = [], i
   const production = useMemo(() => buildProductionAnalysis(data, filters), [data, unitId, startDate, endDate]);
   const yoy = useMemo(() => buildYearOverYear(data, filters), [data, unitId, startDate, endDate]);
   const filtered = useMemo(() => buildComprehensiveAnalysis(data, filters), [data, unitId, itemId, expenseType, startDate, endDate]);
-  if (!units.length) return <EmptyState icon={BarChart3} title="Nothing to analyze yet" body="Add a farm group and records, or import your historical records, to build analysis from real farm data." />;
+  if (!units.length) return <EmptyState icon={BarChart3} title="Nothing to look at yet" body="Add a farm group and records, or import your historical records, to build analysis from real farm data." />;
   const selectedUnit = units.find(u => u.id === unitId); const feedTrend = feed.monthly.map(r => ({ date: `${r.month}-01`, value: r.value })); const productionTrend = production.byMonth.map(r => ({ date: `${r.month}-01`, value: r.value }));
   return <div className="space-y-5">
     <header><div className="text-xs font-semibold uppercase tracking-[0.16em]" style={{color:'var(--forest)'}}>Analytics</div><h1 className="font-display text-2xl font-semibold mt-1">Analysis Builder</h1><p className="text-sm mt-1" style={{color:'var(--ink-soft)'}}>Filter real farm history, then switch between feed, expense, production and overall analysis.</p></header>
