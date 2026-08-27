@@ -1,57 +1,45 @@
-// Daily-log feed usage is represented in the inventory ledger as a linked
-// consumption transaction. These pure functions calculate the transaction
-// state; the React action layer is responsible for persisting it and showing
-// validation feedback.
-
 import { getBalance, getWeightedAverageCost } from './inventoryLedger.js';
 
-export function feedTransactionId(logId) {
-  return `logfeed_${logId}`;
+export function logInputTransactionId(logId, index = 0) { return `loginput_${logId}_${index}`; }
+export function feedTransactionId(logId) { return logInputTransactionId(logId, 0); }
+
+export function inputsForLog(log) {
+  if (Array.isArray(log.inputs)) return log.inputs.filter((x) => x?.itemId && Number(x.quantity) > 0);
+  const qty = Number(log.feedQuantity ?? log.feedKg);
+  return log.feedItemId && qty > 0 ? [{ itemId: log.feedItemId, quantity: qty, kind: 'feed' }] : [];
 }
 
-// Build the ledger entry represented by a daily log, or null when the log
-// does not record feed consumption.
-export function buildFeedTransaction(log, units, previousLog = null) {
-  const qty = Number(log.feedQuantity ?? log.feedKg);
-  if (!log.feedItemId || !qty) return null;
-  return {
-    id: feedTransactionId(log.id),
-    itemId: log.feedItemId,
-    transactionType: 'consumption',
-    direction: 'out',
-    quantity: qty,
-    date: log.date,
-    note: `Feed consumed by ${units.find((u) => u.id === log.unitId)?.name || 'farm group'}`,
-    source: 'daily-log',
-    sourceId: log.id,
-    unitId: log.unitId,
-    createdAt: previousLog?.createdAt || Date.now(),
-  };
+export function buildInputTransactions(log, units, previousLog = null) {
+  const groupName = units.find((u) => u.id === log.unitId)?.name || 'farm group';
+  return inputsForLog(log).map((input, index) => ({
+    id: logInputTransactionId(log.id, index), itemId: input.itemId, transactionType: 'consumption', direction: 'out',
+    quantity: Number(input.quantity), date: log.date, note: `${input.kind || 'Stock'} used by ${groupName}`,
+    source: 'daily-log', sourceId: log.id, unitId: log.unitId, createdAt: previousLog?.createdAt || Date.now(),
+  }));
 }
+export function buildFeedTransaction(log, units, previousLog = null) { return buildInputTransactions(log, units, previousLog)[0] || null; }
 
 export function checkFeedAvailability(log, units, inventory, transactions) {
-  const qty = Number(log.feedQuantity ?? log.feedKg);
-  if (!log.feedItemId || !qty) return { ok: true };
-  const tx = buildFeedTransaction(log, units);
-  const withoutCurrent = transactions.filter((t) => t.id !== tx.id);
-  const available = getBalance(inventory, withoutCurrent, tx.itemId);
-  if (qty > available + 1e-9) {
-    const item = inventory.find((i) => i.id === tx.itemId);
-    return { ok: false, itemName: item?.name || 'stock', itemUnit: item?.unit || '', available };
+  const movements = buildInputTransactions(log, units);
+  const withoutCurrent = transactions.filter((t) => !(t.source === 'daily-log' && t.sourceId === log.id));
+  const requested = new Map();
+  for (const move of movements) requested.set(move.itemId, (requested.get(move.itemId) || 0) + move.quantity);
+  for (const [itemId, quantity] of requested) {
+    const available = getBalance(inventory, withoutCurrent, itemId);
+    if (quantity > available + 1e-9) { const item = inventory.find((i) => i.id === itemId); return { ok: false, itemName: item?.name || 'stock', itemUnit: item?.unit || '', available }; }
   }
   return { ok: true };
 }
 
-// Rebuild the linked transaction when a log is added or edited. Removing the
-// old linked entry first prevents an edit from double-counting consumption.
 export function syncedTransactionsForLog(log, units, inventory, transactions, previousLog = null) {
   const withoutCurrent = transactions.filter((t) => !(t.source === 'daily-log' && t.sourceId === log.id));
-  const movement = buildFeedTransaction(log, units, previousLog);
-  if (!movement) return withoutCurrent;
-  const item = inventory.find((i) => i.id === movement.itemId);
-  if (!item) return withoutCurrent;
-  const available = getBalance(inventory, withoutCurrent, movement.itemId);
-  if (movement.quantity > available) return transactions;
-  const cost = getWeightedAverageCost(inventory, withoutCurrent, movement.itemId);
-  return [...withoutCurrent, { ...movement, unit: item.unit, unitCost: cost, type: 'out' }];
+  const movements = buildInputTransactions(log, units, previousLog);
+  const check = checkFeedAvailability(log, units, inventory, transactions);
+  if (!check.ok) return transactions;
+  const additions = movements.flatMap((movement) => {
+    const item = inventory.find((i) => i.id === movement.itemId); if (!item) return [];
+    const cost = getWeightedAverageCost(inventory, withoutCurrent, movement.itemId);
+    return [{ ...movement, unit: item.unit, unitCost: cost, type: 'out' }];
+  });
+  return [...withoutCurrent, ...additions];
 }
