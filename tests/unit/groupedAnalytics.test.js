@@ -1,0 +1,3 @@
+import { describe, expect, it } from 'vitest';
+import { filterAnalyticsData } from '../../src/lib/analytics.js';
+describe('grouped analytics',()=>{it('includes child animal records when a parent group is selected',()=>{const data={units:[{id:'dairy'},{id:'bella',parentGroupId:'dairy'},{id:'lulu',parentGroupId:'dairy'},{id:'layers'}],logs:[{unitId:'bella',date:'2026-08-01',produced:10},{unitId:'lulu',date:'2026-08-01',produced:12},{unitId:'layers',date:'2026-08-01',produced:20}],expenses:[],inventory:[],inventoryMoves:[]};const result=filterAnalyticsData(data,{unitId:'dairy',startDate:'2026-08-01',endDate:'2026-08-31'});expect(result.logs.map(l=>l.unitId)).toEqual(['bella','lulu']);expect(result.units.map(u=>u.id)).toEqual(['dairy','bella','lulu'])})});
