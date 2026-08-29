@@ -10,7 +10,9 @@ import {
   buildComprehensiveAnalysis,
   buildExpenseAnalysis,
   buildFeedAnalysis,
+  buildItemCostTrend,
   buildProductionAnalysis,
+  buildRevenueAnalysis,
   buildYearOverYear,
   downloadComprehensiveAnalysis,
 } from '../lib/analytics.js';
@@ -31,6 +33,8 @@ export default function AnalyticsView({ units, logs, expenses, inventory = [], i
   const feed = useMemo(() => buildFeedAnalysis(data, filters), [data, unitId, itemId, startDate, endDate]);
   const expense = useMemo(() => buildExpenseAnalysis(data, filters), [data, unitId, expenseType, startDate, endDate]);
   const production = useMemo(() => buildProductionAnalysis(data, filters), [data, unitId, startDate, endDate]);
+  const revenue = useMemo(() => buildRevenueAnalysis(data, filters), [data, unitId, startDate, endDate]);
+  const itemCostTrend = useMemo(() => buildItemCostTrend(data, filters), [data, unitId, itemId, startDate, endDate]);
   const yoy = useMemo(() => buildYearOverYear(data, filters), [data, unitId, startDate, endDate]);
   const filtered = useMemo(() => buildComprehensiveAnalysis(data, filters), [data, unitId, itemId, expenseType, startDate, endDate]);
   if (!units.length)
@@ -116,7 +120,7 @@ export default function AnalyticsView({ units, logs, expenses, inventory = [], i
           </Filter>
         </div>
         <div className="flex flex-wrap gap-2 pt-1">
-          {['overview', 'feed', 'expenses', 'production'].map((key) => (
+          {['overview', 'money', 'feed', 'expenses', 'production'].map((key) => (
             <button key={key} type="button" onClick={() => setAnalysis(key)} className={`tag-chip ${analysis === key ? 'active' : ''}`}>
               {key[0].toUpperCase() + key.slice(1)}
             </button>
@@ -132,13 +136,20 @@ export default function AnalyticsView({ units, logs, expenses, inventory = [], i
         </div>
       </section>
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Summary label="Money made" value={fmtMoney(revenue.revenue)} accent="var(--forest)" />
+        <Summary label="Profit" value={fmtMoney(revenue.profit)} accent={revenue.profit >= 0 ? 'var(--forest)' : 'var(--rust)'} />
         <Summary label="Production" value={fmtNum(filtered.summary.production)} />
-        <Summary label="Expenses" value={fmtMoney(filtered.summary.expenses)} />
-        <Summary label="Feed consumed" value={`${fmtNum(feed.consumption, 1)} kg`} />
-        <Summary label="Feed cost" value={fmtMoney(feed.feedCost)} />
+        <Summary label="Farm costs" value={fmtMoney(filtered.summary.expenses)} />
       </section>
+      {revenue.estimatedRevenue > 0 && (
+        <div className="text-xs -mt-2" style={{ color: 'var(--ink-soft)' }}>
+          {revenue.trackedEntries} of {revenue.totalEntries} log entries recorded an actual sale; the rest of "Money made" is
+          estimated from what was produced. Record "Sold" in the Daily log to make this more exact over time.
+        </div>
+      )}
       {analysis === 'overview' && <Overview production={production} expense={expense} yoy={yoy} />}{' '}
-      {analysis === 'feed' && <FeedAnalysis feed={feed} unit={selectedUnit} trend={feedTrend} />}{' '}
+      {analysis === 'money' && <MoneyAnalysis revenue={revenue} />}{' '}
+      {analysis === 'feed' && <FeedAnalysis feed={feed} unit={selectedUnit} trend={feedTrend} itemCostTrend={itemCostTrend} />}{' '}
       {analysis === 'expenses' && <ExpenseAnalysis expense={expense} />}{' '}
       {analysis === 'production' && <ProductionAnalysis production={production} trend={productionTrend} />}
       <div
@@ -164,13 +175,15 @@ function Filter({ label, children }) {
     </label>
   );
 }
-function Summary({ label, value }) {
+function Summary({ label, value, accent }) {
   return (
     <div className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
       <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
         {label}
       </div>
-      <div className="font-mono text-lg font-semibold mt-1 break-words">{value}</div>
+      <div className="font-mono text-lg font-semibold mt-1 break-words" style={accent ? { color: accent } : undefined}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -215,7 +228,36 @@ function Overview({ production, expense, yoy }) {
     </div>
   );
 }
-function FeedAnalysis({ feed, unit, trend }) {
+function MoneyAnalysis({ revenue }) {
+  const isFullyTracked = revenue.totalEntries > 0 && revenue.trackedEntries === revenue.totalEntries;
+  return (
+    <div className="space-y-4">
+      <Panel title="Money made and profit">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Metric label="Money made" value={fmtMoney(revenue.revenue)} accent="var(--forest)" />
+          <Metric label="Farm costs" value={fmtMoney(revenue.directCost)} />
+          <Metric label="Profit" value={fmtMoney(revenue.profit)} accent={revenue.profit >= 0 ? 'var(--forest)' : 'var(--rust)'} />
+          <Metric
+            label="From real sales"
+            value={revenue.revenue > 0 ? `${Math.round((revenue.actualRevenue / revenue.revenue) * 100)}%` : '—'}
+          />
+        </div>
+        <p className="text-xs mt-4" style={{ color: 'var(--ink-soft)' }}>
+          {isFullyTracked
+            ? 'Every log entry in this period recorded an actual sale — this figure is real, not estimated.'
+            : revenue.trackedEntries > 0
+              ? `${revenue.trackedEntries} of ${revenue.totalEntries} log entries recorded an actual sale (${fmtMoney(revenue.actualRevenue)}). The remaining ${fmtMoney(revenue.estimatedRevenue)} is estimated from what was produced, at the usual selling price. Record "Sold" in the Daily log to make this more exact.`
+              : 'None of these log entries recorded an actual sale yet — this whole figure is an estimate based on what was produced. Record "Sold" in the Daily log to see real money made.'}
+        </p>
+      </Panel>
+      <Panel title="Money made by month">
+        <TrendChart data={revenue.byMonth.map((r) => ({ date: `${r.month}-01`, value: r.value }))} />
+      </Panel>
+    </div>
+  );
+}
+
+function FeedAnalysis({ feed, unit, trend, itemCostTrend }) {
   return (
     <div className="space-y-4">
       <Panel title={`${unit?.name || 'Farm'} — Feed analysis`}>
@@ -247,6 +289,32 @@ function FeedAnalysis({ feed, unit, trend }) {
           ))}
         </div>
       </Panel>
+      {itemCostTrend.length > 0 && (
+        <Panel title="Cost by item, by week">
+          <p className="text-xs mb-3" style={{ color: 'var(--ink-soft)' }}>
+            If you switch between items part-way through a period — a cheaper feed running out and a pricier one covering
+            the rest, for example — that change shows up here week by week, instead of being hidden inside one average.
+          </p>
+          <div className="space-y-4">
+            {itemCostTrend.map((item) => (
+              <div key={item.id}>
+                <div className="text-sm font-medium mb-1.5">{item.name}</div>
+                <div className="space-y-1">
+                  {item.weeks.map((w) => (
+                    <div key={w.week} className="flex justify-between text-xs">
+                      <span style={{ color: 'var(--ink-soft)' }}>{w.week}</span>
+                      <span>
+                        {fmtNum(w.quantity, 1)} {item.unit} · {fmtMoney(w.avgUnitCost, 2)}/{item.unit}
+                      </span>
+                      <span className="font-mono">{fmtMoney(w.cost)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }

@@ -176,6 +176,19 @@ describe('buildRevenueAnalysis — real vs. estimated revenue, farm-wide', () =>
     expect(result.directCost).toBe(100);
     expect(result.profit).toBeCloseTo(300 - 100);
   });
+
+  it('groups revenue by month, blending real and estimated within the same month', () => {
+    const logs = [
+      { unitId: 'u1', date: '2026-08-05', produced: 30, sold: 30, mortality: 0 }, // real: 300
+      { unitId: 'u1', date: '2026-08-20', produced: 15, mortality: 0 }, // estimated: 150
+      { unitId: 'u1', date: '2026-09-01', produced: 30, sold: 30, mortality: 0 }, // real: 300
+    ];
+    const result = buildRevenueAnalysis({ units, logs, expenses: [], inventory: [], inventoryMoves: [] });
+    expect(result.byMonth).toEqual([
+      { month: '2026-08', value: 450 },
+      { month: '2026-09', value: 300 },
+    ]);
+  });
 });
 
 describe('buildItemCostTrend — surfacing a mid-period item substitution', () => {

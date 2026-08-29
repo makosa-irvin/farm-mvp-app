@@ -90,6 +90,7 @@ export function buildRevenueAnalysis(data, filters = {}) {
   let actualRevenue = 0;
   let estimatedRevenue = 0;
   let trackedEntries = 0;
+  const byMonthMap = new Map();
 
   d.logs.forEach((log) => {
     const unit = d.units.find((u) => u.id === log.unitId);
@@ -99,13 +100,24 @@ export function buildRevenueAnalysis(data, filters = {}) {
     const hasSold = log.sold !== undefined && log.sold !== null && log.sold !== '';
     const price = hasSold && Number(log.salePrice) > 0 ? Number(log.salePrice) : usualPrice;
     if (price <= 0) return;
+    let entryRevenue = 0;
     if (hasSold) {
       trackedEntries += 1;
       const qty = Number(log.sold) || 0;
-      if (qty > 0) actualRevenue += (qty / unitType.groupSize) * price;
+      if (qty > 0) {
+        entryRevenue = (qty / unitType.groupSize) * price;
+        actualRevenue += entryRevenue;
+      }
     } else {
       const qty = Number(log.produced) || 0;
-      if (qty > 0) estimatedRevenue += (qty / unitType.groupSize) * price;
+      if (qty > 0) {
+        entryRevenue = (qty / unitType.groupSize) * price;
+        estimatedRevenue += entryRevenue;
+      }
+    }
+    if (entryRevenue > 0) {
+      const key = log.date.slice(0, 7);
+      byMonthMap.set(key, (byMonthMap.get(key) || 0) + entryRevenue);
     }
   });
 
@@ -117,15 +129,11 @@ export function buildRevenueAnalysis(data, filters = {}) {
     revenue,
     actualRevenue,
     estimatedRevenue,
-    // How much of the revenue figure rests on entries that actually
-    // recorded a sale, vs. entries this had to estimate — a caller can
-    // use this to show something like "based on 12 of 30 days' real
-    // sales" rather than presenting a blended figure as more precise
-    // than it is.
     trackedEntries,
     totalEntries: d.logs.length,
     directCost,
     profit: revenue - directCost,
+    byMonth: [...byMonthMap.entries()].sort().map(([month, value]) => ({ month, value })),
   };
 }
 
