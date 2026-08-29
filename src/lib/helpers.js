@@ -10,7 +10,15 @@ export function todayISO() {
 }
 
 export function typeOf(unit) {
-  return UNIT_TYPES.find((type) => type.value === unit.type) || UNIT_TYPES[3];
+  const base = UNIT_TYPES.find((type) => type.value === unit.type) || UNIT_TYPES[3];
+  if (!base.configurable) return base;
+  const groupSize = Number(unit.customGroupSize);
+  return {
+    ...base,
+    unitLabel: unit.customUnitLabel?.trim() || base.unitLabel,
+    groupLabel: unit.customGroupLabel?.trim() || base.groupLabel,
+    groupSize: groupSize > 0 ? groupSize : base.groupSize,
+  };
 }
 
 export function fmtMoney(value, decimals = 0) {
@@ -75,6 +83,27 @@ export function currentCountFor(unit, logs) {
   return Math.max(0, (unit.initialCount || 0) - mortality);
 }
 
+// The output-side equivalent of the input-inventory ledger balance: how
+// much of what a unit has produced is still unsold/unused, as of a given
+// date (defaults to "everything on record"). A farmer might get 180 eggs
+// this week and only sell 30 of them, selling the rest gradually over
+// the month — this is what lets them see "150 eggs still in hand" and
+// record a sale against that whenever they actually make one, rather
+// than needing to sell everything the same day it was produced. Clamped
+// to zero rather than allowed to go negative, matching the same
+// defensive pattern currentCountFor() above uses for mortality
+// potentially exceeding a recorded headcount — a data-entry mistake
+// shouldn't be able to show as a nonsensical negative stock of produce.
+export function getProduceBalance(unit, logs, asOfDate = null) {
+  const unitLogs = logs.filter((log) => log.unitId === unit.id && (!asOfDate || log.date <= asOfDate));
+  const produced = unitLogs.reduce((sum, log) => sum + (Number(log.produced) || 0), 0);
+  const disposed = unitLogs.reduce(
+    (sum, log) => sum + (Number(log.sold) || 0) + (Number(log.usedInternally) || 0) + (Number(log.loss) || 0),
+    0,
+  );
+  return Math.max(0, produced - disposed);
+}
+
 // Inventory purchases are cash expenses when bought, but inventory itself is
 // not an operating cost until it is consumed or lost. Therefore production
 // cost uses the ledger's weighted-average cost for every inventory deduction
@@ -85,6 +114,8 @@ export function unitMetrics(unit, logs, expenses, period, inventoryMoves = []) {
   const unitExpenses = expenses.filter((expense) => expense.unitId === unit.id && inPeriod(expense.date, period));
   const produced = unitLogs.reduce((sum, log) => sum + (log.produced || 0), 0);
   const loss = unitLogs.reduce((sum, log) => sum + (log.loss || 0), 0);
+  const sold = unitLogs.reduce((sum, log) => sum + (Number(log.sold) || 0), 0);
+  const usedInternally = unitLogs.reduce((sum, log) => sum + (Number(log.usedInternally) || 0), 0);
   const mortality = unitLogs.reduce((sum, log) => sum + (log.mortality || 0), 0);
   const feedKg = unitLogs.reduce((sum, log) => sum + (log.feedQuantity ?? log.feedKg ?? 0), 0);
   const directExpenseCost = unitExpenses.reduce((sum, expense) => sum + (expense.inventoryItemId ? 0 : expense.amount || 0), 0);
@@ -96,7 +127,30 @@ export function unitMetrics(unit, logs, expenses, period, inventoryMoves = []) {
   const costPerUnit = produced > 0 ? directCost / produced : null;
   const unitType = typeOf(unit);
   const producePrice = Number(unit.producePrice) || 0;
-  const revenue = produced > 0 && producePrice > 0 ? (produced / unitType.groupSize) * producePrice : 0;
+  // Revenue: real where a log records how much was actually sold
+  // (log.sold), falling back to the produced-based estimate for any
+  // entry that doesn't track disposition — most commonly, entries
+  // logged before this existed, or a farmer who doesn't always bother
+  // recording what was actually sold. Computed per entry, not as one
+  // aggregate estimate over the period total, so a farm that tracks
+  // some days precisely and estimates others gets a blended figure
+  // that's as accurate as the data actually supports, not artificially
+  // exact or artificially approximate.
+  let actualRevenue = 0;
+  let estimatedRevenue = 0;
+  unitLogs.forEach((log) => {
+    const hasSold = log.sold !== undefined && log.sold !== null && log.sold !== '';
+    const price = hasSold && Number(log.salePrice) > 0 ? Number(log.salePrice) : producePrice;
+    if (price <= 0) return;
+    if (hasSold) {
+      const qty = Number(log.sold) || 0;
+      if (qty > 0) actualRevenue += (qty / unitType.groupSize) * price;
+    } else {
+      const qty = Number(log.produced) || 0;
+      if (qty > 0) estimatedRevenue += (qty / unitType.groupSize) * price;
+    }
+  });
+  const revenue = actualRevenue + estimatedRevenue;
   const profit = revenue - directCost;
   const costPerGroup = costPerUnit !== null ? costPerUnit * unitType.groupSize : null;
   const fcr = produced > 0 && feedKg > 0 ? feedKg / produced : null;
@@ -109,6 +163,8 @@ export function unitMetrics(unit, logs, expenses, period, inventoryMoves = []) {
   return {
     produced,
     loss,
+    sold,
+    usedInternally,
     mortality,
     feedKg,
     directCost,
@@ -118,6 +174,13 @@ export function unitMetrics(unit, logs, expenses, period, inventoryMoves = []) {
     productionRate,
     mortalityRate,
     revenue,
+    // Whether `revenue` above is fully grounded in real sold-quantity
+    // data, partly estimated, or entirely estimated (no log in the
+    // period tracked disposition at all) — lets a caller show something
+    // like "includes some estimated days" rather than presenting a
+    // blended figure as if it were entirely one or the other.
+    actualRevenue,
+    estimatedRevenue,
     profit,
     liveCount,
     logCount: unitLogs.length,

@@ -21,10 +21,27 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
   const [initialCount, setInitialCount] = useState('');
   const [producePrice, setProducePrice] = useState('');
   const [startDate, setStartDate] = useState(todayISO());
+  const [customUnitLabel, setCustomUnitLabel] = useState('');
+  const [customGroupLabel, setCustomGroupLabel] = useState('');
+  const [customGroupSize, setCustomGroupSize] = useState('');
+  const [parentUnitId, setParentUnitId] = useState('');
   const [editingId, setEditingId] = useState(null);
   // Which group's "this month so far" snapshot is expanded in the list
   // below. Only one at a time.
   const [expandedId, setExpandedId] = useState(null);
+
+  // Only units with no parent of their own are eligible to be picked as
+  // a parent — keeps the hierarchy exactly two levels deep (a herd, then
+  // individual animals within it), which is enough for the real need
+  // this serves (consolidate a herd for feed/stock purposes, but still
+  // log each animal's own production) without needing cycle detection a
+  // deeper hierarchy would require. A unit also can't be its own parent.
+  const parentCandidates = units.filter((u) => !u.parentUnitId && u.id !== editingId);
+  // A unit that's already a parent to others can't also become a child
+  // itself — that would make a third level, which nothing here (the
+  // stock-picker grouping, the parent-candidates list above) is designed
+  // to handle.
+  const editingUnitHasChildren = editingId ? units.some((u) => u.parentUnitId === editingId) : false;
 
   function resetForm() {
     setName('');
@@ -32,6 +49,10 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
     setInitialCount('');
     setProducePrice('');
     setStartDate(todayISO());
+    setCustomUnitLabel('');
+    setCustomGroupLabel('');
+    setCustomGroupSize('');
+    setParentUnitId('');
     setEditingId(null);
   }
 
@@ -42,6 +63,10 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
     setInitialCount(String(unit.initialCount || 0));
     setProducePrice(String(unit.producePrice || 0));
     setStartDate(unit.startDate || todayISO());
+    setCustomUnitLabel(unit.customUnitLabel || '');
+    setCustomGroupLabel(unit.customGroupLabel || '');
+    setCustomGroupSize(unit.customGroupSize ? String(unit.customGroupSize) : '');
+    setParentUnitId(unit.parentUnitId || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -55,6 +80,19 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
       initialCount: Number(initialCount) || 0,
       producePrice: Number(producePrice) || 0,
       startDate,
+      // Only meaningful for the 'trading' type — see typeOf() in
+      // helpers.js, which ignores these entirely for every other type.
+      // Saved regardless of the selected type so switching a unit's
+      // type back to 'trading' later doesn't lose whatever was
+      // previously configured.
+      customUnitLabel: customUnitLabel.trim() || null,
+      customGroupLabel: customGroupLabel.trim() || null,
+      customGroupSize: Number(customGroupSize) || null,
+      // Guards mirror the parentCandidates/editingUnitHasChildren checks
+      // above — belt and suspenders, since this is also reachable if a
+      // future change ever lets the dropdown offer something it
+      // shouldn't.
+      parentUnitId: !editingUnitHasChildren && parentUnitId && parentUnitId !== editingId ? parentUnitId : null,
       createdAt: editingId ? units.find((u) => u.id === editingId)?.createdAt || Date.now() : Date.now(),
     };
     if (editingId) onUpdate(record);
@@ -116,12 +154,86 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
           </div>
         </div>
 
+        {editingUnitHasChildren ? (
+          <div className="text-xs rounded-xl p-3" style={{ background: 'var(--surface-alt)', color: 'var(--ink-soft)' }}>
+            This group already has its own members — a group that consolidates others can't also belong to a bigger one.
+          </div>
+        ) : (
+          parentCandidates.length > 0 && (
+            <div>
+              <FieldLabel>Part of a bigger group? (optional)</FieldLabel>
+              <select value={parentUnitId} onChange={(e) => setParentUnitId(e.target.value)} className={inputClass} style={inputStyle}>
+                <option value="">No — it's its own group</option>
+                {parentCandidates.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+              <div className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>
+                For a herd you feed together but want to log individually — e.g. six cows, each its own group, all part of
+                "Dairy Herd". Pick "Dairy Herd" here for each cow, then log feed for the whole herd at once against it, and
+                milk for each cow separately.
+              </div>
+            </div>
+          )
+        )}
+
+        {type === 'trading' && (
+          <div className="rounded-xl p-3.5 space-y-3" style={{ background: 'var(--surface-alt)', border: '1px solid var(--line)' }}>
+            <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
+              You buy in bulk and resell in fixed packages — tell us the shape of that package. For 20-liter jerricans of
+              water sold at KSh 10 each: measured in "litres", package called "jerrican", 20 per package.
+            </div>
+            <div className="grid grid-cols-2 gap-3.5">
+              <div>
+                <FieldLabel>What do you measure it in?</FieldLabel>
+                <input
+                  type="text"
+                  value={customUnitLabel}
+                  onChange={(e) => setCustomUnitLabel(e.target.value)}
+                  placeholder="e.g. litres, kg"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <FieldLabel>What's the package called?</FieldLabel>
+                <input
+                  type="text"
+                  value={customGroupLabel}
+                  onChange={(e) => setCustomGroupLabel(e.target.value)}
+                  placeholder="e.g. jerrican, bag"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+            <div>
+              <FieldLabel>How many {customUnitLabel.trim() || 'units'} per {customGroupLabel.trim() || 'package'}?</FieldLabel>
+              <input
+                type="number"
+                min="1"
+                value={customGroupSize}
+                onChange={(e) => setCustomGroupSize(e.target.value)}
+                placeholder="e.g. 20"
+                className={inputClass}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+        )}
+
         <div>
           {/* Label follows the selected type's natural selling unit (tray
               for eggs, liter for milk, etc.) — see UNIT_TYPES in
-              constants.js for where groupLabel comes from. */}
+              constants.js for where groupLabel comes from. For the
+              trading type, uses whatever the farmer just typed above
+              instead of the generic "pack" placeholder, so this label
+              reflects their own packaging as they configure it, not
+              only after saving. */}
           <FieldLabel>
-            How much do you usually sell one {UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'} for? (KSh)
+            How much do you usually sell one {type === 'trading' ? customGroupLabel.trim() || 'package' : UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'} for? (KSh)
           </FieldLabel>
           <input
             type="number"
@@ -165,7 +277,7 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
 
       {units.length > 0 && (
         <div className="space-y-2.5">
-          {units.map((unit) => {
+          {orderedUnitsForDisplay(units).map(({ unit, depth, childCount }) => {
             const Icon = typeOf(unit).icon;
             const live = currentCountFor(unit, logs);
             const isExpanded = expandedId === unit.id;
@@ -173,7 +285,7 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
               <div
                 key={unit.id}
                 className="rounded-2xl overflow-hidden"
-                style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+                style={{ background: 'var(--surface)', border: '1px solid var(--line)', marginLeft: depth * 20 }}
               >
                 <div
                   className="flex items-center justify-between px-5 py-3.5 cursor-pointer"
@@ -193,6 +305,7 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
                         {unit.producePrice
                           ? `${fmtMoney(Number(unit.producePrice), 2)} / ${typeOf(unit).groupLabel}`
                           : 'selling price not set'}
+                        {childCount > 0 && ` · ${childCount} in this group`}
                       </div>
                     </div>
                   </div>
@@ -292,4 +405,24 @@ function SnapshotStat({ label, value, accent }) {
       </div>
     </div>
   );
+}
+
+// Orders units for display so a parent group is always immediately
+// followed by its own members, rather than the flat array order (which
+// has no relationship between a parent and its children at all — they
+// could be scattered anywhere in the list depending on creation order).
+// A child whose parent has since been deleted falls back to top-level
+// rather than silently disappearing from the list.
+function orderedUnitsForDisplay(units) {
+  const childrenOf = (parentId) => units.filter((u) => u.parentUnitId === parentId);
+  const isOrphaned = (u) => u.parentUnitId && !units.some((p) => p.id === u.parentUnitId);
+  const topLevel = units.filter((u) => !u.parentUnitId || isOrphaned(u));
+
+  const ordered = [];
+  topLevel.forEach((unit) => {
+    const children = childrenOf(unit.id);
+    ordered.push({ unit, depth: 0, childCount: children.length });
+    children.forEach((child) => ordered.push({ unit: child, depth: 1, childCount: 0 }));
+  });
+  return ordered;
 }

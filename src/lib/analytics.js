@@ -1,4 +1,5 @@
 import { isInventoryCostDeduction, inventoryTransactionCost } from './inventoryLedger.js';
+import { typeOf } from './helpers.js';
 
 const asDate = (value) => new Date(`${value}T00:00:00`);
 const num = (value) => Number(value) || 0;
@@ -63,6 +64,79 @@ function groupByMonth(rows, value) {
   return [...map.entries()].sort().map(([month, value]) => ({ month, value }));
 }
 
+// ISO-ish week key (year + week number) — good enough for grouping and
+// sorting chronologically without pulling in a date library. Used for
+// the item-cost trend below, since a month is often too coarse to show
+// a mid-month substitution (e.g. switching feed suppliers 14 days into
+// a 30-day month) — by week, that shift is visible as a distinct step.
+function weekKey(dateStr) {
+  const d = asDate(dateStr);
+  const firstJan = new Date(d.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((d - firstJan) / 86400000) + 1;
+  const week = Math.ceil((dayOfYear + firstJan.getDay()) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+// Real money made, not just an estimate — mirrors the exact per-entry
+// real/estimated logic already proven in unitMetrics() (helpers.js):
+// when a log records how much was actually sold, that entry's
+// contribution to revenue is real; when it doesn't (an entry from
+// before this was tracked, or a farmer who skips it some days), that
+// entry falls back to the previous produced-based estimate. Aggregated
+// here across every unit the current filter includes, rather than one
+// unit at a time.
+export function buildRevenueAnalysis(data, filters = {}) {
+  const d = filterAnalyticsData(data, filters);
+  let actualRevenue = 0;
+  let estimatedRevenue = 0;
+  let trackedEntries = 0;
+  const byMonthMap = new Map();
+
+  d.logs.forEach((log) => {
+    const unit = d.units.find((u) => u.id === log.unitId);
+    if (!unit) return;
+    const unitType = typeOf(unit);
+    const usualPrice = Number(unit.producePrice) || 0;
+    const hasSold = log.sold !== undefined && log.sold !== null && log.sold !== '';
+    const price = hasSold && Number(log.salePrice) > 0 ? Number(log.salePrice) : usualPrice;
+    if (price <= 0) return;
+    let entryRevenue = 0;
+    if (hasSold) {
+      trackedEntries += 1;
+      const qty = Number(log.sold) || 0;
+      if (qty > 0) {
+        entryRevenue = (qty / unitType.groupSize) * price;
+        actualRevenue += entryRevenue;
+      }
+    } else {
+      const qty = Number(log.produced) || 0;
+      if (qty > 0) {
+        entryRevenue = (qty / unitType.groupSize) * price;
+        estimatedRevenue += entryRevenue;
+      }
+    }
+    if (entryRevenue > 0) {
+      const key = log.date.slice(0, 7);
+      byMonthMap.set(key, (byMonthMap.get(key) || 0) + entryRevenue);
+    }
+  });
+
+  const revenue = actualRevenue + estimatedRevenue;
+  const directCost = directCashExpenses(d.expenses).reduce((s, e) => s + num(e.amount), 0) +
+    d.inventoryMoves.filter(isInventoryCostDeduction).reduce((s, m) => s + inventoryTransactionCost(m), 0);
+
+  return {
+    revenue,
+    actualRevenue,
+    estimatedRevenue,
+    trackedEntries,
+    totalEntries: d.logs.length,
+    directCost,
+    profit: revenue - directCost,
+    byMonth: [...byMonthMap.entries()].sort().map(([month, value]) => ({ month, value })),
+  };
+}
+
 export function buildFeedAnalysis(data, filters = {}) {
   const d = filterAnalyticsData(data, filters);
   const feedIds = new Set(d.inventory.filter((i) => String(i.category || '').toLowerCase() === 'feed').map((i) => i.id));
@@ -75,14 +149,21 @@ export function buildFeedAnalysis(data, filters = {}) {
     .filter((i) => feedIds.has(i.id))
     .map((item) => {
       const itemMoves = moves.filter((m) => m.itemId === item.id);
+      const consumedQty = itemMoves.filter((m) => m.transactionType === 'consumption').reduce((s, m) => s + num(m.quantity), 0);
+      const itemCost = itemMoves.filter(isInventoryCostDeduction).reduce((s, m) => s + inventoryTransactionCost(m), 0);
       return {
         id: item.id,
         name: item.name,
         unit: item.unit || 'units',
-        consumed: itemMoves.filter((m) => m.transactionType === 'consumption').reduce((s, m) => s + num(m.quantity), 0),
+        consumed: consumedQty,
         wastage: itemMoves.filter((m) => m.transactionType === 'wastage').reduce((s, m) => s + num(m.quantity), 0),
         purchased: itemMoves.filter((m) => m.transactionType === 'purchase').reduce((s, m) => s + num(m.quantity), 0),
-        cost: itemMoves.filter(isInventoryCostDeduction).reduce((s, m) => s + inventoryTransactionCost(m), 0),
+        cost: itemCost,
+        // Cost per unit actually consumed — this is what makes "Feed A
+        // costs more than Feed B" visible directly on this row, not
+        // something a farmer has to work out by dividing two other
+        // numbers themselves.
+        avgUnitCost: consumedQty > 0 ? itemCost / consumedQty : null,
       };
     });
 
@@ -112,6 +193,44 @@ export function buildFeedAnalysis(data, filters = {}) {
     feedCostPerProduction: produced ? feedCost / produced : 0,
     monthly,
   };
+}
+
+// Per-item, per-week consumption and cost — this is what actually makes
+// a substitution visible (e.g. running out of a cheaper feed partway
+// through the month and switching to a pricier one for the remaining
+// days), which a single period-wide total or average necessarily
+// flattens away. Not limited to feed — covers every category, since the
+// same "which specific item drove the cost, and when" question applies
+// to medicine, seed, or anything else tracked.
+export function buildItemCostTrend(data, filters = {}) {
+  const d = filterAnalyticsData(data, filters);
+  const deductions = d.inventoryMoves.filter(isInventoryCostDeduction);
+
+  // itemId -> weekKey -> { quantity, cost }
+  const byItem = new Map();
+  deductions.forEach((move) => {
+    const item = d.inventory.find((i) => i.id === move.itemId);
+    if (!item) return;
+    if (!byItem.has(item.id)) byItem.set(item.id, { id: item.id, name: item.name, unit: item.unit || 'units', weeks: new Map() });
+    const entry = byItem.get(item.id);
+    const key = weekKey(move.date);
+    const existing = entry.weeks.get(key) || { week: key, quantity: 0, cost: 0 };
+    existing.quantity += num(move.quantity);
+    existing.cost += inventoryTransactionCost(move);
+    entry.weeks.set(key, existing);
+  });
+
+  return [...byItem.values()]
+    .map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      unit: entry.unit,
+      weeks: [...entry.weeks.values()].sort((a, b) => (a.week < b.week ? -1 : 1)).map((w) => ({
+        ...w,
+        avgUnitCost: w.quantity > 0 ? w.cost / w.quantity : null,
+      })),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function buildExpenseAnalysis(data, filters = {}) {
@@ -194,6 +313,8 @@ export function buildComprehensiveAnalysis(data, filters = {}) {
   const feed = buildFeedAnalysis(filtered);
   const expenses = buildExpenseAnalysis(filtered);
   const production = buildProductionAnalysis(filtered);
+  const revenue = buildRevenueAnalysis(filtered);
+  const itemCostTrend = buildItemCostTrend(filtered);
   return {
     filters,
     summary: {
@@ -202,10 +323,16 @@ export function buildComprehensiveAnalysis(data, filters = {}) {
       feedConsumed: feed.consumption,
       feedCost: feed.feedCost,
       wastage: feed.wastage,
+      revenue: revenue.revenue,
+      actualRevenue: revenue.actualRevenue,
+      estimatedRevenue: revenue.estimatedRevenue,
+      profit: revenue.profit,
     },
     feed,
     expenses,
     production,
+    revenue,
+    itemCostTrend,
     rows: { logs: filtered.logs, expenses: filtered.expenses, inventoryMoves: filtered.inventoryMoves },
   };
 }
@@ -217,16 +344,30 @@ export function downloadComprehensiveAnalysis(data, filters = {}) {
   const add = (section, row) => rows.push({ section, ...row });
 
   add('Summary', { metric: 'Production', value: report.summary.production });
-  add('Summary', { metric: 'Expenses', value: report.summary.expenses });
+  add('Summary', { metric: 'Revenue (real + estimated)', value: report.summary.revenue });
+  add('Summary', { metric: 'Revenue — from tracked sales', value: report.summary.actualRevenue });
+  add('Summary', { metric: 'Revenue — estimated (untracked days)', value: report.summary.estimatedRevenue });
+  add('Summary', { metric: 'Farm costs', value: report.summary.expenses });
+  add('Summary', { metric: 'Profit (revenue minus farm costs)', value: report.summary.profit });
   add('Summary', { metric: 'Feed consumed', value: report.summary.feedConsumed });
   add('Summary', { metric: 'Feed cost', value: report.summary.feedCost });
   add('Summary', { metric: 'Feed wastage', value: report.summary.wastage });
 
   report.feed.rows.forEach((r) =>
-    add('Feed', { item: r.name, unit: r.unit, consumed: r.consumed, wastage: r.wastage, purchased: r.purchased, cost: r.cost }),
+    add('Feed', {
+      item: r.name, unit: r.unit, consumed: r.consumed, wastage: r.wastage, purchased: r.purchased,
+      cost: r.cost, avgUnitCost: r.avgUnitCost ?? '',
+    }),
   );
   report.expenses.byType.forEach((r) => add('Expense type', { type: r.type, amount: r.amount }));
   report.production.byMonth.forEach((r) => add('Production trend', { month: r.month, produced: r.value }));
+  report.itemCostTrend.forEach((item) =>
+    item.weeks.forEach((w) =>
+      add('Item cost by week', {
+        item: item.name, unit: item.unit, week: w.week, quantity: w.quantity, cost: w.cost, avgUnitCost: w.avgUnitCost ?? '',
+      }),
+    ),
+  );
 
   report.rows.logs.forEach((l) =>
     add('Production record', {

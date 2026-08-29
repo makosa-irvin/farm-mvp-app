@@ -48,7 +48,7 @@ test('primary touch targets meet the 44px minimum', async ({ page }) => {
   expect(homeBox.height).toBeGreaterThanOrEqual(44);
 
   await page.getByRole('button', { name: 'Log', exact: true }).click();
-  const saveButton = page.getByRole('button', { name: 'Save log entry' });
+  const saveButton = page.getByRole('button', { name: 'Save production' });
   const saveBox = await saveButton.boundingBox();
   expect(saveBox.height).toBeGreaterThanOrEqual(44);
 });

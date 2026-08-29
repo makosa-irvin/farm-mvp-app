@@ -100,13 +100,17 @@ describe('the fields the E2E suite depends on actually exist', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
-  it('DailyLogView lists feed items with name + balance in the option text', () => {
+  it('DailyLogView lists stock items with name + balance in the option text, once "Stock used" is expanded', () => {
     const units = [{ id: 'u1', name: 'Layer House A', type: 'eggs' }];
     const inventory = [{ id: 'i1', name: 'Layer Mash', category: 'Feed', unit: 'kg', openingStock: 150 }];
     render(<DailyLogView units={units} logs={[]} inventory={inventory} onAdd={noop} onUpdate={noop} onRemove={noop} goTo={noop} />);
     expect(screen.getByRole('button', { name: 'Layer House A' })).toBeInTheDocument();
+    // The stock-used section is collapsed by default (progressive
+    // disclosure — most entries don't need it), so the item dropdown
+    // isn't rendered until it's opened.
+    fireEvent.click(screen.getByText('+ Add stock used today'));
     expect(screen.getByRole('option', { name: 'Layer Mash · 150.0 kg' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save log entry' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save production' })).toBeInTheDocument();
   });
 });
 
@@ -255,7 +259,7 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
         onRemove={() => {}}
       />,
     );
-    fireEvent.click(screen.getByText('Layer House A'));
+    fireEvent.click(screen.getByText('Layer House A', { selector: 'div' }));
     expect(screen.getByText('This month so far')).toBeInTheDocument();
     expect(screen.getByText('Cost per unit')).toBeInTheDocument(); // no producePrice set on this unit, so cost/unit shows instead of profit
   });
@@ -273,7 +277,7 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
         onRemove={() => {}}
       />,
     );
-    fireEvent.click(screen.getByText('Layer House A'));
+    fireEvent.click(screen.getByText('Layer House A', { selector: 'div' }));
     expect(screen.getByText('Estimated surplus')).toBeInTheDocument();
   });
 
@@ -309,7 +313,7 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
         }}
       />,
     );
-    fireEvent.click(screen.getByText('Layer House A'));
+    fireEvent.click(screen.getByText('Layer House A', { selector: 'div' }));
     fireEvent.click(screen.getByText('See more results'));
     expect(navigated).toBe(true);
   });

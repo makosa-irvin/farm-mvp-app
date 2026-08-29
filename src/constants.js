@@ -13,6 +13,7 @@ import {
   Droplets,
   Wheat,
   Package,
+  ShoppingBasket,
 } from 'lucide-react';
 
 export const UNIT_TYPES = [
@@ -27,6 +28,25 @@ export const UNIT_TYPES = [
     groupLabel: 'unit',
     hasGrades: false,
     icon: Package,
+  },
+  {
+    value: 'trading',
+    label: 'Buy & resell (water, charcoal, firewood...)',
+    unitLabel: 'units',
+    groupSize: 1,
+    groupLabel: 'pack',
+    hasGrades: false,
+    icon: ShoppingBasket,
+    // Marks this type as farmer-configurable — see typeOf() in
+    // helpers.js, which merges a unit's own customUnitLabel/
+    // customGroupLabel/customGroupSize over these placeholder defaults
+    // when present. Every other type's package shape (a tray of 30
+    // eggs, a liter of milk) is fixed and universal; this one exists
+    // specifically because "buy in bulk, resell in a fixed package" has
+    // no single universal shape — a 20-liter jerrican of water and a
+    // 50kg bag of charcoal are both this same kind of business, with
+    // different real-world units.
+    configurable: true,
   },
 ];
 export const EXPENSE_CATEGORIES = [
