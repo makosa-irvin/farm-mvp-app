@@ -110,7 +110,7 @@ describe('the fields the E2E suite depends on actually exist', () => {
     // isn't rendered until it's opened.
     fireEvent.click(screen.getByText('+ Add stock used today'));
     expect(screen.getByRole('option', { name: 'Layer Mash · 150.0 kg' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save log entry' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save production' })).toBeInTheDocument();
   });
 });
 

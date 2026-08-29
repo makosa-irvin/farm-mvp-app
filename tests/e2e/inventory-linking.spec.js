@@ -47,7 +47,7 @@ test('recording a feed expense increases inventory, and logging feed use decreas
   const stockItemValue = await stockItemSelect.locator('option', { hasText: 'Layer Mash' }).getAttribute('value');
   await stockItemSelect.selectOption(stockItemValue);
   await page.getByLabel('Quantity used').fill('45');
-  await page.getByRole('button', { name: 'Save log entry' }).click();
+  await page.getByRole('button', { name: 'Save stock used' }).click();
 
   // --- Inventory should have decreased by exactly what was consumed ---
   await page.getByRole('button', { name: 'Stock', exact: true }).click();
@@ -79,7 +79,7 @@ test('deleting a feed expense whose stock is already in use is blocked, not sile
   const stockItemValue = await stockItemSelect.locator('option', { hasText: 'Layer Mash' }).getAttribute('value');
   await stockItemSelect.selectOption(stockItemValue);
   await page.getByLabel('Quantity used').fill('45');
-  await page.getByRole('button', { name: 'Save log entry' }).click();
+  await page.getByRole('button', { name: 'Save stock used' }).click();
 
   // Now try to delete the expense — 45kg of its 150kg is already consumed.
   await page.getByRole('button', { name: 'Expenses', exact: true }).click();
