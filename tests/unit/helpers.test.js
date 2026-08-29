@@ -193,3 +193,65 @@ describe('isInventoryCostDeduction — backward compatibility with older stored 
     expect(isInventoryCostDeduction({ transactionType: 'sale', type: 'out' })).toBe(false);
   });
 });
+
+describe('unitMetrics — real vs. estimated revenue', () => {
+  const unit = { id: 'u1', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 300 };
+
+  it('falls back to the produced-based estimate for a log that never tracked disposition (backward compatibility)', () => {
+    // A log written before "sold" existed at all — this must keep
+    // working exactly as it always has.
+    const logs = [{ unitId: 'u1', date: '2026-08-18', produced: 30, mortality: 0 }];
+    const metrics = unitMetrics(unit, logs, [], 'all', []);
+    expect(metrics.revenue).toBeCloseTo((30 / 30) * 300); // 1 tray's worth
+    expect(metrics.actualRevenue).toBe(0);
+    expect(metrics.estimatedRevenue).toBeCloseTo(300);
+  });
+
+  it('uses the real sold quantity, at the unit\'s usual price, when a log tracks disposition', () => {
+    const logs = [{ unitId: 'u1', date: '2026-08-18', produced: 30, sold: 25, mortality: 0 }];
+    const metrics = unitMetrics(unit, logs, [], 'all', []);
+    expect(metrics.revenue).toBeCloseTo((25 / 30) * 300);
+    expect(metrics.actualRevenue).toBeCloseTo(250);
+    expect(metrics.estimatedRevenue).toBe(0);
+  });
+
+  it('uses a log\'s own actual sale price when one was recorded, instead of the unit\'s usual price', () => {
+    // Sold at a discount this particular day.
+    const logs = [{ unitId: 'u1', date: '2026-08-18', produced: 30, sold: 30, salePrice: 250, mortality: 0 }];
+    const metrics = unitMetrics(unit, logs, [], 'all', []);
+    expect(metrics.revenue).toBeCloseTo((30 / 30) * 250);
+  });
+
+  it('blends real and estimated revenue correctly across a mix of tracked and untracked entries', () => {
+    const logs = [
+      { unitId: 'u1', date: '2026-08-17', produced: 30, mortality: 0 }, // untracked -> estimated
+      { unitId: 'u1', date: '2026-08-18', produced: 30, sold: 28, mortality: 0 }, // tracked -> real
+    ];
+    const metrics = unitMetrics(unit, logs, [], 'all', []);
+    expect(metrics.estimatedRevenue).toBeCloseTo(300); // day 1, 30/30 * 300
+    expect(metrics.actualRevenue).toBeCloseTo((28 / 30) * 300); // day 2, real sold qty
+    expect(metrics.revenue).toBeCloseTo(300 + (28 / 30) * 300);
+  });
+
+  it('a sold quantity of exactly 0 counts as real (nothing sold that day), not as untracked', () => {
+    // Distinguishing "sold nothing" from "didn't track it at all" matters:
+    // everything produced that day going unsold is real, useful
+    // information (e.g. all of it was lost), not a gap to estimate over.
+    const logs = [{ unitId: 'u1', date: '2026-08-18', produced: 30, sold: 0, loss: 30, mortality: 0 }];
+    const metrics = unitMetrics(unit, logs, [], 'all', []);
+    expect(metrics.revenue).toBe(0);
+    expect(metrics.actualRevenue).toBe(0);
+    expect(metrics.estimatedRevenue).toBe(0); // real (tracked as zero), not estimated
+  });
+
+  it('sums sold and usedInternally as their own totals, separate from loss', () => {
+    const logs = [
+      { unitId: 'u1', date: '2026-08-17', produced: 30, sold: 20, usedInternally: 5, loss: 2, mortality: 0 },
+      { unitId: 'u1', date: '2026-08-18', produced: 25, sold: 22, usedInternally: 1, loss: 1, mortality: 0 },
+    ];
+    const metrics = unitMetrics(unit, logs, [], 'all', []);
+    expect(metrics.sold).toBe(42);
+    expect(metrics.usedInternally).toBe(6);
+    expect(metrics.loss).toBe(3);
+  });
+});
