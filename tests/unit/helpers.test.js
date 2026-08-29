@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fmtMoney, fmtNum, currentCountFor, unitMetrics, unitCostBreakdown, dailyProductionTrend, typeOf } from '../../src/lib/helpers.js';
+import { fmtMoney, fmtNum, currentCountFor, unitMetrics, unitCostBreakdown, dailyProductionTrend, typeOf, getProduceBalance } from '../../src/lib/helpers.js';
 import { isInventoryCostDeduction } from '../../src/lib/inventoryLedger.js';
 
 describe('fmtMoney', () => {
@@ -302,5 +302,59 @@ describe('typeOf — farmer-configurable trading/resale packaging', () => {
     const result = typeOf({ type: 'trading', customUnitLabel: '   ', customGroupLabel: '  ' });
     expect(result.unitLabel).toBe('units');
     expect(result.groupLabel).toBe('pack');
+  });
+});
+
+describe('getProduceBalance — unsold produce carried forward', () => {
+  const unit = { id: 'u1' };
+
+  it('the exact scenario this was built for: 180 produced this week, only 30 sold so far', () => {
+    const logs = [
+      { unitId: 'u1', date: '2026-08-01', produced: 180, mortality: 0 },
+      { unitId: 'u1', date: '2026-08-02', sold: 30, mortality: 0 },
+    ];
+    expect(getProduceBalance(unit, logs)).toBe(150);
+  });
+
+  it('accounts for used-internally and spoiled/lost too, not just sold', () => {
+    const logs = [
+      { unitId: 'u1', date: '2026-08-01', produced: 100, mortality: 0 },
+      { unitId: 'u1', date: '2026-08-02', sold: 40, usedInternally: 10, loss: 5, mortality: 0 },
+    ];
+    expect(getProduceBalance(unit, logs)).toBe(45); // 100 - 40 - 10 - 5
+  });
+
+  it('accumulates correctly across many separate entries, not just the most recent one', () => {
+    const logs = [
+      { unitId: 'u1', date: '2026-08-01', produced: 50, mortality: 0 },
+      { unitId: 'u1', date: '2026-08-02', produced: 40, mortality: 0 },
+      { unitId: 'u1', date: '2026-08-05', sold: 30, mortality: 0 },
+    ];
+    expect(getProduceBalance(unit, logs)).toBe(60); // 90 produced - 30 sold
+  });
+
+  it('never goes negative, even if disposed quantities exceed what was ever produced (a data-entry mistake)', () => {
+    const logs = [{ unitId: 'u1', date: '2026-08-01', produced: 10, sold: 999, mortality: 0 }];
+    expect(getProduceBalance(unit, logs)).toBe(0);
+  });
+
+  it('respects an asOfDate cutoff, ignoring anything logged after it', () => {
+    const logs = [
+      { unitId: 'u1', date: '2026-08-01', produced: 100, mortality: 0 },
+      { unitId: 'u1', date: '2026-08-10', sold: 50, mortality: 0 }, // after the cutoff
+    ];
+    expect(getProduceBalance(unit, logs, '2026-08-05')).toBe(100);
+  });
+
+  it('ignores other units\' logs entirely', () => {
+    const logs = [
+      { unitId: 'u1', date: '2026-08-01', produced: 100, mortality: 0 },
+      { unitId: 'u2', date: '2026-08-01', produced: 500, mortality: 0 },
+    ];
+    expect(getProduceBalance(unit, logs)).toBe(100);
+  });
+
+  it('returns 0 for a unit with no logs at all', () => {
+    expect(getProduceBalance(unit, [])).toBe(0);
   });
 });

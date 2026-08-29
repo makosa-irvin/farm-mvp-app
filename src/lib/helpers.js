@@ -83,6 +83,27 @@ export function currentCountFor(unit, logs) {
   return Math.max(0, (unit.initialCount || 0) - mortality);
 }
 
+// The output-side equivalent of the input-inventory ledger balance: how
+// much of what a unit has produced is still unsold/unused, as of a given
+// date (defaults to "everything on record"). A farmer might get 180 eggs
+// this week and only sell 30 of them, selling the rest gradually over
+// the month — this is what lets them see "150 eggs still in hand" and
+// record a sale against that whenever they actually make one, rather
+// than needing to sell everything the same day it was produced. Clamped
+// to zero rather than allowed to go negative, matching the same
+// defensive pattern currentCountFor() above uses for mortality
+// potentially exceeding a recorded headcount — a data-entry mistake
+// shouldn't be able to show as a nonsensical negative stock of produce.
+export function getProduceBalance(unit, logs, asOfDate = null) {
+  const unitLogs = logs.filter((log) => log.unitId === unit.id && (!asOfDate || log.date <= asOfDate));
+  const produced = unitLogs.reduce((sum, log) => sum + (Number(log.produced) || 0), 0);
+  const disposed = unitLogs.reduce(
+    (sum, log) => sum + (Number(log.sold) || 0) + (Number(log.usedInternally) || 0) + (Number(log.loss) || 0),
+    0,
+  );
+  return Math.max(0, produced - disposed);
+}
+
 // Inventory purchases are cash expenses when bought, but inventory itself is
 // not an operating cost until it is consumed or lost. Therefore production
 // cost uses the ledger's weighted-average cost for every inventory deduction
