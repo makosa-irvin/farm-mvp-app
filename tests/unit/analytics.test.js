@@ -5,6 +5,8 @@ import {
   buildExpenseAnalysis,
   buildProductionAnalysis,
   buildYearOverYear,
+  buildRevenueAnalysis,
+  buildItemCostTrend,
 } from '../../src/lib/analytics.js';
 
 const data = {
@@ -145,5 +147,90 @@ describe('expense analysis — purchase double-counting regression', () => {
     };
     const result = buildExpenseAnalysis(purchaseData);
     expect(result.total).toBe(350);
+  });
+});
+
+describe('buildRevenueAnalysis — real vs. estimated revenue, farm-wide', () => {
+  const units = [{ id: 'u1', name: 'Layer House A', type: 'eggs', initialCount: 100, startDate: '2026-08-01', producePrice: 300 }];
+
+  it('uses real sold quantities when logs track disposition', () => {
+    const logs = [{ unitId: 'u1', date: '2026-08-01', produced: 30, sold: 28, mortality: 0 }];
+    const result = buildRevenueAnalysis({ units, logs, expenses: [], inventory: [], inventoryMoves: [] });
+    expect(result.actualRevenue).toBeCloseTo((28 / 30) * 300);
+    expect(result.estimatedRevenue).toBe(0);
+    expect(result.trackedEntries).toBe(1);
+  });
+
+  it('falls back to the produced-based estimate for entries that never tracked disposition', () => {
+    const logs = [{ unitId: 'u1', date: '2026-08-01', produced: 30, mortality: 0 }];
+    const result = buildRevenueAnalysis({ units, logs, expenses: [], inventory: [], inventoryMoves: [] });
+    expect(result.estimatedRevenue).toBeCloseTo(300);
+    expect(result.actualRevenue).toBe(0);
+    expect(result.trackedEntries).toBe(0);
+  });
+
+  it('computes profit as revenue minus the same accrual-correct direct cost used elsewhere', () => {
+    const logs = [{ unitId: 'u1', date: '2026-08-01', produced: 30, sold: 30, mortality: 0 }];
+    const expenses = [{ unitId: 'u1', date: '2026-08-01', amount: 100, inventoryItemId: null }];
+    const result = buildRevenueAnalysis({ units, logs, expenses, inventory: [], inventoryMoves: [] });
+    expect(result.directCost).toBe(100);
+    expect(result.profit).toBeCloseTo(300 - 100);
+  });
+});
+
+describe('buildItemCostTrend — surfacing a mid-period item substitution', () => {
+  it('shows the exact scenario this was built for: switching from a cheaper feed to a pricier one partway through a period', () => {
+    // Feed B (cheap, 60/kg) used through week 1, then it ran out and
+    // Feed A (pricier, 90/kg) covers the rest — the switch should be
+    // visible week by week, not flattened into one period average.
+    const inventory = [
+      { id: 'feedA', name: 'Feed A', unit: 'kg' },
+      { id: 'feedB', name: 'Feed B', unit: 'kg' },
+    ];
+    const inventoryMoves = [
+      { itemId: 'feedB', transactionType: 'consumption', direction: 'out', quantity: 20, unitCost: 60, date: '2026-08-03' },
+      { itemId: 'feedA', transactionType: 'consumption', direction: 'out', quantity: 20, unitCost: 90, date: '2026-08-17' },
+    ];
+    const trend = buildItemCostTrend({ units: [], logs: [], expenses: [], inventory, inventoryMoves });
+
+    const feedA = trend.find((t) => t.name === 'Feed A');
+    const feedB = trend.find((t) => t.name === 'Feed B');
+    expect(feedB.weeks[0].avgUnitCost).toBe(60);
+    expect(feedA.weeks[0].avgUnitCost).toBe(90);
+    // The two items' weeks don't overlap — confirming the substitution
+    // is a clean handoff, visible as two distinct, separate periods.
+    expect(feedB.weeks.some((w) => w.week === feedA.weeks[0].week)).toBe(false);
+  });
+
+  it('computes average unit cost per week, not just a period-wide blend', () => {
+    const inventory = [{ id: 'i1', name: 'Layer Mash', unit: 'kg' }];
+    const inventoryMoves = [
+      { itemId: 'i1', transactionType: 'consumption', direction: 'out', quantity: 10, unitCost: 50, date: '2026-08-03' },
+      { itemId: 'i1', transactionType: 'consumption', direction: 'out', quantity: 10, unitCost: 70, date: '2026-08-04' },
+    ];
+    const trend = buildItemCostTrend({ units: [], logs: [], expenses: [], inventory, inventoryMoves });
+    // Same week — should blend to the weighted average (50+70)/2 = 60.
+    expect(trend[0].weeks).toHaveLength(1);
+    expect(trend[0].weeks[0].avgUnitCost).toBe(60);
+  });
+
+  it('ignores a purchase transaction — this is about cost actually incurred (consumption/wastage), not stock arriving', () => {
+    const inventory = [{ id: 'i1', name: 'Layer Mash', unit: 'kg' }];
+    const inventoryMoves = [{ itemId: 'i1', transactionType: 'purchase', direction: 'in', quantity: 50, unitCost: 70, date: '2026-08-01' }];
+    const trend = buildItemCostTrend({ units: [], logs: [], expenses: [], inventory, inventoryMoves });
+    expect(trend).toEqual([]);
+  });
+
+  it('returns items sorted alphabetically by name', () => {
+    const inventory = [
+      { id: 'i1', name: 'Zinc Supplement', unit: 'kg' },
+      { id: 'i2', name: 'Antibiotic', unit: 'ml' },
+    ];
+    const inventoryMoves = [
+      { itemId: 'i1', transactionType: 'consumption', direction: 'out', quantity: 1, unitCost: 10, date: '2026-08-01' },
+      { itemId: 'i2', transactionType: 'consumption', direction: 'out', quantity: 1, unitCost: 10, date: '2026-08-01' },
+    ];
+    const trend = buildItemCostTrend({ units: [], logs: [], expenses: [], inventory, inventoryMoves });
+    expect(trend.map((t) => t.name)).toEqual(['Antibiotic', 'Zinc Supplement']);
   });
 });
