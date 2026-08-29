@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fmtMoney, fmtNum, currentCountFor, unitMetrics, unitCostBreakdown, dailyProductionTrend } from '../../src/lib/helpers.js';
+import { fmtMoney, fmtNum, currentCountFor, unitMetrics, unitCostBreakdown, dailyProductionTrend, typeOf } from '../../src/lib/helpers.js';
 import { isInventoryCostDeduction } from '../../src/lib/inventoryLedger.js';
 
 describe('fmtMoney', () => {
@@ -253,5 +253,54 @@ describe('unitMetrics — real vs. estimated revenue', () => {
     expect(metrics.sold).toBe(42);
     expect(metrics.usedInternally).toBe(6);
     expect(metrics.loss).toBe(3);
+  });
+});
+
+describe('typeOf — farmer-configurable trading/resale packaging', () => {
+  it('a normal type (eggs) ignores any custom fields — its packaging is fixed', () => {
+    const unit = { type: 'eggs', customUnitLabel: 'anything', customGroupLabel: 'anything', customGroupSize: 999 };
+    const result = typeOf(unit);
+    expect(result.unitLabel).toBe('eggs');
+    expect(result.groupLabel).toBe('tray');
+    expect(result.groupSize).toBe(30);
+  });
+
+  it('the trading type uses generic placeholder defaults when nothing has been customized', () => {
+    const unit = { type: 'trading' };
+    const result = typeOf(unit);
+    expect(result.unitLabel).toBe('units');
+    expect(result.groupLabel).toBe('pack');
+    expect(result.groupSize).toBe(1);
+  });
+
+  it('the exact scenario this was built for: a water reseller configures litres / jerrican / 20', () => {
+    const unit = { type: 'trading', customUnitLabel: 'litres', customGroupLabel: 'jerrican', customGroupSize: 20, producePrice: 10 };
+    const result = typeOf(unit);
+    expect(result.unitLabel).toBe('litres');
+    expect(result.groupLabel).toBe('jerrican');
+    expect(result.groupSize).toBe(20);
+  });
+
+  it('falls back to the placeholder default for any one field left uncustomized', () => {
+    const unit = { type: 'trading', customUnitLabel: 'kg' }; // group label/size left blank
+    const result = typeOf(unit);
+    expect(result.unitLabel).toBe('kg');
+    expect(result.groupLabel).toBe('pack');
+    expect(result.groupSize).toBe(1);
+  });
+
+  it('ignores a non-positive or non-numeric custom group size, rather than producing a broken 0 or NaN', () => {
+    const zero = typeOf({ type: 'trading', customGroupSize: 0 });
+    const negative = typeOf({ type: 'trading', customGroupSize: -5 });
+    const notANumber = typeOf({ type: 'trading', customGroupSize: 'abc' });
+    expect(zero.groupSize).toBe(1);
+    expect(negative.groupSize).toBe(1);
+    expect(notANumber.groupSize).toBe(1);
+  });
+
+  it('trims whitespace-only custom labels back to the placeholder default', () => {
+    const result = typeOf({ type: 'trading', customUnitLabel: '   ', customGroupLabel: '  ' });
+    expect(result.unitLabel).toBe('units');
+    expect(result.groupLabel).toBe('pack');
   });
 });

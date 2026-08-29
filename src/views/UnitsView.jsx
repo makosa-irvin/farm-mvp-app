@@ -21,6 +21,9 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
   const [initialCount, setInitialCount] = useState('');
   const [producePrice, setProducePrice] = useState('');
   const [startDate, setStartDate] = useState(todayISO());
+  const [customUnitLabel, setCustomUnitLabel] = useState('');
+  const [customGroupLabel, setCustomGroupLabel] = useState('');
+  const [customGroupSize, setCustomGroupSize] = useState('');
   const [editingId, setEditingId] = useState(null);
   // Which group's "this month so far" snapshot is expanded in the list
   // below. Only one at a time.
@@ -32,6 +35,9 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
     setInitialCount('');
     setProducePrice('');
     setStartDate(todayISO());
+    setCustomUnitLabel('');
+    setCustomGroupLabel('');
+    setCustomGroupSize('');
     setEditingId(null);
   }
 
@@ -42,6 +48,9 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
     setInitialCount(String(unit.initialCount || 0));
     setProducePrice(String(unit.producePrice || 0));
     setStartDate(unit.startDate || todayISO());
+    setCustomUnitLabel(unit.customUnitLabel || '');
+    setCustomGroupLabel(unit.customGroupLabel || '');
+    setCustomGroupSize(unit.customGroupSize ? String(unit.customGroupSize) : '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -55,6 +64,14 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
       initialCount: Number(initialCount) || 0,
       producePrice: Number(producePrice) || 0,
       startDate,
+      // Only meaningful for the 'trading' type — see typeOf() in
+      // helpers.js, which ignores these entirely for every other type.
+      // Saved regardless of the selected type so switching a unit's
+      // type back to 'trading' later doesn't lose whatever was
+      // previously configured.
+      customUnitLabel: customUnitLabel.trim() || null,
+      customGroupLabel: customGroupLabel.trim() || null,
+      customGroupSize: Number(customGroupSize) || null,
       createdAt: editingId ? units.find((u) => u.id === editingId)?.createdAt || Date.now() : Date.now(),
     };
     if (editingId) onUpdate(record);
@@ -116,12 +133,61 @@ export default function UnitsView({ units, logs, expenses = [], inventoryMoves =
           </div>
         </div>
 
+        {type === 'trading' && (
+          <div className="rounded-xl p-3.5 space-y-3" style={{ background: 'var(--surface-alt)', border: '1px solid var(--line)' }}>
+            <div className="text-xs" style={{ color: 'var(--ink-soft)' }}>
+              You buy in bulk and resell in fixed packages — tell us the shape of that package. For 20-liter jerricans of
+              water sold at KSh 10 each: measured in "litres", package called "jerrican", 20 per package.
+            </div>
+            <div className="grid grid-cols-2 gap-3.5">
+              <div>
+                <FieldLabel>What do you measure it in?</FieldLabel>
+                <input
+                  type="text"
+                  value={customUnitLabel}
+                  onChange={(e) => setCustomUnitLabel(e.target.value)}
+                  placeholder="e.g. litres, kg"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <FieldLabel>What's the package called?</FieldLabel>
+                <input
+                  type="text"
+                  value={customGroupLabel}
+                  onChange={(e) => setCustomGroupLabel(e.target.value)}
+                  placeholder="e.g. jerrican, bag"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+            <div>
+              <FieldLabel>How many {customUnitLabel.trim() || 'units'} per {customGroupLabel.trim() || 'package'}?</FieldLabel>
+              <input
+                type="number"
+                min="1"
+                value={customGroupSize}
+                onChange={(e) => setCustomGroupSize(e.target.value)}
+                placeholder="e.g. 20"
+                className={inputClass}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+        )}
+
         <div>
           {/* Label follows the selected type's natural selling unit (tray
               for eggs, liter for milk, etc.) — see UNIT_TYPES in
-              constants.js for where groupLabel comes from. */}
+              constants.js for where groupLabel comes from. For the
+              trading type, uses whatever the farmer just typed above
+              instead of the generic "pack" placeholder, so this label
+              reflects their own packaging as they configure it, not
+              only after saving. */}
           <FieldLabel>
-            How much do you usually sell one {UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'} for? (KSh)
+            How much do you usually sell one {type === 'trading' ? customGroupLabel.trim() || 'package' : UNIT_TYPES.find((t) => t.value === type)?.groupLabel || 'unit'} for? (KSh)
           </FieldLabel>
           <input
             type="number"

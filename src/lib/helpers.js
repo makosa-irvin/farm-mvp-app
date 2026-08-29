@@ -10,7 +10,15 @@ export function todayISO() {
 }
 
 export function typeOf(unit) {
-  return UNIT_TYPES.find((type) => type.value === unit.type) || UNIT_TYPES[3];
+  const base = UNIT_TYPES.find((type) => type.value === unit.type) || UNIT_TYPES[3];
+  if (!base.configurable) return base;
+  const groupSize = Number(unit.customGroupSize);
+  return {
+    ...base,
+    unitLabel: unit.customUnitLabel?.trim() || base.unitLabel,
+    groupLabel: unit.customGroupLabel?.trim() || base.groupLabel,
+    groupSize: groupSize > 0 ? groupSize : base.groupSize,
+  };
 }
 
 export function fmtMoney(value, decimals = 0) {
