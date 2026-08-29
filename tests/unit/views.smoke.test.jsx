@@ -259,7 +259,7 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
         onRemove={() => {}}
       />,
     );
-    fireEvent.click(screen.getByText('Layer House A'));
+    fireEvent.click(screen.getByText('Layer House A', { selector: 'div' }));
     expect(screen.getByText('This month so far')).toBeInTheDocument();
     expect(screen.getByText('Cost per unit')).toBeInTheDocument(); // no producePrice set on this unit, so cost/unit shows instead of profit
   });
@@ -277,7 +277,7 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
         onRemove={() => {}}
       />,
     );
-    fireEvent.click(screen.getByText('Layer House A'));
+    fireEvent.click(screen.getByText('Layer House A', { selector: 'div' }));
     expect(screen.getByText('Estimated surplus')).toBeInTheDocument();
   });
 
@@ -313,7 +313,7 @@ describe('UnitsView — expandable mini-analytics snapshot', () => {
         }}
       />,
     );
-    fireEvent.click(screen.getByText('Layer House A'));
+    fireEvent.click(screen.getByText('Layer House A', { selector: 'div' }));
     fireEvent.click(screen.getByText('See more results'));
     expect(navigated).toBe(true);
   });
